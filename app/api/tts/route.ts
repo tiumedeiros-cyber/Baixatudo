@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getSessionUser } from '@/lib/auth';
 import { rateLimit } from '@/lib/rate-limit';
-import { synthesizeToStorage, TTS_VOICES } from '@/lib/tts';
+import { synthesizeToStorage, TTS_VOICES, CATALOG } from '@/lib/tts';
+import { VOICES } from '@/lib/catalog/voices';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -24,6 +25,43 @@ export async function GET(request: Request) {
       : engine === 'elevenlabs'
         ? ['Rachel', 'Bella', 'Adam', 'Antoni']
         : TTS_VOICES.map((v) => v.id);
+
+  // Teste de TODAS as vozes do catálogo (uma palavra em cada sotaque).
+  if (url.searchParams.get('probe') === 'catalog') {
+    const results: { id: string; label: string; lang: string; ok: boolean; ms: number; bytes?: number; detail?: string }[] = [];
+    for (const voice of VOICES) {
+      const t0 = Date.now();
+      try {
+        const res = await fetch(
+          `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&ttsspeed=1&tl=${encodeURIComponent(voice.lang)}&q=${encodeURIComponent('olá')}`,
+          {
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36',
+              Referer: 'https://translate.google.com/',
+            },
+            cache: 'no-store',
+            signal: AbortSignal.timeout(7_000),
+          },
+        );
+        const buf = Buffer.from(await res.arrayBuffer());
+        results.push({
+          id: voice.id,
+          label: voice.label,
+          lang: voice.lang,
+          ok: res.ok && buf.length > 1000,
+          ms: Date.now() - t0,
+          bytes: buf.length,
+          detail: res.ok ? undefined : `HTTP ${res.status}`,
+        });
+      } catch (err) {
+        results.push({ id: voice.id, label: voice.label, lang: voice.lang, ok: false, ms: Date.now() - t0, detail: (err instanceof Error ? err.message : 'erro').slice(0, 120) });
+      }
+    }
+    return NextResponse.json(
+      { ok: results.every((r) => r.ok), total: results.length, falhas: results.filter((r) => !r.ok), results },
+      { headers: { 'cache-control': 'no-store' } },
+    );
+  }
 
   if (url.searchParams.get('probe') === '1') {
     const results: Record<string, { ok: boolean; ms: number; detail?: string }> = {};
@@ -82,7 +120,8 @@ export async function GET(request: Request) {
       engine,
       serverVoices: engine === 'edge' ? TTS_VOICES.filter((v) => v.lang === 'pt-BR').map((v) => v.id) : voices,
       voices: engine === 'edge' ? TTS_VOICES : [],
-      languages: ['pt-BR', 'en-US', 'es-ES', 'fr-FR', 'de-DE', 'it-IT'],
+      catalog: CATALOG,
+      languages: Array.from(new Set(VOICES.map((v) => v.lang))),
     },
     { headers: { 'cache-control': 'no-store' } },
   );
@@ -95,7 +134,7 @@ export async function POST(request: Request) {
   const limit = rateLimit(`tts:${user.id}`, 10, 60_000);
   if (!limit.ok) return NextResponse.json({ error: 'Aguarde um minuto entre narrações.' }, { status: 429 });
 
-  let body: { text?: string; lang?: string; voice?: string; projectId?: string };
+  let body: { text?: string; lang?: string; voice?: string; projectId?: string; speed?: string };
   try {
     body = await request.json();
   } catch {
@@ -113,6 +152,7 @@ export async function POST(request: Request) {
       text,
       lang: body.lang,
       voice: body.voice,
+      speed: body.speed,
     });
     return NextResponse.json(result);
   } catch (err) {

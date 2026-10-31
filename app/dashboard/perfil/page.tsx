@@ -1,5 +1,5 @@
 import { KeyRound, Mail, ShieldCheck, UserRound } from 'lucide-react';
-import { requireUser } from '@/lib/auth';
+import { isAdminEmail, requireUser } from '@/lib/auth';
 import { Badge, Button, Card, Field, Input } from '@/components/ui';
 import { changePassword, updateProfile } from '@/app/dashboard/actions';
 import { formatDate } from '@/lib/utils';
@@ -27,7 +27,7 @@ export default async function ProfilePage() {
               <p className="flex items-center gap-1.5 text-xs text-slate-400"><Mail className="h-3 w-3" /> {user!.email}</p>
             </div>
             <div className="ml-auto">
-              <Badge tone={profile?.role === 'admin' ? 'brand' : 'neutral'}>{profile?.role ?? 'client'}</Badge>
+              <Badge tone={profile?.role === 'admin' || isAdminEmail(user?.email) ? 'brand' : 'neutral'}>{profile?.role === 'admin' || isAdminEmail(user?.email) ? 'admin' : (profile?.role ?? 'client')}</Badge>
             </div>
           </div>
 

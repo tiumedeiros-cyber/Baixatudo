@@ -35,7 +35,7 @@ export async function POST(request: Request) {
   const admin = createAdminClient();
   const { data: record } = await admin
     .from('es_downloads')
-    .select('id,user_id,result,service,media_type')
+    .select('id,user_id,result,service,media_type,source_url')
     .eq('id', id)
     .maybeSingle();
 
@@ -59,6 +59,7 @@ export async function POST(request: Request) {
     tunnels: Array.isArray(result.tunnel) ? result.tunnel : [],
     service: record.service,
     downloadId: id,
+    sourceUrl: (record as { source_url?: string | null }).source_url ?? null,
   });
 
   if (!outcome.ok) {

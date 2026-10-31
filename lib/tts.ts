@@ -1,4 +1,5 @@
 import { SUPABASE_URL } from '@/lib/env';
+import { VOICES, voiceById } from '@/lib/catalog/voices';
 import { createAdminClient } from '@/lib/supabase/admin';
 
 const MAX_CHUNK = 190;
@@ -74,6 +75,9 @@ async function edgeTts(text: string, lang: string, voice?: string) {
   return buffer;
 }
 
+/** Catálogo público de vozes (usado pela API e pela interface). */
+export const CATALOG = VOICES;
+
 export const TTS_VOICES: { id: string; label: string; lang: string }[] = [
   { id: 'pt-BR-FranciscaNeural', label: 'Francisca · feminina (Brasil)', lang: 'pt-BR' },
   { id: 'pt-BR-AntonioNeural', label: 'Antônio · masculina (Brasil)', lang: 'pt-BR' },
@@ -86,8 +90,9 @@ export const TTS_VOICES: { id: string; label: string; lang: string }[] = [
   { id: 'it-IT-ElsaNeural', label: 'Elsa · feminina (italiano)', lang: 'it-IT' },
 ];
 
-async function googleTts(text: string, lang: string) {
-  const url = `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=${encodeURIComponent(lang)}&q=${encodeURIComponent(text)}`;
+async function googleTts(text: string, lang: string, speed?: string) {
+  const rate = speed === '0.24' || speed === 'lenta' ? '0.24' : '1';
+  const url = `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&ttsspeed=${rate}&tl=${encodeURIComponent(lang)}&q=${encodeURIComponent(text)}`;
   const res = await fetch(url, {
     headers: {
       'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36',
@@ -128,12 +133,13 @@ async function streamElementsTts(text: string, lang: string) {
 // Se a voz neural falhar neste ambiente, não insistimos em cada frase.
 let edgeCooldownUntil = 0;
 
-async function freeTts(text: string, lang: string, voice?: string) {
+async function freeTts(text: string, lang: string, voice?: string, speed?: string) {
   const warnings: string[] = [];
 
   // 1) Google translate_tts: resposta em ~120 ms e sempre disponível em produção.
+  //    O catálogo escolhe o sotaque (lang) e o ritmo.
   try {
-    return { audio: await withTimeout(googleTts(text, lang), 10_000, 'voz Google'), engine: 'google', warnings };
+    return { audio: await withTimeout(googleTts(text, lang, speed), 10_000, 'voz Google'), engine: 'google', warnings };
   } catch (err) {
     warnings.push(`voz Google indisponível (${err instanceof Error ? err.message : 'erro'})`);
   }
@@ -229,8 +235,14 @@ export async function synthesizeToStorage(opts: {
   text: string;
   lang?: string;
   voice?: string;
+  speed?: string;
 }): Promise<{ segments: TtsSegment[]; engine: string; warnings: string[] }> {
-  const lang = opts.lang || 'pt-BR';
+  // voz do catálogo (g:pt-BR etc.) define idioma e ritmo
+  const catalogVoice = opts.voice && (opts.voice.startsWith('g:') || VOICES.some((v) => v.id === opts.voice || v.lang === opts.voice))
+    ? voiceById(opts.voice)
+    : null;
+  const lang = catalogVoice?.lang || opts.lang || 'pt-BR';
+  const speed = catalogVoice ? undefined : opts.speed;
   const openAiVoices = ['alloy', 'echo', 'fable', 'onyx', 'nova', 'shimmer', 'coral', 'sage'];
   const voice = opts.voice || 'nova';
   const chunks = chunkText(opts.text);
@@ -251,7 +263,7 @@ export async function synthesizeToStorage(opts: {
       } else if (process.env.OPENAI_API_KEY) {
         audio = await openAiTts(chunk, openAiVoices.includes(voice) ? voice : 'nova', process.env.OPENAI_API_KEY);
       } else {
-        const free = await freeTts(chunk, lang, opts.voice);
+        const free = await freeTts(chunk, lang, catalogVoice?.id ?? opts.voice, speed);
         audio = free.audio;
         usedEngine = free.engine;
         if (free.warnings.length) warnings.push(...free.warnings);

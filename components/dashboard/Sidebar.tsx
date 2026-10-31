@@ -2,6 +2,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
+  Bot,
   Download,
   FolderKanban,
   Gauge,
@@ -17,6 +18,7 @@ const LINKS = [
   { href: '/dashboard', label: 'Visão geral', icon: Gauge },
   { href: '/dashboard/projetos', label: 'Meus projetos', icon: FolderKanban },
   { href: '/dashboard/arquivos', label: 'Meus arquivos', icon: ImageIcon },
+  { href: '/dashboard/avatares', label: 'Avatares falantes', icon: Bot, badge: 'novo' },
   { href: '/dashboard/baixa-tudo', label: 'Baixa Tudo', icon: Download, badge: 'novo' },
   { href: '/dashboard/assinatura', label: 'Assinatura', icon: CreditCard },
   { href: '/dashboard/perfil', label: 'Perfil', icon: UserRound },

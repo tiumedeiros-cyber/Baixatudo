@@ -3,17 +3,11 @@ import { useEffect, useRef, useState } from 'react';
 import { AudioLines, Download, Loader2, Mic, Play, Square, Subtitles, Wand2 } from 'lucide-react';
 import { useStudio } from './store';
 import { uid } from '@/lib/utils';
+import { VOICES, DEFAULT_VOICE, RATES } from '@/lib/catalog/voices';
 
 type Segment = { url: string; text: string; duration: number };
 
-const LANGS = [
-  { code: 'pt-BR', label: 'Português (Brasil)' },
-  { code: 'en-US', label: 'Inglês (EUA)' },
-  { code: 'es-ES', label: 'Espanhol' },
-  { code: 'fr-FR', label: 'Francês' },
-  { code: 'de-DE', label: 'Alemão' },
-  { code: 'it-IT', label: 'Italiano' },
-];
+const LOCALES = Array.from(new Set(VOICES.map((v) => v.locale)));
 
 export function TtsPanel({ projectId, onAdded }: { projectId: string; onAdded?: () => void }) {
   const [text, setText] = useState('Bem-vindo ao Editor Studio. Edite vídeos em minutos, direto no navegador.');
@@ -29,7 +23,8 @@ export function TtsPanel({ projectId, onAdded }: { projectId: string; onAdded?: 
   const [voiceLabels, setVoiceLabels] = useState<Record<string, string>>({});
   const [voiceOk, setVoiceOk] = useState<boolean | null>(null);
   const [testing, setTesting] = useState(false);
-  const [serverVoice, setServerVoice] = useState('');
+  const [serverVoice, setServerVoice] = useState(DEFAULT_VOICE);
+  const [rate, setRate] = useState<'normal' | 'lenta'>('normal');
   const [transcript, setTranscript] = useState('');
   const recognitionRef = useRef<{ stop: () => void } | null>(null);
 
@@ -43,7 +38,7 @@ export function TtsPanel({ projectId, onAdded }: { projectId: string; onAdded?: 
         setServerEngine(data.engine ?? null);
         setServerVoices(data.serverVoices ?? []);
         setVoiceLabels(Object.fromEntries((data.voices ?? []).map((v) => [v.id, v.label])));
-        setServerVoice(data.serverVoices?.[0] ?? '');
+        setServerVoice((prev) => prev || DEFAULT_VOICE);
       })
       .catch(() => undefined);
     return () => {
@@ -103,7 +98,7 @@ export function TtsPanel({ projectId, onAdded }: { projectId: string; onAdded?: 
       const res = await fetch('/api/tts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text, lang, projectId, voice: serverVoice || lang }),
+        body: JSON.stringify({ text, lang, projectId, voice: serverVoice, speed: rate }),
       });
       const data = (await res.json()) as { segments?: Segment[]; error?: string; engine?: string };
       if (!res.ok || !data.segments) throw new Error(data.error || 'Falha na geração');
@@ -222,22 +217,31 @@ export function TtsPanel({ projectId, onAdded }: { projectId: string; onAdded?: 
           maxLength={5000}
           className="mt-2 w-full resize-none rounded-lg border border-white/10 bg-black/30 p-2 text-[11px] text-white outline-none focus:border-brand-400/50"
         />
-        <div className="mt-2 grid grid-cols-2 gap-2">
-          <select value={lang} onChange={(e) => setLang(e.target.value)} className="rounded-lg border border-white/10 bg-ink-900 px-1.5 py-1 text-[10px] text-white outline-none">
-            {LANGS.map((l) => (
-              <option key={l.code} value={l.code}>{l.label}</option>
+        <div className="mt-2 grid grid-cols-1 gap-2">
+          <select
+            value={serverVoice}
+            onChange={(e) => {
+              setServerVoice(e.target.value);
+              const v = VOICES.find((x) => x.id === e.target.value);
+              if (v) setLang(v.lang);
+            }}
+            className="w-full rounded-lg border border-white/10 bg-ink-900 px-1.5 py-1 text-[10px] text-white outline-none"
+          >
+            {LOCALES.map((locale) => (
+              <optgroup key={locale} label={locale}>
+                {VOICES.filter((v) => v.locale === locale).map((v) => (
+                  <option key={v.id} value={v.id}>{v.label} — {v.hint}</option>
+                ))}
+              </optgroup>
             ))}
           </select>
-          <select value={serverVoice} onChange={(e) => setServerVoice(e.target.value)} className="rounded-lg border border-white/10 bg-ink-900 px-1.5 py-1 text-[10px] text-white outline-none">
-            {serverVoices.length ? (
-              serverVoices.map((v) => (
-                <option key={v} value={v}>{voiceLabels[v] ?? v}</option>
-              ))
-            ) : (
-              <option value="">Voz do servidor</option>
-            )}
+          <select value={rate} onChange={(e) => setRate(e.target.value as 'normal' | 'lenta')} className="w-full rounded-lg border border-white/10 bg-ink-900 px-1.5 py-1 text-[10px] text-white outline-none">
+            {RATES.map((r) => (
+              <option key={r.id} value={r.id}>Ritmo {r.label.toLowerCase()}</option>
+            ))}
           </select>
         </div>
+        <p className="mt-1 text-[9px] text-slate-500">{VOICES.length} vozes reais disponíveis · {LOCALES.length} idiomas/sotaques</p>
         <div className="mt-2 flex gap-1.5">
           <button onClick={previewBrowser} className="flex flex-1 items-center justify-center gap-1 rounded-lg border border-white/10 bg-white/5 py-1.5 text-[10px] font-semibold text-slate-200 hover:bg-white/10">
             <Play className="h-3 w-3" /> Ouvir prévia

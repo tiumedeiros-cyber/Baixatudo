@@ -1,4 +1,5 @@
 'use client';
+import { AVATARS } from '@/lib/catalog/avatars';
 import { useMemo, useState } from 'react';
 import {
   AudioLines,
@@ -11,6 +12,7 @@ import {
   Palette as PaletteIcon,
   RotateCw,
   Sliders,
+  UserRound,
   Sparkles,
   Trash2,
   Type,
@@ -50,9 +52,10 @@ const STICKERS = [
   ['frame', 'Moldura'],
 ] as const;
 
-type SectionId = 'transform' | 'style' | 'text' | 'object3d' | 'generator' | 'sticker' | 'audio' | 'time' | 'transitions' | 'keyframes';
+type SectionId = 'transform' | 'style' | 'text' | 'object3d' | 'generator' | 'sticker' | 'avatar' | 'audio' | 'time' | 'transitions' | 'keyframes';
 
 const SECTIONS: { id: SectionId; label: string; icon: typeof RotateCw }[] = [
+  { id: 'avatar', label: 'Avatar', icon: UserRound },
   { id: 'transform', label: 'Transformar', icon: RotateCw },
   { id: 'style', label: 'Cor & sombra', icon: Palette },
   { id: 'text', label: 'Texto', icon: Type },
@@ -142,6 +145,10 @@ export function Inspector() {
   const [section, setSection] = useState<SectionId>('transform');
   const clip = useStudio((s) => s.clips.find((c) => c.id === s.selectedId));
   const playhead = useStudio((s) => s.playhead);
+  const clips = useStudio((s) => s.clips);
+  const [cutType, setCutType] = useState<TransitionType>('fade');
+  const [cutDuration, setCutDuration] = useState(0.5);
+  const [justApplied, setJustApplied] = useState<string | null>(null);
 
   // seletores primitivos: referência estável (evita loop de render no React 19)
   const projectName = useStudio((s) => s.name);
@@ -213,6 +220,7 @@ export function Inspector() {
     if (s.id === 'generator') return isGenerator;
     if (s.id === 'object3d') return is3d && Boolean(clip.object3d);
     if (s.id === 'sticker') return isSticker;
+    if (s.id === 'avatar') return clip.kind === 'avatar';
     if (s.id === 'style') return !isAudio && !isText;
     if (s.id === 'transform') return !isAudio;
     return true;
@@ -527,6 +535,14 @@ export function Inspector() {
             </label>
             <Slider label="Fade in" value={clip.fadeIn} min={0} max={3} step={0.05} suffix="s" onChange={(v) => patch({ fadeIn: v })} />
             <Slider label="Fade out" value={clip.fadeOut} min={0} max={3} step={0.05} suffix="s" onChange={(v) => patch({ fadeOut: v })} />
+            {clip.kind === 'video' ? (
+              <button
+                onClick={() => useStudio.getState().extractAudio(clip.id)}
+                className="w-full rounded-lg border border-brand-400/40 bg-brand-500/15 py-1.5 text-[10px] font-semibold text-brand-100 hover:bg-brand-500/25"
+              >
+                Extrair áudio para uma trilha nova
+              </button>
+            ) : null}
           </Card>
         ) : null}
 
@@ -543,8 +559,92 @@ export function Inspector() {
           </Card>
         ) : null}
 
+        {current === 'avatar' && clip.kind === 'avatar' ? (
+          <Card title="Avatar falante" icon={<UserRound className="h-3 w-3" />}>
+            <div className="grid grid-cols-3 gap-1.5">
+              {AVATARS.map((a) => (
+                <button
+                  key={a.id}
+                  onClick={() =>
+                    patch({ avatar: { preset: a.id, mouth: clip.avatar?.mouth ?? [], intensity: clip.avatar?.intensity ?? 1 }, name: `Avatar ${a.name}` })
+                  }
+                  className={cn(
+                    'rounded-lg border px-1 py-1 text-[9px] font-semibold transition',
+                    (clip.avatar?.preset ?? 'ana') === a.id
+                      ? 'border-brand-400 bg-brand-500/20 text-white'
+                      : 'border-white/10 text-slate-300 hover:border-brand-400/40',
+                  )}
+                >
+                  {a.name}
+                </button>
+              ))}
+            </div>
+            <Slider
+              label="Abertura da boca"
+              value={Math.round((clip.avatar?.intensity ?? 1) * 100)}
+              min={20}
+              max={180}
+              suffix="%"
+              onChange={(v) => patch({ avatar: { preset: clip.avatar?.preset ?? 'ana', mouth: clip.avatar?.mouth ?? [], intensity: v / 100 } })}
+            />
+            <p className="text-[9px] leading-relaxed text-slate-500">
+              {clip.avatar?.mouth?.length
+                ? 'Boca sincronizada com a narração deste projeto.'
+                : 'Sem áudio vinculado: a boca anima sozinha. Use “Avatares falantes” no painel para gerar com narração sincronizada.'}
+            </p>
+          </Card>
+        ) : null}
+
         {current === 'transitions' ? (
           <Card title="Transições" icon={<Sliders className="h-3 w-3" />}>
+            {(() => {
+              const sameTrack = clips.filter((c) => c.trackId === clip.trackId && c.id !== clip.id);
+              const next = sameTrack.find((c) => Math.abs(c.start - (clip.start + clip.duration)) < 0.25);
+              const prev = sameTrack.find((c) => Math.abs(c.start + c.duration - clip.start) < 0.25);
+              const neighbor = next ?? prev;
+              if (!neighbor) return null;
+              return (
+                <div className="rounded-lg border border-amber-400/30 bg-amber-500/10 p-2">
+                  <p className="text-[10px] font-semibold text-amber-200">Transição no corte</p>
+                  <p className="mt-0.5 text-[9px] leading-snug text-amber-100/70">
+                    {next ? 'Aplicar entre este clipe e o próximo' : 'Aplicar entre o clipe anterior e este'}
+                  </p>
+                  <div className="mt-1.5 grid grid-cols-2 gap-1.5">
+                    <select
+                      value={cutType}
+                      onChange={(e) => setCutType(e.target.value as TransitionType)}
+                      className="w-full rounded-lg border border-white/10 bg-ink-850 px-1.5 py-1 text-[10px] text-white outline-none"
+                    >
+                      {TRANSITIONS.filter((t) => t !== 'none').map((t) => (
+                        <option key={t} value={t}>{t}</option>
+                      ))}
+                    </select>
+                    <input
+                      type="number"
+                      min={0.1}
+                      max={2}
+                      step={0.1}
+                      value={cutDuration}
+                      onChange={(e) => setCutDuration(Number(e.target.value) || 0.5)}
+                      className="w-full rounded-lg border border-white/10 bg-black/30 px-1.5 py-1 text-[10px] text-white outline-none"
+                    />
+                  </div>
+                  <button
+                    onClick={() => {
+                      const ok = useStudio.getState().applyCutTransition(clip.id, cutType, cutDuration);
+                      if (ok) {
+                        setJustApplied('Transição aplicada no corte.');
+                        setTimeout(() => setJustApplied(null), 2500);
+                      }
+                    }}
+                    className="mt-1.5 w-full rounded-lg bg-amber-500/90 py-1 text-[10px] font-bold text-black hover:bg-amber-400"
+                  >
+                    Aplicar no corte
+                  </button>
+                  {justApplied ? <p className="mt-1 text-[9px] text-emerald-300">{justApplied}</p> : null}
+                </div>
+              );
+            })()}
             <div className="grid grid-cols-2 gap-2">
               <Row label="Entrada">
                 <select

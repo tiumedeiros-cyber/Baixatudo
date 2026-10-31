@@ -17,7 +17,7 @@ function syncMedia(time: number, playing: boolean) {
     const active = time >= clip.start && time < clip.start + clip.duration;
 
     if (clip.kind === 'video') {
-      const el = media.getVideo(clip.src);
+      const el = media.videoFor(clip);
       try {
         audioEngine.attach(el, muted ? 0 : clip.volume);
         el.muted = false;
@@ -41,7 +41,7 @@ function syncMedia(time: number, playing: boolean) {
         el.pause();
       }
     } else if (clip.kind === 'audio') {
-      const el = media.getAudio(clip.src);
+      const el = media.audioFor(clip);
       try {
         audioEngine.attach(el, muted ? 0 : clip.volume);
         el.muted = false;
@@ -99,6 +99,7 @@ export function Preview() {
   useEffect(() => {
     let raf = 0;
     let last = performance.now();
+    let lastPrune = 0;
     let wasPlaying = false;
 
     const loop = (now: number) => {
@@ -130,6 +131,16 @@ export function Preview() {
 
       const time = useStudio.getState().playhead;
       syncMedia(time, useStudio.getState().playing);
+
+      // limpa elementos de clipes apagados/cortados (a cada ~2 s)
+      if (now - lastPrune > 2000) {
+        lastPrune = now;
+        try {
+          media.prune(new Set(useStudio.getState().clips.map((c) => c.id)));
+        } catch {
+          /* noop */
+        }
+      }
 
       const canvas = canvasRef.current;
       if (canvas) {

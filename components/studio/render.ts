@@ -3,6 +3,7 @@ import type { Clip, Filters, Keyframe, Track } from '@/lib/types';
 import { clamp } from '@/lib/utils';
 import type { MediaRegistry } from './media';
 import type { ThreePool } from './three';
+import { drawAvatar, mouthFromEnvelope } from './avatar';
 
 export type FrameOptions = {
   ctx: CanvasRenderingContext2D;
@@ -426,6 +427,32 @@ ctx: CanvasRenderingContext2D, clip: Clip, size: number) {
 
 type TextLine = { text: string; width: number };
 
+/**
+ * Desenha o quadro do vídeo do clipe. Se o elemento ainda está carregando ou
+ * buscando o ponto do corte, reaproveita o último quadro conhecido — antes a
+ * área ficava preta logo depois de cortar.
+ */
+function drawClipVideo(
+  ctx: CanvasRenderingContext2D,
+  clip: Clip,
+  media: MediaRegistry,
+  width: number,
+  height: number,
+) {
+  const el = media.videoFor(clip);
+  if (el.readyState >= 2 && el.videoWidth) {
+    media.cachePoster(clip.id, el);
+    const cover = Math.max(width / el.videoWidth, height / el.videoHeight);
+    ctx.drawImage(el, (-el.videoWidth * cover) / 2, (-el.videoHeight * cover) / 2, el.videoWidth * cover, el.videoHeight * cover);
+    return;
+  }
+  const poster = media.posterFor(clip);
+  if (poster && poster.width > 1) {
+    const cover = Math.max(width / poster.width, height / poster.height);
+    ctx.drawImage(poster, (-poster.width * cover) / 2, (-poster.height * cover) / 2, poster.width * cover, poster.height * cover);
+  }
+}
+
 function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] {
   const paragraphs = text.split('\n');
   const out: string[] = [];
@@ -676,13 +703,7 @@ export function drawFrame(opts: FrameOptions) {
       });
       ctx.restore();
     } else if (clip.kind === 'video') {
-      const el = media.getVideo(clip.src);
-      if (el.readyState >= 2) {
-        const sw = el.videoWidth || width;
-        const sh = el.videoHeight || height;
-        const cover = Math.max(width / sw, height / sh);
-        ctx.drawImage(el, (-sw * cover) / 2, (-sh * cover) / 2, sw * cover, sh * cover);
-      }
+      drawClipVideo(ctx, clip, media, width, height);
     } else if (clip.kind === 'image') {
       const img = media.getImage(clip.src);
       if (img.complete && img.naturalWidth) {
@@ -708,6 +729,18 @@ export function drawFrame(opts: FrameOptions) {
       }
     } else if (clip.kind === 'sticker') {
       drawSticker(ctx, clip, height * 0.4);
+    } else if (clip.kind === 'avatar') {
+      const avatar = clip.avatar ?? { preset: 'ana', mouth: [] };
+      const intensity = avatar.intensity ?? 1;
+      const mouth = avatar.mouth?.length
+        ? Math.min(1, mouthFromEnvelope(avatar.mouth, local + clip.trimStart) * intensity)
+        : 0.3 + 0.35 * Math.abs(Math.sin((local + clip.trimStart) * 6.5)) * intensity;
+      ctx.save();
+      ctx.beginPath();
+      ctx.roundRect(-width / 2, -height / 2, width, height, Math.min(width, height) * 0.03);
+      ctx.clip();
+      drawAvatar(ctx, avatar.preset, -width / 2, -height / 2, width, height, mouth, local + clip.trimStart);
+      ctx.restore();
     }
 
     if (glitch > 0.01) {
@@ -715,7 +748,7 @@ export function drawFrame(opts: FrameOptions) {
       ctx.globalAlpha = 0.45 * glitch;
       const jitter = () => (Math.random() - 0.5) * width * 0.05 * glitch;
       if (clip.kind === 'video') {
-        const el = media.getVideo(clip.src);
+        const el = media.videoFor(clip);
         if (el.readyState >= 2) {
           const cover = Math.max(width / (el.videoWidth || width), height / (el.videoHeight || height));
           const sw = (el.videoWidth || width) * cover;

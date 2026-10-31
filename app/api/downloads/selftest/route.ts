@@ -57,6 +57,7 @@ export async function GET(request: Request) {
     tunnels: result.tunnels,
     service: 'youtube',
     downloadId: undefined,
+    sourceUrl: url,
     maxBytes: MAX_BYTES,
   });
 

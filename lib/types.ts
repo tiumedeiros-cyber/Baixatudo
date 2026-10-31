@@ -78,6 +78,7 @@ export type ClipKind =
   | 'object3d'
   | 'overlay'
   | 'sticker'
+  | 'avatar'
   | 'generator';
 
 export type TransitionType = 'none' | 'fade' | 'slide' | 'zoom' | 'wipe' | 'glitch' | 'flash';
@@ -153,6 +154,7 @@ export type Clip = {
   overlay?: { preset: string };
   sticker?: { preset: string; color: string };
   generator?: GeneratorProps;
+  avatar?: { preset: string; mouth: number[]; intensity?: number };
   shadow?: ShadowProps;
   transitionIn: { type: TransitionType; duration: number };
   transitionOut: { type: TransitionType; duration: number };

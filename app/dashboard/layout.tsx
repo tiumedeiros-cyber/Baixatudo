@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { LogOut, Plus, ShieldCheck } from 'lucide-react';
-import { getActiveSubscription, requireUser } from '@/lib/auth';
+import { getActiveSubscription, isAdminEmail, requireUser } from '@/lib/auth';
 import { Badge, ButtonLink, Logo } from '@/components/ui';
 import { Sidebar } from '@/components/dashboard/Sidebar';
 import { MobileMenu } from '@/components/ui/MobileMenu';
@@ -16,7 +16,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   if (!user) redirect('/login');
   const subscription = await getActiveSubscription();
   const plan = subscription?.plans;
-  const isAdmin = profile?.role === 'admin';
+  const isAdmin = isAdminEmail(user.email) || profile?.role === 'admin';
 
   return (
     <div className="min-h-screen lg:grid lg:grid-cols-[260px_1fr]">

@@ -37,7 +37,7 @@ async function seekVideosAt(clips: Clip[], time: number) {
   for (const clip of clips) {
     if (clip.kind !== 'video') continue;
     if (time < clip.start - 0.001 || time > clip.start + clip.duration + 0.001) continue;
-    const el = media.getVideo(clip.src);
+    const el = media.videoFor(clip);
     const target = Math.max(0, clip.trimStart + (time - clip.start) * clip.speed);
     if (el.readyState < 2 || Math.abs(el.currentTime - target) < 0.03) continue;
     jobs.push(

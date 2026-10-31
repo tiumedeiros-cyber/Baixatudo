@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation';
 import { Suspense } from 'react';
 import { AuthShell } from '@/components/auth/AuthShell';
 import { LoginForm } from '@/components/auth/LoginForm';
-import { getCurrentProfile, getSessionUser } from '@/lib/auth';
+import { getCurrentProfile, getSessionUser, isAdminEmail } from '@/lib/auth';
 
 export const metadata = { title: 'Entrar · Editor Studio' };
 export const dynamic = 'force-dynamic';
@@ -14,7 +14,7 @@ export default async function LoginPage() {
   const user = await getSessionUser();
   if (user) {
     const profile = await getCurrentProfile();
-    redirect(profile?.role === 'admin' ? '/admin' : '/dashboard');
+    redirect(isAdminEmail(user.email) || profile?.role === 'admin' ? '/admin' : '/dashboard');
   }
 
   return (

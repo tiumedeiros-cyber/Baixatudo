@@ -1,6 +1,8 @@
 'use client';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  AudioLines,
+  Wand2,
   Eye,
   EyeOff,
   GripVertical,
@@ -206,6 +208,29 @@ export function Timeline() {
           title="Excluir clipe (Del)"
         >
           <Trash2 className="h-3.5 w-3.5" /> Excluir
+        </button>
+        <button
+          onClick={() => {
+            const s = useStudio.getState();
+            const id = s.selectedId;
+            if (!id) return;
+            s.applyCutTransition(id, 'fade', 0.5);
+          }}
+          className="inline-flex h-7 items-center gap-1 rounded-lg px-2 text-[11px] font-semibold text-amber-200 hover:bg-amber-500/15"
+          title="Adicionar transição no ponto do corte (une este clipe ao vizinho)"
+        >
+          <Wand2 className="h-3.5 w-3.5" /> Transição no corte
+        </button>
+        <button
+          onClick={() => {
+            const s = useStudio.getState();
+            const clip = s.clips.find((c) => c.id === s.selectedId);
+            if (clip?.kind === 'video') s.extractAudio(clip.id);
+          }}
+          className="inline-flex h-7 items-center gap-1 rounded-lg px-2 text-[11px] font-semibold text-brand-200 hover:bg-brand-500/15"
+          title="Extrair o áudio do vídeo selecionado para uma trilha"
+        >
+          <AudioLines className="h-3.5 w-3.5" /> Extrair áudio
         </button>
         <button
           onClick={() => useStudio.getState().addTrack('visual')}

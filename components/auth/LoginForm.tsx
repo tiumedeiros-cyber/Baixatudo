@@ -2,7 +2,6 @@
 import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { AlertCircle, Loader2 } from 'lucide-react';
-import { createClient } from '@/lib/supabase/client';
 import { Button, Field, Input } from '@/components/ui';
 
 export function LoginForm() {
@@ -18,30 +17,31 @@ export function LoginForm() {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    const supabase = createClient();
-    const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
-    if (error) {
-      setError(
-        error.message === 'Invalid login credentials'
-          ? 'E-mail ou senha incorretos.'
-          : error.message.includes('Email not confirmed')
-            ? 'Confirme seu e-mail antes de entrar.'
-            : error.message,
-      );
+    try {
+      // Login pelo servidor: ele sabe quem é admin (ADMIN_EMAIL) e já devolve
+      // o destino certo, além de criar o perfil que estiver faltando.
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim(), password }),
+      });
+      const body = (await res.json().catch(() => ({}))) as { destination?: string; error?: string };
+      if (!res.ok) {
+        setError(body.error ?? 'Não foi possível entrar. Tente novamente.');
+        setLoading(false);
+        return;
+      }
+      const destination = body.destination === '/admin'
+        ? '/admin'
+        : explicitNext && explicitNext.startsWith('/')
+          ? explicitNext
+          : '/dashboard';
+      router.replace(destination);
+      router.refresh();
+    } catch {
+      setError('Falha de conexão. Tente novamente.');
       setLoading(false);
-      return;
     }
-    // Admin cai no painel administrativo; cliente no painel do cliente.
-    let destination = explicitNext && explicitNext.startsWith('/') ? explicitNext : '';
-    if (!destination) {
-      const userId = data.user?.id;
-      const { data: profile } = userId
-        ? await supabase.from('es_profiles').select('role').eq('id', userId).maybeSingle()
-        : { data: null };
-      destination = profile?.role === 'admin' ? '/admin' : '/dashboard';
-    }
-    router.replace(destination);
-    router.refresh();
   }
 
   return (

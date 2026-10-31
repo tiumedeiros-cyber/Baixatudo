@@ -62,6 +62,10 @@ type StudioState = {
   duplicateClip: (id: string) => void;
   splitClip: (id: string, at: number) => void;
   splitAtPlayhead: () => void;
+  /** Aplica a transição no ponto onde dois clipes se encontram (o corte). */
+  applyCutTransition: (id: string, type: Clip['transitionIn']['type'], duration: number) => boolean;
+  /** Extrai o áudio de um vídeo para uma trilha de áudio independente. */
+  extractAudio: (id: string) => boolean;
   addKeyframe: (id: string, prop: Keyframe['prop'], value: number) => void;
   removeKeyframe: (id: string, kfId: string) => void;
   addTrack: (kind: 'visual' | 'audio', name?: string) => void;
@@ -104,6 +108,7 @@ function normalizeClip(clip: Clip, fallbackTrackId: string): Clip {
     filters: { ...DEFAULT_FILTERS, ...(c.filters ?? {}) },
     shadow: { ...DEFAULT_SHADOW, ...(c.shadow ?? {}) },
     generator: c.kind === 'generator' ? { ...DEFAULT_GENERATOR, ...(c.generator ?? {}) } : c.generator,
+    avatar: c.kind === 'avatar' ? { preset: c.avatar?.preset ?? 'ana', mouth: c.avatar?.mouth ?? [], intensity: c.avatar?.intensity ?? 1 } : c.avatar,
     transitionIn: c.transitionIn ?? { type: 'none', duration: 0.5 },
     transitionOut: c.transitionOut ?? { type: 'none', duration: 0.5 },
     keyframes: Array.isArray(c.keyframes) ? c.keyframes : [],
@@ -271,6 +276,72 @@ export const useStudio = create<StudioState>((set, get) => ({
     const t = s.playhead;
     const target = s.clips.find((c) => t > c.start + 0.05 && t < c.start + c.duration - 0.05);
     if (target) get().splitClip(target.id, t);
+  },
+
+  applyCutTransition: (id, type, duration) => {
+    const s = get();
+    const clip = s.clips.find((c) => c.id === id);
+    if (!clip) return false;
+    const sameTrack = s.clips.filter((c) => c.trackId === clip.trackId && c.id !== id);
+    const next = sameTrack.find((c) => Math.abs(c.start - (clip.start + clip.duration)) < 0.2);
+    const prev = sameTrack.find((c) => Math.abs(c.start + c.duration - clip.start) < 0.2);
+    const dur = Math.max(0.1, Math.min(2, duration));
+    let clips = s.clips;
+    if (next) {
+      clips = s.clips.map((c) =>
+        c.id === clip.id
+          ? { ...c, transitionOut: { type, duration: dur } }
+          : c.id === next.id
+            ? { ...c, transitionIn: { type, duration: dur } }
+            : c,
+      );
+    } else if (prev) {
+      clips = s.clips.map((c) =>
+        c.id === clip.id
+          ? { ...c, transitionIn: { type, duration: dur } }
+          : c.id === prev.id
+            ? { ...c, transitionOut: { type, duration: dur } }
+            : c,
+      );
+    } else {
+      // clipe isolado: aplica só na saída para não travar a ação
+      clips = s.clips.map((c) => (c.id === clip.id ? { ...c, transitionOut: { type, duration: dur } } : c));
+    }
+    set({ past: [...s.past.slice(-49), memory(s)], future: [], clips, dirty: true });
+    return true;
+  },
+
+  extractAudio: (id) => {
+    const s = get();
+    const clip = s.clips.find((c) => c.id === id);
+    if (!clip || clip.kind !== 'video') return false;
+    let audioTrack = s.tracks.find((t) => t.kind === 'audio');
+    let tracks = s.tracks;
+    if (!audioTrack) {
+      audioTrack = {
+        id: uid('tr'),
+        name: `Áudio ${s.tracks.filter((t) => t.kind === 'audio').length + 1}`,
+        kind: 'audio',
+        muted: false,
+        hidden: false,
+      };
+      tracks = [...s.tracks, audioTrack];
+    }
+    const base = clip.name?.replace(/\.[a-z0-9]{2,5}$/i, '') || 'áudio';
+    const audioClip: Clip = {
+      ...(JSON.parse(JSON.stringify(clip)) as Clip),
+      id: uid('clip'),
+      kind: 'audio',
+      name: `${base} — áudio`,
+      trackId: audioTrack.id,
+      muted: false,
+      transitionIn: { type: 'none', duration: 0.3 },
+      transitionOut: { type: 'none', duration: 0.3 },
+      keyframes: [],
+    };
+    const clips = s.clips.map((c) => (c.id === clip.id ? { ...c, muted: true } : c)).concat(audioClip);
+    set({ past: [...s.past.slice(-49), memory(s)], future: [], clips, tracks, selectedId: audioClip.id, dirty: true });
+    return true;
   },
 
   addKeyframe: (id, prop, value) =>

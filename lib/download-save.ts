@@ -14,6 +14,16 @@ const UA =
 
 export type MediaItem = { url?: string; type?: string; name?: string; thumb?: string };
 
+/** Capa real do vídeo quando a origem é o YouTube (imagem pública, sem marca d'água). */
+export function thumbnailFor(sourceUrl?: string | null, itemThumb?: string | null) {
+  if (itemThumb) return itemThumb;
+  const url = sourceUrl ?? '';
+  const id =
+    url.match(/(?:youtube\.com\/(?:watch\?v=|shorts\/|embed\/)|youtu\.be\/)([\w-]{6,})/)?.[1] ?? null;
+  if (id) return `https://i.ytimg.com/vi/${id}/hqdefault.jpg`;
+  return null;
+}
+
 export type SaveOutcome =
   | { ok: true; asset: { id: string; name: string; type: string; url: string }; url: string; path: string; bytes: number }
   | { ok: false; error: string; tooBig?: boolean };
@@ -71,6 +81,7 @@ export async function saveDownloadToLibrary(opts: {
   tunnels?: string[];
   service?: string | null;
   downloadId?: string;
+  sourceUrl?: string | null;
   maxBytes?: number;
 }): Promise<SaveOutcome> {
   const { admin, userId, item, service, downloadId } = opts;
@@ -123,7 +134,13 @@ export async function saveDownloadToLibrary(opts: {
       url: pub.publicUrl,
       storage_path: path,
       size_bytes: fetched.buffer.length,
-      metadata: { origin: service ?? 'baixa-tudo', download_id: downloadId ?? null, source_type: item.type ?? 'video' },
+      metadata: {
+        origin: service ?? 'baixa-tudo',
+        download_id: downloadId ?? null,
+        source_type: item.type ?? 'video',
+        thumbnail: thumbnailFor(opts.sourceUrl, item.thumb),
+        source_url: opts.sourceUrl ?? null,
+      },
     })
     .select('id,name,type,url')
     .single();

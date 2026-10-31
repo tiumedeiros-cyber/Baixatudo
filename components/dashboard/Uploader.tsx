@@ -5,6 +5,7 @@ import { Camera, Check, CloudUpload, Images, Loader2, Trash2 } from 'lucide-reac
 import { createClient } from '@/lib/supabase/client';
 import { Button, Card } from '@/components/ui';
 import { deleteUserAsset, uploadUserAssetFallback } from '@/app/dashboard/actions';
+import { AssetThumb } from '@/components/media/AssetThumb';
 import { bytes, formatDate } from '@/lib/utils';
 import type { UserAsset } from '@/lib/types';
 
@@ -227,14 +228,13 @@ export function Uploader({ userId, assets, storageLimitGb }: { userId: string; a
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {assets.map((a) => (
           <Card key={a.id} className="flex items-center gap-3 p-3">
-            <div className="grid h-12 w-16 shrink-0 place-items-center overflow-hidden rounded-lg border border-white/10 bg-ink-900">
-              {a.type === 'image' ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={a.url} alt="" className="h-full w-full object-cover" />
-              ) : (
-                <span className="text-[10px] uppercase text-slate-400">{a.type}</span>
-              )}
-            </div>
+            <AssetThumb
+              type={a.type}
+              url={a.url}
+              thumbnail={(a.metadata as { thumbnail?: string } | null)?.thumbnail ?? null}
+              className="h-12 w-16 shrink-0 rounded-lg border border-white/10"
+              label={false}
+            />
             <div className="min-w-0 flex-1">
               <p className="truncate text-xs font-semibold text-white">{a.name}</p>
               <p className="text-[11px] text-slate-500">{bytes(Number(a.size_bytes))} · {formatDate(a.created_at)}</p>
