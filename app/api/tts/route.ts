@@ -11,8 +11,6 @@ export const maxDuration = 60;
  * Usado pelo painel “Voz IA” para mostrar o motor real em uso e avisar
  * quando é a voz do navegador (prévia) em vez da geração no servidor.
  */
-let cachedProbe: { at: number; ok: boolean; engine: string; ms: number } | null = null;
-
 /**
  * GET /api/tts — motor e vozes disponíveis (resposta imediata).
  * GET /api/tts?probe=1 — faz uma síntese curta de verdade e informa se a voz funciona.
@@ -28,24 +26,55 @@ export async function GET(request: Request) {
         : TTS_VOICES.map((v) => v.id);
 
   if (url.searchParams.get('probe') === '1') {
-    if (cachedProbe && Date.now() - cachedProbe.at < 5 * 60_000) {
-      return NextResponse.json({ ...cachedProbe, engine, voices }, { headers: { 'cache-control': 'no-store' } });
-    }
-    const started = Date.now();
-    let ok = false;
-    try {
+    const results: Record<string, { ok: boolean; ms: number; detail?: string }> = {};
+    const run = async (name: string, fn: () => Promise<boolean>) => {
+      const t0 = Date.now();
+      try {
+        const ok = await fn();
+        results[name] = { ok, ms: Date.now() - t0 };
+      } catch (err) {
+        results[name] = { ok: false, ms: Date.now() - t0, detail: (err instanceof Error ? err.message : String(err)).slice(0, 160) };
+      }
+    };
+
+    await run('edge', async () => {
       const { EdgeTTS } = await import('edge-tts-universal');
       const tts = new EdgeTTS('Teste de voz do Editor Studio.', 'pt-BR-FranciscaNeural');
       const out = await Promise.race([
         tts.synthesize(),
-        new Promise<never>((_, reject) => setTimeout(() => reject(new Error('tempo esgotado')), 12_000)),
+        new Promise<never>((_, reject) => setTimeout(() => reject(new Error('tempo esgotado (10s)')), 10_000)),
       ]);
-      ok = (await out.audio.arrayBuffer()).byteLength > 1000;
-    } catch {
-      ok = false;
-    }
-    cachedProbe = { at: Date.now(), ok, engine, ms: Date.now() - started };
-    return NextResponse.json({ ...cachedProbe, voices }, { headers: { 'cache-control': 'no-store' } });
+      return (await out.audio.arrayBuffer()).byteLength > 1000;
+    });
+
+    await run('google', async () => {
+      const res = await fetch(
+        'https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=pt-BR&q=' + encodeURIComponent('teste de voz'),
+        {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36',
+            Referer: 'https://translate.google.com/',
+          },
+          cache: 'no-store',
+          signal: AbortSignal.timeout(9_000),
+        },
+      );
+      const buf = Buffer.from(await res.arrayBuffer());
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return buf.length > 1000;
+    });
+
+    await run('streamelements', async () => {
+      const res = await fetch('https://api.streamelements.com/kappa/v2/speech?voice=pt-BR-Wavenet-A&text=' + encodeURIComponent('teste de voz'), {
+        cache: 'no-store',
+        signal: AbortSignal.timeout(9_000),
+      });
+      const buf = Buffer.from(await res.arrayBuffer());
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return buf.length > 1000;
+    });
+
+    return NextResponse.json({ engine, results, voices }, { headers: { 'cache-control': 'no-store' } });
   }
 
   return NextResponse.json(

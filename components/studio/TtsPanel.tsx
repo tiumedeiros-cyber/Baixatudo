@@ -56,12 +56,14 @@ export function TtsPanel({ projectId, onAdded }: { projectId: string; onAdded?: 
     setVoiceOk(null);
     try {
       const res = await fetch('/api/tts?probe=1', { cache: 'no-store' });
-      const data = (await res.json()) as { ok?: boolean; ms?: number };
-      setVoiceOk(Boolean(data.ok));
+      const data = (await res.json()) as { results?: Record<string, { ok: boolean; ms: number; detail?: string }> };
+      const entries = Object.entries(data.results ?? {});
+      const working = entries.filter(([, r]) => r.ok);
+      setVoiceOk(working.length > 0);
       setInfo(
-        data.ok
-          ? `Voz do servidor funcionando (${Math.round((data.ms ?? 0) / 100) / 10}s para sintetizar).`
-          : 'A voz do servidor não respondeu agora. Use “Ouvir prévia” ou adicione o texto como legenda.',
+        working.length
+          ? `Voz funcionando (${working.map(([name]) => name).join(' → ')}). Primeira síntese em ${Math.round(working[0][1].ms / 100) / 10}s.`
+          : 'Nenhuma fonte de voz respondeu agora. Use “Ouvir prévia” (voz do navegador) ou adicione o texto como legenda.',
       );
     } catch {
       setVoiceOk(false);
