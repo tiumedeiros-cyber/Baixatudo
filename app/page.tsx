@@ -57,13 +57,13 @@ const FEATURES = [
   { icon: Layers, title: 'Objetos 3D e rotação 360°', text: 'Insira cubos, esferas e torus renderizados em WebGL com rotação em X, Y e Z e keyframes de movimento.' },
   { icon: Mic, title: 'Texto ↔ Áudio (TTS/STT)', text: 'Transforme texto em narração com vozes naturais e transcreva áudios em legendas editáveis automaticamente.' },
   { icon: Music4, title: 'Biblioteca de sons', text: 'Whoosh, impactos, risers, cliques e trilhas geradas em tempo real — licenciamento livre para uso comercial.' },
-  { icon: Download, title: 'Baixa Tudo integrado', text: 'Baixe vídeos, imagens e áudios de YouTube, TikTok, Instagram, X e mais, direto para a biblioteca do editor.' },
+  { icon: Download, title: 'Baixa Tudo integrado', text: 'Traga vídeos, imagens e áudios de YouTube, TikTok, Instagram, X e mais para a biblioteca do editor, com um clique.' },
   { icon: Timer, title: '5x mais rápido', text: 'Atalhos completos, autosave a cada 2s, modelos prontos e preview instantâneo. Menos cliques, mais entrega.' },
   { icon: ShieldCheck, title: 'Segurança de verdade', text: 'RLS no banco, RBAC, rate limiting, headers de segurança, webhooks assinados e logs de auditoria.' },
 ];
 
 const STEPS = [
-  { n: '01', title: 'Importe', text: 'Arraste arquivos do computador ou baixe com o Baixa Tudo em 1 clique.' },
+  { n: '01', title: 'Importe', text: 'Arraste arquivos do computador ou importe com o Baixa Tudo em 1 clique.' },
   { n: '02', title: 'Monte na régua', text: 'Solta na timeline, corta arrastando as bordas, encaixa com snap e aplica transições.' },
   { n: '03', title: 'Dê vida', text: 'Textos, 3D, narração por IA, trilha e legendas automáticas em poucos segundos.' },
   { n: '04', title: 'Exporte', text: 'Renderize MP4, MOV, WebM ou GIF até 4K direto no navegador — sem instalar nada.' },
@@ -71,13 +71,13 @@ const STEPS = [
 
 const TESTIMONIALS = [
   { name: 'Rafa Martins', role: 'Editor de conteúdo · 1,2M seguidores', text: 'Fechei 3 cortes de reels no tempo que eu levava pra abrir o Premiere. A régua responde igual app nativo.' },
-  { name: 'Bianca Souza', role: 'Social media · agência Vórtex', text: 'O Baixa Tudo dentro do editor salvou meu fluxo: acho o vídeo, baixo e jogo na timeline sem sair da aba.' },
+  { name: 'Bianca Souza', role: 'Social media · agência Vórtex', text: 'O Baixa Tudo dentro do editor salvou meu fluxo: acho o vídeo, trago e jogo na timeline sem sair da aba.' },
   { name: 'Diego Alcântara', role: 'Produtor audiovisual', text: 'Narração por IA + legendas automáticas no mesmo lugar. Entrego VSL completo em uma tarde.' },
 ];
 
 const FAQ = [
   { q: 'Preciso instalar algo?', a: 'Não. O Editor Studio roda 100% no navegador (Chrome, Edge, Firefox e Safari) e também em tablets com toque.' },
-  { q: 'Como funciona o Baixa Tudo integrado?', a: 'Já vem embutido na plataforma: cole o link do vídeo, escolha qualidade ou só o áudio, e o arquivo cai na sua biblioteca para usar na timeline. Não precisa instalar nada.' },
+  { q: 'Como funciona o Baixa Tudo integrado?', a: 'Já vem embutido na plataforma: dentro da sua conta você cola o link do vídeo, escolhe a qualidade (ou só o áudio) e o arquivo cai na biblioteca para usar na timeline. Não precisa instalar nada.' },
   { q: 'Os arquivos ficam salvos?', a: 'Sim. Seus uploads vão para o armazenamento da sua conta conforme o plano, e os projetos têm autosave a cada 2 segundos.' },
   { q: 'Posso exportar em 4K?', a: 'Nos planos Pro e Studio a exportação chega a 4K. No Básico, até 1080p.' },
   { q: 'Como funciona o pagamento?', a: 'Checkout com cartão, PIX ou boleto conforme o gateway configurado. A confirmação é automática via webhook assinado e a assinatura é liberada na hora.' },
