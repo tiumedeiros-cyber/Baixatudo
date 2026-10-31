@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { Badge, ButtonLink, Card, Logo } from '@/components/ui';
+import { SiteHeader } from '@/components/marketing/SiteHeader';
 import { brl } from '@/lib/utils';
 import type { Plan } from '@/lib/types';
 
@@ -76,7 +77,7 @@ const TESTIMONIALS = [
 
 const FAQ = [
   { q: 'Preciso instalar algo?', a: 'Não. O Editor Studio roda 100% no navegador (Chrome, Edge, Firefox e Safari) e também em tablets com toque.' },
-  { q: 'Como funciona o Baixa Tudo integrado?', a: 'É o mesmo motor da extensão Baixa Tudo: cole o link do vídeo, escolha qualidade ou só o áudio, e o arquivo cai na sua biblioteca para usar na timeline.' },
+  { q: 'Como funciona o Baixa Tudo integrado?', a: 'Já vem embutido na plataforma: cole o link do vídeo, escolha qualidade ou só o áudio, e o arquivo cai na sua biblioteca para usar na timeline. Não precisa instalar nada.' },
   { q: 'Os arquivos ficam salvos?', a: 'Sim. Seus uploads vão para o armazenamento da sua conta conforme o plano, e os projetos têm autosave a cada 2 segundos.' },
   { q: 'Posso exportar em 4K?', a: 'Nos planos Pro e Studio a exportação chega a 4K. No Básico, até 1080p.' },
   { q: 'Como funciona o pagamento?', a: 'Checkout com cartão, PIX ou boleto conforme o gateway configurado. A confirmação é automática via webhook assinado e a assinatura é liberada na hora.' },
@@ -99,25 +100,7 @@ export default async function LandingPage() {
 
   return (
     <div className="relative overflow-hidden">
-      {/* NAV */}
-      <header className="sticky top-0 z-50 border-b border-white/5 bg-ink-950/70 backdrop-blur-xl">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-5">
-          <Logo />
-          <nav className="hidden items-center gap-7 text-sm text-slate-300 md:flex">
-            <a href="#recursos" className="transition hover:text-white">Recursos</a>
-            <a href="#editor" className="transition hover:text-white">Editor</a>
-            <a href="#baixa-tudo" className="transition hover:text-white">Baixa Tudo</a>
-            <a href="#planos" className="transition hover:text-white">Planos</a>
-            <a href="#faq" className="transition hover:text-white">FAQ</a>
-          </nav>
-          <div className="flex items-center gap-2">
-            <ButtonLink href="/login" variant="ghost" size="sm">Entrar</ButtonLink>
-            <ButtonLink href="/cadastro" size="sm" className="btn-shine">
-              Começar grátis <ArrowRight className="h-4 w-4" />
-            </ButtonLink>
-          </div>
-        </div>
-      </header>
+      <SiteHeader />
 
       {/* HERO */}
       <section className="relative">
@@ -135,12 +118,12 @@ export default async function LandingPage() {
                 Timeline com régua, corte por frame, objetos 3D, biblioteca infinita de assets, narração por IA e o
                 <strong className="text-white"> Baixa Tudo</strong> integrado para baixar vídeos, imagens e áudios em um clique.
               </p>
-              <div className="mt-7 flex flex-wrap items-center gap-3">
-                <ButtonLink href="/cadastro" size="lg" className="btn-shine">
+              <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+                <ButtonLink href="/cadastro" size="lg" className="btn-shine w-full sm:w-auto">
                   Criar minha conta <ArrowRight className="h-4 w-4" />
                 </ButtonLink>
-                <ButtonLink href="#editor" size="lg" variant="secondary">
-                  <Play className="h-4 w-4" /> Ver o editor
+                <ButtonLink href="/dashboard/projetos" size="lg" variant="secondary" className="w-full sm:w-auto">
+                  <Play className="h-4 w-4" /> Abrir o editor
                 </ButtonLink>
               </div>
               <div className="mt-7 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-slate-400">
@@ -165,7 +148,7 @@ export default async function LandingPage() {
                     <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" /> autosave
                   </span>
                 </div>
-                <div className="grid grid-cols-[1fr_120px] gap-0">
+                <div className="grid grid-cols-1 gap-0 sm:grid-cols-[1fr_120px]">
                   <div className="studio-checker relative aspect-video overflow-hidden border-b border-white/8">
                     <div className="absolute inset-0 bg-gradient-to-br from-indigo-600/40 via-fuchsia-500/20 to-cyan-400/30" />
                     <div className="absolute inset-0 grid place-items-center">
@@ -176,7 +159,7 @@ export default async function LandingPage() {
                     </div>
                     <div className="absolute left-3 top-3 rounded-md bg-black/50 px-2 py-1 text-[10px] text-white/80">00:00:04:12</div>
                   </div>
-                  <div className="space-y-2 border-b border-white/8 p-2">
+                  <div className="hidden space-y-2 border-b border-white/8 p-2 sm:block">
                     {[38, 62, 24, 48].map((w, i) => (
                       <div key={i} className="space-y-1">
                         <div className="h-1 w-8 rounded bg-white/20" />
@@ -281,7 +264,7 @@ export default async function LandingPage() {
               O <span className="gradient-text">Baixa Tudo</span> agora vive dentro do seu editor
             </h2>
             <p className="mt-3 text-sm leading-relaxed text-slate-300">
-              A mesma ferramenta da extensão, com interface integrada: cole o link de um vídeo, escolha a qualidade
+              A ferramenta roda dentro do próprio sistema: cole o link de um vídeo, escolha a qualidade
               (ou apenas o áudio em MP3) e o arquivo entra direto na sua biblioteca de mídia para arrastar na timeline.
             </p>
             <ul className="mt-5 space-y-2.5 text-sm text-slate-300">
@@ -290,7 +273,7 @@ export default async function LandingPage() {
                 'Download de vídeo, foto, GIF e áudio (MP3)',
                 'Itens múltiplos (carrossel / galeria) em um clique',
                 'Histórico de downloads e envio direto para o projeto',
-                'Extensão oficial também disponível para download',
+                'Roda 100% dentro do sistema — sem instalar extensão',
               ].map((t) => (
                 <li key={t} className="flex items-start gap-2">
                   <BadgeCheck className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" /> {t}
@@ -299,7 +282,6 @@ export default async function LandingPage() {
             </ul>
             <div className="mt-7 flex flex-wrap gap-3">
               <ButtonLink href="/cadastro">Usar o Baixa Tudo <Download className="h-4 w-4" /></ButtonLink>
-              <ButtonLink href="/api/extension/download" variant="secondary">Baixar extensão (.zip)</ButtonLink>
             </div>
           </div>
           <Card className="p-6">

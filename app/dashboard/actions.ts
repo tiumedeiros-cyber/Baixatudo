@@ -90,6 +90,45 @@ export async function deleteUserAsset(id: string, storagePath?: string | null) {
   revalidatePath('/dashboard/arquivos');
 }
 
+/**
+ * Fallback de upload: envia pelo servidor (service role) quando o upload direto
+ * para o Storage falha no navegador (ex.: rede móvel instável, política de RLS).
+ * Aceita arquivos até 25 MB.
+ */
+export async function uploadUserAssetFallback(formData: FormData): Promise<{ ok: boolean; error?: string }> {
+  const user = await getSessionUser();
+  if (!user) return { ok: false, error: 'Sessão expirada. Entre novamente.' };
+  const file = formData.get('file');
+  if (!(file instanceof File) || file.size === 0) return { ok: false, error: 'Arquivo inválido.' };
+  if (file.size > 25 * 1024 * 1024) return { ok: false, error: 'Arquivo acima de 25 MB — tente novamente com conexão estável.' };
+
+  const admin = createAdminClient();
+  const type = file.type.startsWith('video') ? 'video' : file.type.startsWith('audio') ? 'audio' : 'image';
+  const safe = (file.name || 'arquivo').replace(/[^\w.\-]+/g, '_');
+  const path = `${user.id}/uploads/${Date.now()}-${Math.random().toString(36).slice(2, 7)}-${safe}`;
+  const buffer = Buffer.from(await file.arrayBuffer());
+
+  const { error } = await admin.storage
+    .from('media')
+    .upload(path, buffer, { contentType: file.type || 'application/octet-stream', upsert: false });
+  if (error) return { ok: false, error: error.message };
+
+  const { data: pub } = admin.storage.from('media').getPublicUrl(path);
+  const { error: insErr } = await admin.from('es_user_assets').insert({
+    user_id: user.id,
+    name: file.name || safe,
+    type,
+    url: pub.publicUrl,
+    storage_path: path,
+    size_bytes: file.size,
+    metadata: {},
+  });
+  if (insErr) return { ok: false, error: insErr.message };
+
+  revalidatePath('/dashboard/arquivos');
+  return { ok: true };
+}
+
 export async function updateProfile(formData: FormData) {
   const user = await getSessionUser();
   if (!user) redirect('/login');

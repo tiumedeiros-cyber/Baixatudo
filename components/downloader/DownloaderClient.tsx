@@ -185,18 +185,13 @@ export function DownloaderClient({ userId }: { userId: string }) {
 
       <Card className="p-5">
         <h3 className="flex items-center gap-2 text-sm font-semibold text-white">
-          <Sparkles className="h-4 w-4 text-amber-300" /> Extensão oficial
+          <Sparkles className="h-4 w-4 text-amber-300" /> Tudo dentro do sistema
         </h3>
-        <p className="mt-1.5 text-xs leading-relaxed text-slate-400">
-          Prefere baixar direto do site do vídeo com um clique? Instale a extensão Baixa Tudo no Chrome ou Edge — ela usa
-          o mesmo motor desta central.
-        </p>
-        <a
-          href="/baixa-tudo-extensao.zip"
-          className="mt-3 inline-flex h-9 items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 text-xs font-semibold text-white hover:bg-white/10"
-        >
-          <Download className="h-3.5 w-3.5" /> baixa-tudo-extensao.zip
-        </a>
+        <ul className="mt-2 space-y-1.5 text-xs leading-relaxed text-slate-400">
+          <li>• Não precisa instalar extensão: o downloader já vem embutido na sua conta.</li>
+          <li>• Baixe vídeo, foto, GIF ou apenas o áudio (MP3) e envie direto para a biblioteca.</li>
+          <li>• Os arquivos salvos aparecem no editor para arrastar na timeline.</li>
+        </ul>
       </Card>
     </div>
   );

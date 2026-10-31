@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { Suspense } from 'react';
-import { ArrowRight, Clock, Download, FolderKanban, HardDrive, Sparkles, Wand2 } from 'lucide-react';
+import { ArrowRight, Clapperboard, Clock, Download, FolderKanban, HardDrive, Sparkles, Wand2 } from 'lucide-react';
 import { getActiveSubscription, requireUser } from '@/lib/auth';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { Badge, ButtonLink, Card, EmptyState, Stat } from '@/components/ui';
@@ -108,6 +108,9 @@ export default async function DashboardHome() {
           <Card className="p-5">
             <h2 className="text-sm font-semibold text-white">Atalhos</h2>
             <div className="mt-3 grid gap-2">
+              <ButtonLink href={list[0] ? `/studio/${list[0].id}` : '/dashboard/projetos'} className="justify-start">
+                <Clapperboard className="h-4 w-4" /> Abrir o editor
+              </ButtonLink>
               <ButtonLink href="/dashboard/baixa-tudo" variant="secondary" className="justify-start">
                 <Download className="h-4 w-4 text-emerald-300" /> Baixar vídeo/áudio
               </ButtonLink>

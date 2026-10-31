@@ -56,12 +56,14 @@ export function ButtonLink({
   variant = 'primary',
   size = 'md',
   className,
+  onClick,
 }: {
   children: React.ReactNode;
   href: string;
   variant?: 'primary' | 'secondary' | 'ghost' | 'outline';
   size?: 'sm' | 'md' | 'lg';
   className?: string;
+  onClick?: () => void;
 }) {
   const map = {
     primary:
@@ -74,6 +76,7 @@ export function ButtonLink({
   return (
     <Link
       href={href}
+      onClick={onClick}
       className={cn(
         'inline-flex items-center justify-center gap-2 rounded-xl font-semibold transition-all active:scale-[0.99]',
         map[variant],
