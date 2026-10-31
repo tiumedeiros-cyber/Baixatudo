@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { createClient } from '@supabase/supabase-js';
+import { SUPABASE_ANON_KEY, SUPABASE_URL } from '@/lib/env';
 import { ensureProfile } from '@/lib/auth';
 import { clientIp, rateLimit } from '@/lib/rate-limit';
 
@@ -64,8 +66,23 @@ export async function GET(request: Request) {
     }
   }
 
+  // `?login=1` testa de verdade se a senha do ambiente autentica no Supabase.
+  let loginTest: { ok: boolean; error?: string } | null = null;
+  if (searchParams.get('login') === '1') {
+    const password = process.env.ADMIN_PASSWORD || '';
+    try {
+      const probe = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
+      const { data, error } = await probe.auth.signInWithPassword({ email: adminEmail, password });
+      loginTest = { ok: Boolean(data?.session) && !error, error: error?.message };
+      await probe.auth.signOut().catch(() => undefined);
+    } catch (err) {
+      loginTest = { ok: false, error: err instanceof Error ? err.message : 'erro' };
+    }
+  }
+
   return NextResponse.json({
     ok: true,
+    loginTest,
     adminConfigured,
     passwordConfigured,
     authUserExists: Boolean(authUserId),
