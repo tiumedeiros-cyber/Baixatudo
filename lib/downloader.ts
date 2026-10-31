@@ -129,15 +129,18 @@ export async function requestDownload(
       : [];
   const mediaType = opts.audio ? 'audio' : 'video';
 
+  // nome bonito para a biblioteca: o motor devolve o título do arquivo
+  const fileName = typeof data.filename === 'string' && data.filename ? data.filename : undefined;
+
   // O túnel do motor é um proxy público: funciona de qualquer IP (inclusive do
   // servidor da Vercel), então vem primeiro. O link direto fica como alternativa.
-  if (tunnels.length) items.push({ url: tunnels[0], type: mediaType });
+  if (tunnels.length) items.push({ url: tunnels[0], type: mediaType, name: fileName });
 
   const picker = (data.picker as DownloadItem[] | undefined) ?? [];
-  if (Array.isArray(picker)) items.push(...picker.filter((p) => p?.url));
-  if (typeof data.url === 'string' && data.url) items.push({ url: data.url, type: mediaType });
-  if (typeof data.audio === 'string' && data.audio) items.push({ url: data.audio, type: 'audio' });
-  for (const t of tunnels) items.push({ url: t, type: mediaType });
+  if (Array.isArray(picker)) items.push(...picker.filter((p) => p?.url).map((p) => ({ ...p, name: p.name ?? fileName })));
+  if (typeof data.url === 'string' && data.url) items.push({ url: data.url, type: mediaType, name: fileName });
+  if (typeof data.audio === 'string' && data.audio) items.push({ url: data.audio, type: 'audio', name: fileName });
+  for (const t of tunnels) items.push({ url: t, type: mediaType, name: fileName });
 
   // sem duplicatas (mesma URL não entra duas vezes)
   const seen = new Set<string>();
