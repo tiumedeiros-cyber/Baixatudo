@@ -538,6 +538,41 @@ export function drawAvatar(
 /*                                  CENÁRIOS                                  */
 /* -------------------------------------------------------------------------- */
 
+/** Fundos fotorrealistas (gerados para o app, sem licença externa). */
+const SCENE_IMAGES: Partial<Record<SceneId, string>> = {
+  estudio: '/scenes/estudio.jpg',
+  escritorio: '/scenes/escritorio.jpg',
+  praia: '/scenes/praia.jpg',
+  cidade: '/scenes/cidade.jpg',
+  neon: '/scenes/neon.jpg',
+  sala: '/scenes/sala.jpg',
+  podcast: '/scenes/podcast.jpg',
+  floresta: '/scenes/floresta.jpg',
+};
+
+const imageCache = new Map<string, HTMLImageElement>();
+
+function scenePhoto(scene: SceneId): HTMLImageElement | null {
+  const src = SCENE_IMAGES[scene];
+  if (!src || typeof window === 'undefined') return null;
+  const cached = imageCache.get(src);
+  if (cached) return cached.complete && cached.naturalWidth > 0 ? cached : null;
+  const img = new Image();
+  img.decoding = 'async';
+  img.src = src;
+  imageCache.set(src, img);
+  return null; // no primeiro quadro usa o fundo procedural; nos seguintes a foto já carregou
+}
+
+/** Desenha a foto cobrindo a caixa (cover) e devolve true se desenhou. */
+function drawPhotoCover(ctx: CanvasRenderingContext2D, img: HTMLImageElement, x: number, y: number, w: number, h: number) {
+  const scale = Math.max(w / img.naturalWidth, h / img.naturalHeight);
+  const dw = img.naturalWidth * scale;
+  const dh = img.naturalHeight * scale;
+  ctx.drawImage(img, x + (w - dw) / 2, y + (h - dh) / 2, dw, dh);
+  return true;
+}
+
 export function drawScene(
   ctx: CanvasRenderingContext2D,
   scene: SceneId,
@@ -549,6 +584,25 @@ export function drawScene(
   avatar?: AvatarPreset,
 ) {
   const palette = avatar?.bg ?? ['#1e1b4b', '#4c1d95'];
+
+  const photo = scene === 'chroma' ? null : scenePhoto(scene);
+  if (photo && photo.naturalWidth > 0) {
+    ctx.save();
+    drawPhotoCover(ctx, photo, x, y, w, h);
+    // escurece as bordas para o avatar ganhar contraste
+    const scrim = ctx.createRadialGradient(x + w / 2, y + h * 0.45, Math.min(w, h) * 0.2, x + w / 2, y + h * 0.45, Math.max(w, h) * 0.72);
+    scrim.addColorStop(0, 'rgba(0,0,0,0.12)');
+    scrim.addColorStop(1, 'rgba(0,0,0,0.5)');
+    ctx.fillStyle = scrim;
+    ctx.fillRect(x, y, w, h);
+    const tint = ctx.createLinearGradient(x, y, x + w * 0.5, y + h);
+    tint.addColorStop(0, 'rgba(255,255,255,0.05)');
+    tint.addColorStop(1, palette[1] ? `${palette[1]}22` : 'rgba(0,0,0,0)');
+    ctx.fillStyle = tint;
+    ctx.fillRect(x, y, w, h);
+    ctx.restore();
+    return;
+  }
 
   const base = ctx.createLinearGradient(x, y, x + w * 0.4, y + h);
   base.addColorStop(0, palette[0]);

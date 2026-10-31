@@ -26,8 +26,14 @@ export function AvatarThumb({
     canvas.height = size * dpr;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    drawAvatar(ctx, preset, 0, 0, size, size, mouth, 0.9);
+    const paint = () => {
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      drawAvatar(ctx, preset, 0, 0, size, size, mouth, 0.9);
+    };
+    paint();
+    // repinta depois que o fundo fotorrealista termina de carregar
+    const retry = setTimeout(paint, 450);
+    return () => clearTimeout(retry);
   }, [preset, mouth]);
 
   return (
