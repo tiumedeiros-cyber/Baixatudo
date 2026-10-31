@@ -281,7 +281,7 @@ export function TtsPanel({ projectId, onAdded }: { projectId: string; onAdded?: 
             : 'border-white/10 bg-white/[0.03] text-slate-400'
         }`}>
           <span className="min-w-0 flex-1">
-            Motor: <strong className="text-white">{serverEngine === 'edge' ? 'vozes neurais Microsoft' : serverEngine}</strong>
+            Motor: <strong className="text-white">{serverEngine === 'edge' ? 'voz do servidor (nuvem)' : serverEngine}</strong>
             {voiceOk === true ? ' · funcionando' : voiceOk === false ? ' · sem resposta agora' : ' · narração salva na sua conta e inserida na timeline'}
           </span>
           <button

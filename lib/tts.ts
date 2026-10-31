@@ -68,7 +68,7 @@ async function edgeTts(text: string, lang: string, voice?: string) {
   const chosen = voice && /^[a-z]{2}-[A-Z]{2}-\w+Neural$/.test(voice) ? voice : EDGE_VOICES[lang] ?? EDGE_VOICES['pt-BR'];
   const { EdgeTTS } = await import('edge-tts-universal');
   const tts = new EdgeTTS(text, chosen, { rate: '+0%', volume: '+0%', pitch: '+0Hz' });
-  const result = await withTimeout(tts.synthesize(), 15_000, 'voz neural');
+  const result = await withTimeout(tts.synthesize(), 6_000, 'voz neural');
   const buffer = Buffer.from(await result.audio.arrayBuffer());
   if (buffer.length < 500) throw new Error('Voz neural devolveu áudio vazio');
   return buffer;
@@ -125,12 +125,18 @@ async function streamElementsTts(text: string, lang: string) {
   return buffer;
 }
 
+// Se a voz neural falhar neste ambiente, não insistimos em cada frase.
+let edgeCooldownUntil = 0;
+
 async function freeTts(text: string, lang: string, voice?: string) {
   const warnings: string[] = [];
-  try {
-    return { audio: await edgeTts(text, lang, voice), engine: 'edge', warnings };
-  } catch (err) {
-    warnings.push(`voz neural indisponível (${err instanceof Error ? err.message : 'erro'})`);
+  if (Date.now() > edgeCooldownUntil) {
+    try {
+      return { audio: await edgeTts(text, lang, voice), engine: 'edge', warnings };
+    } catch (err) {
+      edgeCooldownUntil = Date.now() + 10 * 60_000;
+      warnings.push(`voz neural indisponível (${err instanceof Error ? err.message : 'erro'})`);
+    }
   }
   try {
     return { audio: await withTimeout(googleTts(text, lang), 10_000, 'voz Google'), engine: 'google', warnings };

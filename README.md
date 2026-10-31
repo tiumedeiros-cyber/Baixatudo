@@ -106,3 +106,25 @@ Os assets procedurais (sons, transições, formas) são gerados pela própria pl
 - `/api/time` (GET saldo, POST heartbeat de 30 s feito pelo editor) e `components/studio/TimeGuard.tsx` (aviso + bloqueio).
 - Assinantes (trial/ativo) usam o editor sem consumir horas; sem assinatura o editor exige saldo.
 - Admin: `/admin/horas` libera tempo de teste/cortesia por usuário (ou bônus em lote) com auditoria em `es_audit_logs`.
+
+## Biblioteca de anúncios (0006)
+
+- 6 fundos 16:9 em `/public/library/bg-*.webp` (vitrine laranja, flash sale neon, delivery, pódio pastel,
+  black friday e malha gradiente) — arquivos reais, sem marca d'água, servidos pelo próprio site.
+- 10 fundos animados (`type = 'generator'`) desenhados no canvas do editor: aurora, ondas, partículas, grid neon,
+  bokeh, feixe de luz, raios, holofote, listras e gradiente. Cores, velocidade e intensidade ajustáveis no inspetor.
+- 8 selos/etiquetas de promoção (explosão, etiqueta, faixa, selo, estrela, pílula, seta, anéis) editáveis em cor e escala.
+- Migração: `supabase/migrations/0006_library_promo.sql` (idempotente, cria o tipo `generator` na tabela `es_assets`).
+
+## Importar / exportar timeline
+
+- Importação (`lib/timeline-io.ts`): **XML xmeml (Premiere/Final Cut)**, **SRT**, **JSON de projeto** e **CSV** (`início;duração;texto`).
+- Exportação no botão Exportar: **XML da timeline** (abre no Premiere/FCP) e **JSON do projeto** (backup/reimportação).
+- SRT também é exportado pelo painel “Voz IA → Áudio → Texto”.
+
+## Vozes (TTS)
+
+- Provedores em cascata: ElevenLabs → OpenAI → voz neural Microsoft (Edge) → Google translate_tts → StreamElements.
+- `GET /api/tts` informa o motor e as vozes; `GET /api/tts?probe=1` testa cada fonte e devolve o que está funcionando.
+- A duração do MP3 é lida dos frames MPEG (`mp3Duration`), então a narração entra na timeline com o tempo exato.
+- Se o servidor não puder sintetizar, o painel oferece “Ouvir prévia” (voz do navegador) e “Adicionar como legenda”.
