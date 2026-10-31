@@ -1,0 +1,62 @@
+import { requireAdmin } from '@/lib/auth';
+import { createAdminClient } from '@/lib/supabase/admin';
+import { Badge, Card, Input, Select } from '@/components/ui';
+import { saveAsset } from '@/app/admin/actions';
+import { AssetDelete } from '@/components/admin/ActionButtons';
+import type { Asset } from '@/lib/types';
+
+export const dynamic = 'force-dynamic';
+
+const TYPES = ['video', 'image', 'audio', 'sfx', 'music', 'transition', 'font', 'object3d', 'overlay', 'sticker'];
+
+export default async function AdminLibrary() {
+  await requireAdmin();
+  const db = createAdminClient();
+  const { data } = await db.from('es_assets').select('*').order('created_at', { ascending: false }).limit(300);
+  const assets = (data ?? []) as unknown as Asset[];
+
+  return (
+    <div className="space-y-5">
+      <div>
+        <h1 className="font-display text-2xl font-bold text-white">Biblioteca de assets</h1>
+        <p className="mt-1 text-sm text-slate-400">{assets.length} itens. Use URLs públicas (MP4, JPG, MP3) ou presets <code>builtin:*</code>.</p>
+      </div>
+
+      <Card className="p-4">
+        <h3 className="text-sm font-semibold text-white">Adicionar item</h3>
+        <form action={saveAsset} className="mt-3 grid gap-2 sm:grid-cols-3">
+          <Input name="name" placeholder="Nome" required />
+          <Select name="type" defaultValue="image">
+            {TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+          </Select>
+          <Input name="category" placeholder="Categoria" defaultValue="geral" />
+          <Input name="url" placeholder="https://… ou builtin:preset" className="sm:col-span-2" />
+          <Input name="tags" placeholder="tags, separadas, virgula" />
+          <label className="flex items-center gap-2 text-xs text-slate-300"><input type="checkbox" name="premium" className="accent-brand-500" /> Premium</label>
+          <label className="flex items-center gap-2 text-xs text-slate-300"><input type="checkbox" name="is_active" defaultChecked className="accent-brand-500" /> Ativo</label>
+          <button className="rounded-xl bg-gradient-to-r from-brand-500 to-brand-600 py-2 text-xs font-semibold text-white">Adicionar</button>
+        </form>
+      </Card>
+
+      <Card className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="bg-white/[0.02] text-left text-[10px] uppercase tracking-wider text-slate-500">
+            <tr><th className="px-4 py-3">Nome</th><th className="px-4 py-3">Tipo</th><th className="px-4 py-3">URL</th><th className="px-4 py-3">Premium</th><th className="px-4 py-3">Ativo</th><th className="px-4 py-3">Ações</th></tr>
+          </thead>
+          <tbody className="divide-y divide-white/5">
+            {assets.map((a) => (
+              <tr key={a.id}>
+                <td className="px-4 py-2 text-xs font-medium text-white">{a.name}</td>
+                <td className="px-4 py-2 text-xs text-slate-400">{a.type}</td>
+                <td className="max-w-[220px] truncate px-4 py-2 text-[11px] text-slate-500">{a.url}</td>
+                <td className="px-4 py-2">{a.premium ? <Badge tone="warning">premium</Badge> : <Badge>free</Badge>}</td>
+                <td className="px-4 py-2">{a.is_active ? <Badge tone="success">sim</Badge> : <Badge tone="danger">não</Badge>}</td>
+                <td className="px-4 py-2"><AssetDelete id={a.id} /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </Card>
+    </div>
+  );
+}
