@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { Check, Download, Film, Image as ImageIcon, Loader2, X } from 'lucide-react';
+import type { Clip } from '@/lib/types';
 import { useStudio } from './store';
 import { drawFrame } from './render';
 import { media } from './media';
@@ -29,6 +30,47 @@ function pickMime(prefer: 'mp4' | 'webm') {
   return '';
 }
 
+/** Posiciona todos os vídeos visíveis no instante pedido (necessário para render quadro a quadro). */
+async function seekVideosAt(clips: Clip[], time: number) {
+  const jobs: Promise<void>[] = [];
+  for (const clip of clips) {
+    if (clip.kind !== 'video') continue;
+    if (time < clip.start - 0.001 || time > clip.start + clip.duration + 0.001) continue;
+    const el = media.getVideo(clip.src);
+    const target = Math.max(0, clip.trimStart + (time - clip.start) * clip.speed);
+    if (el.readyState < 2 || Math.abs(el.currentTime - target) < 0.03) continue;
+    jobs.push(
+      new Promise<void>((resolve) => {
+        let done = false;
+        const finish = () => {
+          if (done) return;
+          done = true;
+          el.removeEventListener('seeked', finish);
+          resolve();
+        };
+        el.addEventListener('seeked', finish);
+        window.setTimeout(finish, 500);
+        try {
+          el.currentTime = target;
+        } catch {
+          finish();
+        }
+      }),
+    );
+  }
+  await Promise.all(jobs);
+}
+
+const GIF_FPS = 12;
+const GIF_MAX_WIDTH = 480;
+
+const FORMATS: { value: 'mp4' | 'mov' | 'webm' | 'gif'; hint: string }[] = [
+  { value: 'mp4', hint: 'H.264 (quando suportado)' },
+  { value: 'mov', hint: 'QuickTime · mesmo stream H.264' },
+  { value: 'webm', hint: 'VP9 + Opus' },
+  { value: 'gif', hint: 'Animação 480p · sem áudio' },
+];
+
 export function ExportButton({ maxQuality = 2160 }: { maxQuality?: number }) {
   const [open, setOpen] = useState(false);
   return (
@@ -45,7 +87,7 @@ export function ExportButton({ maxQuality = 2160 }: { maxQuality?: number }) {
 }
 
 function ExportDialog({ maxQuality, onClose }: { maxQuality: number; onClose: () => void }) {
-  const [format, setFormat] = useState<'mp4' | 'webm'>(() => (pickMime('mp4') ? 'mp4' : 'webm'));
+  const [format, setFormat] = useState<'mp4' | 'mov' | 'webm' | 'gif'>(() => (pickMime('mp4') ? 'mp4' : 'webm'));
   const [quality, setQuality] = useState(() => {
     const s = useStudio.getState();
     const native = Math.min(maxQuality, s.height);
@@ -67,6 +109,10 @@ function ExportDialog({ maxQuality, onClose }: { maxQuality: number; onClose: ()
   }, []);
 
   async function startVideoExport() {
+    if (format === 'gif') {
+      await startGifExport();
+      return;
+    }
     setError(null);
     setResult(null);
     const s = useStudio.getState();
@@ -88,7 +134,7 @@ function ExportDialog({ maxQuality, onClose }: { maxQuality: number; onClose: ()
       return;
     }
 
-    const mime = pickMime(format);
+    const mime = pickMime(format === 'webm' ? 'webm' : 'mp4');
     if (!mime) {
       setError('Seu navegador não suporta gravação de vídeo. Tente Chrome ou Edge.');
       return;
@@ -151,9 +197,81 @@ function ExportDialog({ maxQuality, onClose }: { maxQuality: number; onClose: ()
       return;
     }
 
-    const ext = mime.includes('mp4') ? 'mp4' : 'webm';
+    const ext = format === 'mov' ? 'mov' : mime.includes('mp4') ? 'mp4' : 'webm';
     setResult({ url: URL.createObjectURL(blob), size: blob.size, ext });
     setPhase('done');
+  }
+
+  async function startGifExport() {
+    setError(null);
+    setResult(null);
+    const s = useStudio.getState();
+    if (s.clips.length === 0) {
+      setError('Adicione ao menos um clipe na timeline antes de exportar.');
+      return;
+    }
+    cancelRef.current = false;
+    setPhase('processing');
+    setProgress(0);
+    audioEngine.stopExportCapture();
+    useStudio.setState({ playing: false });
+
+    const scale = Math.min(1, GIF_MAX_WIDTH / s.width);
+    const width = Math.max(2, Math.round((s.width * scale) / 2) * 2);
+    const height = Math.max(2, Math.round((s.height * scale) / 2) * 2);
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d', { alpha: false });
+    if (!ctx) {
+      setError('Canvas não suportado neste navegador.');
+      setPhase('idle');
+      return;
+    }
+
+    try {
+      const { GIFEncoder, quantize, applyPalette } = await import('gifenc');
+      const gif = GIFEncoder();
+      const duration = Math.max(0.4, s.duration);
+      const totalFrames = Math.max(1, Math.min(900, Math.ceil(duration * GIF_FPS)));
+      const delay = Math.round(1000 / GIF_FPS);
+
+      for (let i = 0; i < totalFrames; i++) {
+        if (cancelRef.current) {
+          setPhase('idle');
+          setProgress(0);
+          return;
+        }
+        const time = Math.min(duration - 0.001, i / GIF_FPS);
+        await seekVideosAt(s.clips, time);
+        drawFrame({
+          ctx,
+          width,
+          height,
+          background: s.background,
+          clips: s.clips,
+          tracks: s.tracks,
+          time,
+          media,
+          three: threePool,
+        });
+        const { data } = ctx.getImageData(0, 0, width, height);
+        const palette = quantize(data, 256);
+        const index = applyPalette(data, palette);
+        gif.writeFrame(index, width, height, { palette, delay, repeat: 0 });
+        setProgress((i + 1) / totalFrames);
+        if (i % 3 === 2) await new Promise((resolve) => window.setTimeout(resolve, 0));
+      }
+
+      gif.finish();
+      const bytes = gif.bytes();
+      const blob = new Blob([bytes as unknown as BlobPart], { type: 'image/gif' });
+      setResult({ url: URL.createObjectURL(blob), size: blob.size, ext: 'gif' });
+      setPhase('done');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Falha ao gerar o GIF.');
+      setPhase('idle');
+    }
   }
 
   function cancel() {
@@ -194,41 +312,50 @@ function ExportDialog({ maxQuality, onClose }: { maxQuality: number; onClose: ()
         </div>
 
         <div className="mt-4 grid grid-cols-2 gap-2">
-          {(['mp4', 'webm'] as const).map((f) => (
-            <button
-              key={f}
-              onClick={() => setFormat(f)}
-              disabled={!pickMime(f)}
-              className={cn(
-                'rounded-xl border px-3 py-2 text-left text-xs transition disabled:opacity-40',
-                format === f ? 'border-brand-400/50 bg-brand-500/15 text-white' : 'border-white/10 text-slate-400 hover:bg-white/5',
-              )}
-            >
-              <span className="font-bold uppercase">{f}</span>
-              <span className="block text-[10px] text-slate-500">{f === 'mp4' ? 'H.264 (quando suportado)' : 'VP9 + Opus'}</span>
-            </button>
-          ))}
+          {FORMATS.map((f) => {
+            const disabled = f.value === 'gif' ? false : !pickMime(f.value === 'webm' ? 'webm' : 'mp4');
+            return (
+              <button
+                key={f.value}
+                onClick={() => setFormat(f.value)}
+                disabled={disabled}
+                className={cn(
+                  'rounded-xl border px-3 py-2 text-left text-xs transition disabled:opacity-40',
+                  format === f.value ? 'border-brand-400/50 bg-brand-500/15 text-white' : 'border-white/10 text-slate-400 hover:bg-white/5',
+                )}
+              >
+                <span className="font-bold uppercase">{f.value}</span>
+                <span className="block text-[10px] text-slate-500">{f.hint}</span>
+              </button>
+            );
+          })}
         </div>
 
-        <div className="mt-3">
-          <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Qualidade</span>
-          <select
-            value={quality}
-            onChange={(e) => setQuality(Number(e.target.value))}
-            className="mt-1 w-full rounded-xl border border-white/10 bg-ink-950 px-3 py-2 text-xs text-white outline-none"
-          >
-            {QUALITIES.map((q) => (
-              <option key={q.value} value={q.value} disabled={q.value > maxQuality}>
-                {q.label} {q.value > maxQuality ? '· plano superior' : ''}
-              </option>
-            ))}
-          </select>
-        </div>
+        {format === 'gif' ? (
+          <p className="mt-3 rounded-xl border border-white/10 bg-ink-950 px-3 py-2 text-[10px] leading-relaxed text-slate-400">
+            GIF animado renderizado quadro a quadro · 480p · {GIF_FPS} fps · sem áudio.
+          </p>
+        ) : (
+          <div className="mt-3">
+            <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Qualidade</span>
+            <select
+              value={quality}
+              onChange={(e) => setQuality(Number(e.target.value))}
+              className="mt-1 w-full rounded-xl border border-white/10 bg-ink-950 px-3 py-2 text-xs text-white outline-none"
+            >
+              {QUALITIES.map((q) => (
+                <option key={q.value} value={q.value} disabled={q.value > maxQuality}>
+                  {q.label} {q.value > maxQuality ? '· plano superior' : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
         {phase === 'recording' || phase === 'processing' ? (
           <div className="mt-4">
             <div className="flex items-center justify-between text-[11px] text-slate-400">
-              <span>{phase === 'recording' ? 'Renderizando em tempo real…' : 'Finalizando arquivo…'}</span>
+              <span>{phase === 'recording' ? 'Renderizando em tempo real…' : 'Gerando arquivo…'}</span>
               <span>{Math.round(progress * 100)}%</span>
             </div>
             <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-white/10">
@@ -245,7 +372,7 @@ function ExportDialog({ maxQuality, onClose }: { maxQuality: number; onClose: ()
             <p className="mt-0.5 text-[10px] text-emerald-100/70">{(result.size / (1024 * 1024)).toFixed(1)} MB · .{result.ext}</p>
             <a
               href={result.url}
-              download={`${useStudio.getState().name || 'projeto'}-${quality}p.${result.ext}`}
+              download={`${useStudio.getState().name || 'projeto'}-${result.ext === 'gif' ? '480p' : `${quality}p`}.${result.ext}`}
               className="mt-2 flex items-center justify-center gap-1.5 rounded-lg bg-gradient-to-r from-brand-500 to-brand-600 py-2 text-xs font-semibold text-white"
             >
               <Download className="h-3.5 w-3.5" /> Baixar arquivo
@@ -254,14 +381,16 @@ function ExportDialog({ maxQuality, onClose }: { maxQuality: number; onClose: ()
         ) : (
           <div className="mt-4 space-y-2">
             <button onClick={startVideoExport} className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-brand-500 to-brand-600 py-2.5 text-xs font-semibold text-white">
-              <Film className="h-3.5 w-3.5" /> Renderizar vídeo
+              <Film className="h-3.5 w-3.5" /> {format === 'gif' ? 'Gerar GIF animado' : 'Renderizar vídeo'}
             </button>
             <button onClick={exportFrame} className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-white/10 py-2 text-xs font-semibold text-slate-300 hover:bg-white/5">
               <ImageIcon className="h-3.5 w-3.5" /> Exportar frame atual (PNG)
             </button>
             {error ? <p className="rounded-lg border border-rose-400/30 bg-rose-500/10 px-2 py-1.5 text-[10px] text-rose-200">{error}</p> : null}
             <p className="text-[10px] leading-relaxed text-slate-500">
-              A renderização acontece em tempo real: um vídeo de 30s leva ~30s. O áudio da timeline entra na exportação.
+              {format === 'gif'
+                ? 'O GIF é codificado quadro a quadro no navegador — quanto maior o projeto, mais tempo leva.'
+                : 'A renderização acontece em tempo real: um vídeo de 30s leva ~30s. O áudio da timeline entra na exportação.'}
             </p>
           </div>
         )}

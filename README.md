@@ -20,7 +20,7 @@ ferramenta **Baixa Tudo** integrada (download de vídeos, imagens e áudios).
 | Mídia | Vídeo, imagem, texto, formas, overlays (vinheta/grão/moldura), objetos 3D WebGL, transições (fade/slide/zoom/wipe/glitch/flash), filtros de cor |
 | Áudio | Volume por clipe, mute do áudio original, fades, mixagem Web Audio, SFX/trilhas procedurais (whoosh, riser, impacto, lo-fi, cinematic) |
 | Voz | TTS (texto → MP3 salvo no Storage e inserido na timeline) e STT (ditado → legendas + export .srt) |
-| Exportação | Render local com `canvas.captureStream` + `MediaRecorder` em MP4 (quando suportado) ou WebM/VP9 até 4K, e frame em PNG |
+| Exportação | Render local: MP4 (H.264), MOV (QuickTime), WebM/VP9 até 4K via `MediaRecorder`, GIF animado 480p/12fps codificado quadro a quadro (`gifenc`) e frame em PNG |
 | Baixa Tudo | Central de downloads integrada (motor baixartudo.me), vídeo/áudio/foto/GIF, proxy assinado, "salvar na biblioteca", histórico, extensão .zip |
 | Checkout | Stripe (Checkout Session + webhook assinado), Mercado Pago (preferência + webhook), modo demonstração, antifraude por score |
 | Admin | Dashboard (MRR, receita, usuários, conversão), usuários, planos, pagamentos, biblioteca de assets, downloads, configurações, logs de auditoria |

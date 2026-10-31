@@ -65,7 +65,7 @@ const STEPS = [
   { n: '01', title: 'Importe', text: 'Arraste arquivos do computador ou baixe com o Baixa Tudo em 1 clique.' },
   { n: '02', title: 'Monte na régua', text: 'Solta na timeline, corta arrastando as bordas, encaixa com snap e aplica transições.' },
   { n: '03', title: 'Dê vida', text: 'Textos, 3D, narração por IA, trilha e legendas automáticas em poucos segundos.' },
-  { n: '04', title: 'Exporte', text: 'Renderize WebM/MP4 até 4K direto no navegador — sem instalar nada.' },
+  { n: '04', title: 'Exporte', text: 'Renderize MP4, MOV, WebM ou GIF até 4K direto no navegador — sem instalar nada.' },
 ];
 
 const TESTIMONIALS = [
