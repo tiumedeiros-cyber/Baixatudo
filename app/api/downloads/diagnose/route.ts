@@ -42,32 +42,41 @@ export async function GET(request: Request) {
     }
   };
 
-  // Sonda leve: pede só os primeiros bytes com Range e corta em 6 s para não
-  // estourar o tempo da função (o arquivo pode ter centenas de MB).
+  // Sonda leve: lê só o primeiro pedaço do arquivo e corta em 25 s.
+  // Serve para saber se o túnel entrega bytes de verdade a partir da Vercel.
   const probe = async (target: string) => {
     const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 6000);
+    const timer = setTimeout(() => ctrl.abort(), 25_000);
+    const t0 = Date.now();
     try {
       const res = await fetch(target, {
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36',
           Accept: '*/*',
-          Range: 'bytes=0-2047',
         },
         redirect: 'follow',
         cache: 'no-store',
         signal: ctrl.signal,
       });
-      const buf = Buffer.from(await res.arrayBuffer());
+      const firstByteMs = Date.now() - t0;
+      if (!res.body) {
+        return { status: res.status, firstByteMs, contentType: res.headers.get('content-type'), empty: true };
+      }
+      const reader = res.body.getReader();
+      const { value } = await reader.read();
+      await reader.cancel().catch(() => {});
+      const buf = Buffer.from(value ?? []);
       return {
         status: res.status,
+        firstByteMs,
         contentType: res.headers.get('content-type'),
+        contentLength: res.headers.get('content-length'),
         contentRange: res.headers.get('content-range'),
         bytes: buf.length,
         head: buf.subarray(0, 8).toString('hex'),
       };
     } catch (err) {
-      return { error: err instanceof Error ? err.message : 'erro' };
+      return { error: err instanceof Error ? err.message : 'erro', ms: Date.now() - t0 };
     } finally {
       clearTimeout(timer);
     }
