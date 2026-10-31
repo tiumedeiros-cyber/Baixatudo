@@ -5,6 +5,7 @@ import { getSessionUser } from '@/lib/auth';
 import { Badge, Card, Logo } from '@/components/ui';
 import { HourPacksForm } from '@/components/checkout/HourPacksForm';
 import { getTimeBalance } from '@/lib/time';
+import { effectivePayments, getSettings } from '@/lib/settings';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,7 +22,10 @@ export default async function HourCheckoutPage({ searchParams }: { searchParams:
   const { horas } = await searchParams;
 
   const balance = await getTimeBalance(user.id);
-  const demo = !process.env.STRIPE_SECRET_KEY && !process.env.MERCADOPAGO_ACCESS_TOKEN;
+  const settings = await getSettings();
+  const pay = effectivePayments(settings);
+  const demo = pay.mode === 'demo';
+  const manual = pay.mode === 'manual';
 
   return (
     <div className="min-h-screen">
@@ -52,7 +56,15 @@ export default async function HourCheckoutPage({ searchParams }: { searchParams:
           ) : null}
 
           <div className="mt-5">
-            <HourPacksForm demo={demo} remaining={balance.remaining} />
+            <HourPacksForm
+              demo={demo}
+              remaining={balance.remaining}
+              manual={manual}
+              pixKey={settings.payments.pix_key}
+              pixHolder={settings.payments.pix_holder}
+              instructions={settings.payments.manual_instructions}
+              supportEmail={settings.general.support_email}
+            />
           </div>
         </div>
 

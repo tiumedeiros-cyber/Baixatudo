@@ -20,6 +20,8 @@ import {
   Zap,
 } from 'lucide-react';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { getSettings, supportLink } from '@/lib/settings';
+import { SupportFab } from '@/components/marketing/SupportFab';
 import { Badge, ButtonLink, Card, Logo } from '@/components/ui';
 import { SiteHeader } from '@/components/marketing/SiteHeader';
 import { brl } from '@/lib/utils';
@@ -85,6 +87,9 @@ const FAQ = [
 ];
 
 export default async function LandingPage() {
+  const settings = await getSettings();
+  const support = supportLink(settings);
+  const landing = settings.landing;
   let plans: Plan[] = FALLBACK_PLANS;
   try {
     const supabase = await createSupabaseServerClient();
@@ -109,18 +114,17 @@ export default async function LandingPage() {
           <div className="grid items-center gap-12 lg:grid-cols-[1.05fr_0.95fr]">
             <div className="min-w-0">
               <div className="inline-flex items-center gap-2 rounded-full border border-brand-400/30 bg-brand-500/10 px-3 py-1 text-xs font-semibold text-brand-200">
-                <Sparkles className="h-3.5 w-3.5" /> 7 dias grátis · sem cartão
+                <Sparkles className="h-3.5 w-3.5" /> {landing.announcement || '7 dias grátis · sem cartão'}
               </div>
               <h1 className="mt-5 font-display text-[32px] font-extrabold leading-[1.08] tracking-tight text-white text-balance sm:text-4xl md:text-6xl">
-                Edição profissional de <span className="gradient-text">vídeo e imagem</span> direto no navegador
+                {landing.headline}
               </h1>
               <p className="mt-5 max-w-xl text-[15px] leading-relaxed text-slate-300 md:text-base">
-                Timeline com régua, corte por frame, objetos 3D, biblioteca infinita de assets, narração por IA e o
-                <strong className="text-white"> Baixa Tudo</strong> integrado para trazer vídeos, imagens e áudios direto para a sua biblioteca.
+                {landing.subheadline}
               </p>
               <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
                 <ButtonLink href="/cadastro" size="lg" className="btn-shine w-full sm:w-auto">
-                  Criar minha conta <ArrowRight className="h-4 w-4" />
+                  {landing.cta_label || 'Criar minha conta'} <ArrowRight className="h-4 w-4" />
                 </ButtonLink>
                 <ButtonLink href="/dashboard/projetos" size="lg" variant="secondary" className="w-full sm:w-auto">
                   <Play className="h-4 w-4" /> Abrir o editor
@@ -321,6 +325,7 @@ export default async function LandingPage() {
       </section>
 
       {/* PLANOS */}
+      {!landing.show_pricing ? null : (
       <section id="planos" className="mx-auto max-w-7xl px-5 py-16">
         <div className="text-center">
           <Badge tone="brand">Planos</Badge>
@@ -368,6 +373,7 @@ export default async function LandingPage() {
           })}
         </div>
       </section>
+      )}
 
       {/* DEPOIMENTOS */}
       <section className="border-y border-white/5 bg-white/[0.015] py-16">
@@ -454,9 +460,9 @@ export default async function LandingPage() {
       <footer className="border-t border-white/5 py-10">
         <div className="mx-auto flex max-w-7xl flex-col gap-6 px-5 md:flex-row md:items-start md:justify-between">
           <div className="max-w-sm">
-            <Logo />
+            <Logo name={settings.general.site_name} />
             <p className="mt-3 text-xs leading-relaxed text-slate-500">
-              Editor Studio é uma plataforma SaaS de edição de imagens e vídeos com timeline profissional, biblioteca
+              {settings.general.site_name} é uma plataforma SaaS de edição de imagens e vídeos com timeline profissional, biblioteca
               de assets e ferramentas de IA. Feito para criadores que não perdem tempo.
             </p>
           </div>
@@ -472,7 +478,12 @@ export default async function LandingPage() {
               <p className="font-semibold text-white">Legal</p>
               <Link className="block hover:text-white" href="/termos">Termos de uso</Link>
               <Link className="block hover:text-white" href="/privacidade">Privacidade (LGPD)</Link>
-              <a className="block hover:text-white" href="mailto:suporte@editorstudio.app">Suporte</a>
+              {support.showEmail ? <a className="block hover:text-white" href={support.email}>Suporte por e-mail</a> : null}
+              {support.showWhatsapp ? (
+                <a className="block text-emerald-300 hover:text-emerald-200" href={support.whatsapp} target="_blank" rel="noreferrer">
+                  Suporte no WhatsApp
+                </a>
+              ) : null}
             </div>
             <div className="space-y-2">
               <p className="font-semibold text-white">Conta</p>
@@ -483,10 +494,12 @@ export default async function LandingPage() {
           </div>
         </div>
         <div className="mx-auto mt-8 flex max-w-7xl flex-wrap items-center justify-between gap-2 border-t border-white/5 px-5 pt-6 text-[11px] text-slate-500">
-          <span>© {new Date().getFullYear()} Editor Studio. Todos os direitos reservados.</span>
+          <span>© {new Date().getFullYear()} {settings.general.site_name}. Todos os direitos reservados.</span>
           <span className="inline-flex items-center gap-1.5"><Subtitles className="h-3.5 w-3.5" /> Interface em português · Pagamentos em BRL</span>
         </div>
       </footer>
+
+      {landing.show_support ? <SupportFab whatsapp={support.showWhatsapp ? support.whatsapp : ''} email={support.showEmail ? support.email : ''} /> : null}
     </div>
   );
 }

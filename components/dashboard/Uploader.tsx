@@ -1,7 +1,7 @@
 'use client';
 import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Camera, Check, CloudUpload, Images, Loader2, Trash2 } from 'lucide-react';
+import { Camera, Check, CloudUpload, Images, Link2, Loader2, Trash2 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { Button, Card } from '@/components/ui';
 import { deleteUserAsset, uploadUserAssetFallback } from '@/app/dashboard/actions';
@@ -87,11 +87,24 @@ function probe(file: File, type: MediaKind): Promise<Record<string, unknown>> {
     .finally(() => URL.revokeObjectURL(url));
 }
 
-export function Uploader({ userId, assets, storageLimitGb }: { userId: string; assets: UserAsset[]; storageLimitGb: number }) {
+export function Uploader({
+  userId,
+  assets,
+  storageLimitGb,
+  quota,
+}: {
+  userId: string;
+  assets: UserAsset[];
+  storageLimitGb: number;
+  /** contador do banco (O(1)) — quando vem, é a fonte da verdade */
+  quota?: { usedBytes: number; limitBytes: number };
+}) {
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [link, setLink] = useState('');
+  const [linkBusy, setLinkBusy] = useState(false);
   const galleryRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
@@ -104,6 +117,15 @@ export function Uploader({ userId, assets, storageLimitGb }: { userId: string; a
     const supabase = createClient();
     let uploaded = 0;
     try {
+      // cota: checagem local antes de gastar banda (o servidor revalida)
+      const limit = quota?.limitBytes ?? storageLimitGb * 1024 ** 3;
+      const used = quota?.usedBytes ?? assets.reduce((a, b) => a + Number(b.size_bytes || 0), 0);
+      const incoming = Array.from(files).reduce((a, f) => a + f.size, 0);
+      if (used + incoming > limit) {
+        throw new Error(
+          `Sem espaço: o plano tem ${(limit / 1024 ** 3).toFixed(0)} GB, ${((limit - used) / 1024 ** 3).toFixed(1)} GB livres e você está enviando ${(incoming / 1024 ** 3).toFixed(1)} GB. Apague arquivos ou faça upgrade.`,
+        );
+      }
       for (const file of Array.from(files)) {
         setProgress(`Enviando ${file.name}…`);
         const type = detectType(file);
@@ -154,14 +176,60 @@ export function Uploader({ userId, assets, storageLimitGb }: { userId: string; a
     }
   }
 
+  /** Importa do Google Drive / Dropbox / link direto (ou pasta pública do Drive). */
+  async function importLink() {
+    const url = link.trim();
+    if (!url) return;
+    setLinkBusy(true);
+    setError(null);
+    setSuccess(null);
+    try {
+      const targets: string[] = [url];
+      if (/\/folders\//.test(url)) {
+        setProgress('Lendo a pasta do Drive…');
+        const listing = await fetch('/api/import', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url, list: true }),
+        }).then((r) => r.json() as Promise<{ files?: { id: string; name: string }[]; error?: string }>);
+        if (!listing.files?.length) throw new Error(listing.error ?? 'Nenhum arquivo encontrado nessa pasta.');
+        targets.length = 0;
+        for (const f of listing.files.slice(0, 12)) targets.push(`https://drive.google.com/file/d/${f.id}/view`);
+      }
+
+      let count = 0;
+      for (const target of targets) {
+        setProgress(targets.length > 1 ? `Importando ${count + 1} de ${targets.length}…` : 'Importando o arquivo…');
+        const res = await fetch('/api/import', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: target }),
+        });
+        const json = (await res.json()) as { ok?: boolean; error?: string };
+        if (json.ok) count += 1;
+        else if (targets.length === 1) throw new Error(json.error ?? 'Não foi possível importar.');
+      }
+      if (!count) throw new Error('Nenhum arquivo pôde ser importado.');
+      setSuccess(count === 1 ? 'Arquivo importado para a sua biblioteca!' : `${count} arquivos importados!`);
+      setLink('');
+      router.refresh();
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Falha ao importar o link.');
+    } finally {
+      setProgress(null);
+      setLinkBusy(false);
+    }
+  }
+
   async function remove(asset: UserAsset) {
     if (!confirm(`Remover "${asset.name}" da sua biblioteca?`)) return;
     await deleteUserAsset(asset.id, asset.storage_path);
     router.refresh();
   }
 
-  const used = assets.reduce((a, b) => a + Number(b.size_bytes || 0), 0);
-  const pct = Math.min(100, (used / (storageLimitGb * 1024 ** 3)) * 100);
+  const used = quota?.usedBytes ?? assets.reduce((a, b) => a + Number(b.size_bytes || 0), 0);
+  const limitBytes = quota?.limitBytes ?? storageLimitGb * 1024 ** 3;
+  const pct = Math.min(100, (used / limitBytes) * 100);
 
   return (
     <div className="space-y-5">
@@ -217,9 +285,31 @@ export function Uploader({ userId, assets, storageLimitGb }: { userId: string; a
         </div>
       </Card>
 
+      <Card className="p-4">
+        <div className="flex items-center gap-2">
+          <Link2 className="h-4 w-4 text-neon-cyan" />
+          <h3 className="text-sm font-semibold text-white">Importar por link</h3>
+        </div>
+        <p className="mt-1 text-[11px] text-slate-400">
+          Cole o link de um arquivo ou de uma <strong className="text-white">pasta pública do Google Drive</strong>, do Dropbox ou um link direto. O download é feito no servidor e o arquivo entra na sua biblioteca.
+        </p>
+        <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+          <input
+            value={link}
+            onChange={(e) => setLink(e.target.value)}
+            placeholder="https://drive.google.com/drive/folders/…"
+            inputMode="url"
+            className="min-w-0 flex-1 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-white placeholder:text-slate-500 focus:border-brand-400/50 focus:outline-none"
+          />
+          <Button onClick={importLink} disabled={linkBusy || !link.trim()} className="sm:w-auto">
+            {linkBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Link2 className="h-4 w-4" />} Importar
+          </Button>
+        </div>
+      </Card>
+
       <div className="flex items-center justify-between text-xs text-slate-400">
         <span>{assets.length} arquivo(s) · {bytes(used)} usados</span>
-        <span>{storageLimitGb} GB disponíveis</span>
+        <span>{bytes(Math.max(0, limitBytes - used))} livres de {storageLimitGb} GB</span>
       </div>
       <div className="h-1.5 overflow-hidden rounded-full bg-white/8">
         <div className="h-full bg-gradient-to-r from-brand-500 to-neon-cyan" style={{ width: `${Math.max(1, pct)}%` }} />

@@ -209,3 +209,180 @@ export async function grantTimeToAll(formData: FormData) {
   revalidatePath('/admin/horas');
   redirect(`/admin/horas?ok=lote&qtd=${profiles?.length ?? 0}`);
 }
+
+/* ----------------------- Configurações da plataforma ----------------------- */
+
+export async function saveGeneralSettings(formData: FormData) {
+  await requireAdmin();
+  const db = createAdminClient();
+  const { getSettingsFresh } = await import('@/lib/settings');
+  const current = (await getSettingsFresh()).general;
+  const value = {
+    site_name: String(formData.get('site_name') || current.site_name).slice(0, 60),
+    support_email: String(formData.get('support_email') || '').trim(),
+    whatsapp: String(formData.get('whatsapp') || '').trim(),
+    support_mode: String(formData.get('support_mode') || 'email'),
+    whatsapp_message: String(formData.get('whatsapp_message') || '').slice(0, 300),
+    max_upload_mb: Number(formData.get('max_upload_mb') || current.max_upload_mb),
+  };
+  await db.from('es_settings').upsert({ key: 'general', value, updated_at: new Date().toISOString() });
+  const { revalidateTag } = await import('next/cache');
+  revalidateTag('settings');
+  revalidatePath('/');
+  revalidatePath('/admin/configuracoes');
+}
+
+export async function saveLandingSettings(formData: FormData) {
+  await requireAdmin();
+  const db = createAdminClient();
+  const value = {
+    headline: String(formData.get('headline') || '').slice(0, 160),
+    subheadline: String(formData.get('subheadline') || '').slice(0, 400),
+    cta_label: String(formData.get('cta_label') || 'Criar minha conta').slice(0, 40),
+    announcement: String(formData.get('announcement') || '').slice(0, 200),
+    show_pricing: formData.get('show_pricing') === 'on',
+    show_support: formData.get('show_support') === 'on',
+  };
+  await db.from('es_settings').upsert({ key: 'landing', value, updated_at: new Date().toISOString() });
+  const { revalidateTag } = await import('next/cache');
+  revalidateTag('settings');
+  revalidatePath('/');
+  revalidatePath('/admin/configuracoes');
+}
+
+export async function savePaymentSettings(formData: FormData) {
+  await requireAdmin();
+  const db = createAdminClient();
+  const { getSettingsFresh } = await import('@/lib/settings');
+  const { encryptSecret } = await import('@/lib/crypto');
+  const current = (await getSettingsFresh()).payments;
+
+  const stripeSecretInput = String(formData.get('stripe_secret') || '').trim();
+  const mpTokenInput = String(formData.get('mp_token') || '').trim();
+  const clearStripe = formData.get('clear_stripe') === 'on';
+  const clearMp = formData.get('clear_mp') === 'on';
+
+  const value = {
+    mode: String(formData.get('mode') || 'manual'),
+    currency: String(formData.get('currency') || 'BRL').slice(0, 8),
+    manual_instructions: String(formData.get('manual_instructions') || '').slice(0, 1200),
+    pix_key: String(formData.get('pix_key') || '').trim().slice(0, 200),
+    pix_holder: String(formData.get('pix_holder') || '').trim().slice(0, 120),
+    receipt_whatsapp: String(formData.get('receipt_whatsapp') || '').trim().slice(0, 40),
+    stripe_public: String(formData.get('stripe_public') || '').trim().slice(0, 200),
+    stripe_secret: clearStripe ? '' : stripeSecretInput ? encryptSecret(stripeSecretInput) : current.stripe_secret,
+    mp_public: String(formData.get('mp_public') || '').trim().slice(0, 200),
+    mp_token: clearMp ? '' : mpTokenInput ? encryptSecret(mpTokenInput) : current.mp_token,
+    diligence_note: String(formData.get('diligence_note') || '').slice(0, 600),
+  };
+  await db.from('es_settings').upsert({ key: 'payments', value, updated_at: new Date().toISOString() });
+  const { revalidateTag } = await import('next/cache');
+  revalidateTag('settings');
+  revalidatePath('/');
+  revalidatePath('/admin/configuracoes');
+  revalidatePath('/admin/pagamentos');
+}
+
+/* --------------------- Biblioteca: upload e import por link --------------------- */
+
+function catalogType(contentType: string, name: string): 'video' | 'image' | 'audio' {
+  if (contentType.startsWith('video/')) return 'video';
+  if (contentType.startsWith('audio/')) return 'audio';
+  if (contentType.startsWith('image/')) return 'image';
+  const ext = name.split('.').pop()?.toLowerCase() ?? '';
+  if (['mp4', 'mov', 'webm', 'mkv'].includes(ext)) return 'video';
+  if (['mp3', 'wav', 'm4a', 'ogg'].includes(ext)) return 'audio';
+  return 'image';
+}
+
+/** Upload direto do computador/celular do admin para a biblioteca do sistema. */
+export async function uploadCatalogMedia(formData: FormData) {
+  const db = await admin();
+  const file = formData.get('file');
+  if (!(file instanceof File) || !file.size) return;
+
+  const category = String(formData.get('category') || 'geral');
+  const tags = String(formData.get('tags') || '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const type = catalogType(file.type, file.name);
+  const { safeFileName } = await import('@/lib/import-url');
+  const ext = file.name.match(/\.([a-z0-9]{2,5})$/i)?.[1]?.toLowerCase() || (type === 'video' ? 'mp4' : type === 'audio' ? 'mp3' : 'jpg');
+  const path = `catalog/${Date.now()}-${safeFileName(file.name).replace(/\.[a-z0-9]{2,5}$/i, '').slice(0, 50)}.${ext}`;
+
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const { error } = await db.storage.from('media').upload(path, buffer, {
+    contentType: file.type || undefined,
+    upsert: false,
+  });
+  if (error) return;
+
+  const { data: pub } = db.storage.from('media').getPublicUrl(path);
+  await db.from('es_assets').insert({
+    name: file.name.replace(/\.[a-z0-9]{2,5}$/i, ''),
+    type,
+    category,
+    url: pub.publicUrl,
+    premium: formData.get('premium') === 'on',
+    tags,
+    is_active: true,
+  });
+  revalidatePath('/admin/biblioteca');
+  const { revalidateTag } = await import('next/cache');
+  revalidateTag('assets');
+}
+
+/** Importa um arquivo (ou pasta pública do Drive) para a biblioteca do sistema. */
+export async function importCatalogUrl(formData: FormData) {
+  const db = await admin();
+  const url = String(formData.get('url') || '').trim();
+  if (!/^https?:\/\//i.test(url)) return;
+
+  const category = String(formData.get('category') || 'geral');
+  const tags = String(formData.get('tags') || '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  const { fetchMedia, listDriveFolder, mediaTypeOf, safeFileName, driveFileId } = await import('@/lib/import-url');
+
+  const targets: string[] = [];
+  if (/\/folders\//.test(url)) {
+    const listing = await listDriveFolder(url);
+    for (const file of listing.files.slice(0, 25)) targets.push(`https://drive.google.com/file/d/${file.id}/view`);
+    if (!targets.length) {
+      targets.push(url);
+    }
+  } else {
+    targets.push(url);
+  }
+
+  for (const target of targets) {
+    const fetched = await fetchMedia(target, 300 * 1024 * 1024);
+    if (!fetched.ok) continue;
+    const type = mediaTypeOf(fetched.contentType, fetched.filename);
+    if (!type) continue;
+    const ext = fetched.filename.match(/\.([a-z0-9]{2,5})$/i)?.[1]?.toLowerCase() || (type === 'video' ? 'mp4' : type === 'audio' ? 'mp3' : 'jpg');
+    const base = safeFileName(fetched.filename).replace(/\.[a-z0-9]{2,5}$/i, '');
+    const path = `catalog/${Date.now()}-${base.slice(0, 50)}.${ext}`;
+    const { error } = await db.storage.from('media').upload(path, fetched.buffer, { contentType: fetched.contentType });
+    if (error) continue;
+    const { data: pub } = db.storage.from('media').getPublicUrl(path);
+    const id = driveFileId(target);
+    await db.from('es_assets').insert({
+      name: base,
+      type,
+      category,
+      url: pub.publicUrl,
+      premium: formData.get('premium') === 'on',
+      tags,
+      is_active: true,
+      metadata: { origin: 'import-url', source_url: target, thumbnail: id ? `https://drive.google.com/thumbnail?id=${id}&sz=w800` : null },
+    });
+  }
+
+  revalidatePath('/admin/biblioteca');
+  const { revalidateTag } = await import('next/cache');
+  revalidateTag('assets');
+}

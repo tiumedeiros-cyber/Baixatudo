@@ -5,6 +5,8 @@ import { getSessionUser } from '@/lib/auth';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { Badge, Card, Logo } from '@/components/ui';
 import { CheckoutForm } from '@/components/checkout/CheckoutForm';
+import { ManualPayment } from '@/components/checkout/ManualPayment';
+import { effectivePayments, getSettings } from '@/lib/settings';
 import { brl } from '@/lib/utils';
 import type { Plan } from '@/lib/types';
 
@@ -20,8 +22,11 @@ export default async function CheckoutPage({ params }: { params: Promise<{ slug:
   if (!plan) notFound();
   const typedPlan = plan as unknown as Plan;
 
-  const stripeEnabled = Boolean(process.env.STRIPE_SECRET_KEY);
-  const mpEnabled = Boolean(process.env.MERCADOPAGO_ACCESS_TOKEN);
+  const settings = await getSettings();
+  const pay = effectivePayments(settings);
+  const manual = pay.mode === 'manual';
+  const stripeEnabled = pay.mode === 'stripe';
+  const mpEnabled = pay.mode === 'mercadopago';
 
   return (
     <div className="min-h-screen">
@@ -36,15 +41,26 @@ export default async function CheckoutPage({ params }: { params: Promise<{ slug:
           <Badge tone="brand">Checkout seguro</Badge>
           <h1 className="mt-3 font-display text-3xl font-bold text-white">Assinar {typedPlan.name}</h1>
           <p className="mt-2 text-sm text-slate-400">{typedPlan.description}</p>
-          <CheckoutForm
-            planSlug={typedPlan.slug}
-            monthly={Number(typedPlan.price_monthly)}
-            yearly={Number(typedPlan.price_yearly)}
-            email={user.email ?? ''}
-            stripeEnabled={stripeEnabled}
-            mpEnabled={mpEnabled}
-            demo={!stripeEnabled && !mpEnabled}
-          />
+          {manual ? (
+            <ManualPayment
+              kind="plan"
+              slug={typedPlan.slug}
+              pixKey={settings.payments.pix_key}
+              pixHolder={settings.payments.pix_holder}
+              instructions={settings.payments.manual_instructions}
+              supportEmail={settings.general.support_email}
+            />
+          ) : (
+            <CheckoutForm
+              planSlug={typedPlan.slug}
+              monthly={Number(typedPlan.price_monthly)}
+              yearly={Number(typedPlan.price_yearly)}
+              email={user.email ?? ''}
+              stripeEnabled={stripeEnabled}
+              mpEnabled={mpEnabled}
+              demo={pay.mode === 'demo'}
+            />
+          )}
         </div>
 
         <div className="space-y-4">

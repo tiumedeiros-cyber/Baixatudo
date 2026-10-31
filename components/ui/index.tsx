@@ -1,7 +1,17 @@
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 
-export function Logo({ size = 'md', href = '/' }: { size?: 'sm' | 'md' | 'lg'; href?: string | null }) {
+export function Logo({
+  size = 'md',
+  href = '/',
+  name = 'Editor Studio',
+}: {
+  size?: 'sm' | 'md' | 'lg';
+  href?: string | null;
+  name?: string;
+}) {
+  const [first, ...rest] = (name || 'Editor Studio').split(' ');
+  const second = rest.join(' ');
   const dim = size === 'sm' ? 'h-8 w-8 text-[15px]' : size === 'lg' ? 'h-12 w-12 text-2xl' : 'h-9 w-9 text-lg';
   const content = (
     <span className="inline-flex items-center gap-2.5">
@@ -15,7 +25,8 @@ export function Logo({ size = 'md', href = '/' }: { size?: 'sm' | 'md' | 'lg'; h
         <span className="absolute inset-0 rounded-xl ring-1 ring-white/25" />
       </span>
       <span className="text-[17px] font-bold tracking-tight text-white">
-        Editor<span className="text-brand-300">Studio</span>
+        {first}
+        {second ? <span className="text-brand-300">{second}</span> : null}
       </span>
     </span>
   );

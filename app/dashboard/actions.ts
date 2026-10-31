@@ -84,9 +84,20 @@ export async function renameProject(id: string, name: string) {
 export async function deleteUserAsset(id: string, storagePath?: string | null) {
   const user = await getSessionUser();
   if (!user) redirect('/login');
-  const supabase = await createSupabaseServerClient();
-  if (storagePath) await supabase.storage.from('media').remove([storagePath]);
-  await supabase.from('es_user_assets').delete().eq('id', id);
+  const admin = createAdminClient();
+
+  // confirma que o arquivo é do usuário antes de apagar (nada de IDOR)
+  const { data: asset } = await admin
+    .from('es_user_assets')
+    .select('id,user_id,storage_path')
+    .eq('id', id)
+    .maybeSingle();
+  if (!asset || asset.user_id !== user.id) return;
+
+  // apaga o binário do storage e a linha — o contador de cota volta pelo trigger
+  const path = asset.storage_path || storagePath;
+  if (path) await admin.storage.from('media').remove([path]);
+  await admin.from('es_user_assets').delete().eq('id', id);
   revalidatePath('/dashboard/arquivos');
 }
 
@@ -103,6 +114,20 @@ export async function uploadUserAssetFallback(formData: FormData): Promise<{ ok:
   if (file.size > 25 * 1024 * 1024) return { ok: false, error: 'Arquivo acima de 25 MB — tente novamente com conexão estável.' };
 
   const admin = createAdminClient();
+
+  // cota do plano: checagem no servidor (o cliente pode mentir)
+  const { getActiveSubscription } = await import('@/lib/auth');
+  const { getQuota, formatBytes } = await import('@/lib/quota');
+  const sub = await getActiveSubscription();
+  const planGb = Number(sub?.plans?.limits?.storage_gb ?? 5);
+  const quota = await getQuota(admin, user.id, planGb);
+  if (file.size > quota.freeBytes) {
+    return {
+      ok: false,
+      error: `Sem espaço no plano (${formatBytes(quota.freeBytes)} livres de ${formatBytes(quota.limitBytes)}). Apague arquivos ou faça upgrade.`,
+    };
+  }
+
   const type = file.type.startsWith('video') ? 'video' : file.type.startsWith('audio') ? 'audio' : 'image';
   const safe = (file.name || 'arquivo').replace(/[^\w.\-]+/g, '_');
   const path = `${user.id}/uploads/${Date.now()}-${Math.random().toString(36).slice(2, 7)}-${safe}`;

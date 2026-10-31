@@ -10,6 +10,8 @@ export function buildAvatarTimeline(opts: {
   envelope?: number[];
 }) {
   const avatar = avatarById(opts.avatarId);
+  // preserva o id original (com cenário/edições), não só o preset base
+  const presetId = opts.avatarId && opts.avatarId.trim() ? opts.avatarId.trim().slice(0, 600) : avatar.id;
   const segments = opts.segments.filter((s) => s?.url && Number(s.duration) > 0).slice(0, 40);
   const total = Math.min(600, segments.reduce((acc, s) => acc + Number(s.duration), 0));
   const envelope = Array.isArray(opts.envelope)
@@ -55,7 +57,7 @@ export function buildAvatarTimeline(opts: {
       trackId: 'av',
       start: 0,
       duration: total,
-      avatar: { preset: avatar.id, mouth: envelope, intensity: 1 },
+      avatar: { preset: presetId, mouth: envelope, intensity: 1 },
     }),
   ];
 
@@ -106,5 +108,5 @@ export function buildAvatarTimeline(opts: {
   });
 
   const timeline: TimelineData = { tracks, clips };
-  return { timeline, total, avatarId: avatar.id, duration: Math.max(5, Math.ceil(total)) };
+  return { timeline, total, avatarId: presetId, duration: Math.max(5, Math.ceil(total)) };
 }

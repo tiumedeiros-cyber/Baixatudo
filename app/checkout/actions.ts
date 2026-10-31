@@ -16,6 +16,7 @@ import {
 } from '@/lib/payments';
 import { findHourPack, grantTime } from '@/lib/time';
 import type { Plan } from '@/lib/types';
+import { brl } from '@/lib/utils';
 
 export async function createCheckout(input: {
   planSlug: string;
@@ -225,4 +226,89 @@ export async function purchaseHours(packSlug: string): Promise<{ ok?: boolean; u
   } catch (err) {
     return { error: err instanceof Error ? err.message : 'Falha ao processar a compra de horas.' };
   }
+}
+
+/* ---------------------------- Pagamento manual (PIX) ---------------------------- */
+
+/**
+ * Abre um pedido de pagamento manual: registra a cobrança como "pendente" e
+ * devolve as instruções + link do WhatsApp com a mensagem do comprovante pronta.
+ * O acesso é liberado pelo admin em Pagamentos (ou pelo WhatsApp do suporte).
+ */
+export async function startManualPayment(input: {
+  kind: 'plan' | 'hours';
+  slug: string;
+  cycle?: 'monthly' | 'yearly';
+}): Promise<{
+  ok?: boolean;
+  error?: string;
+  paymentId?: string;
+  amount?: number;
+  label?: string;
+  instructions?: string;
+  pixKey?: string;
+  pixHolder?: string;
+  whatsapp?: string;
+  email?: string;
+}> {
+  const user = await getSessionUser();
+  if (!user) return { error: 'Sessão expirada. Faça login novamente.' };
+
+  const { getSettings, receiptLink } = await import('@/lib/settings');
+  const settings = await getSettings();
+  const pay = settings.payments;
+
+  const admin = createAdminClient();
+  let amount = 0;
+  let label = '';
+  let planId: string | null = null;
+
+  if (input.kind === 'plan') {
+    const { data: planRow } = await admin.from('es_plans').select('*').eq('slug', input.slug).eq('is_active', true).maybeSingle();
+    if (!planRow) return { error: 'Plano não encontrado.' };
+    const cycle = input.cycle ?? 'monthly';
+    amount = cycle === 'yearly' ? Number(planRow.price_yearly) : Number(planRow.price_monthly);
+    label = `Plano ${planRow.name} (${cycle === 'yearly' ? 'anual' : 'mensal'})`;
+    planId = planRow.id as string;
+  } else {
+    const { findHourPack } = await import('@/lib/time');
+    const pack = findHourPack(input.slug);
+    if (!pack) return { error: 'Pacote de horas não encontrado.' };
+    amount = pack.price;
+    label = pack.label;
+  }
+
+  const paymentId = await recordPayment({
+    userId: user.id,
+    planId,
+    amount,
+    status: 'pending',
+    gateway: 'manual',
+    riskScore: 0,
+    riskFlags: [],
+    metadata: {
+      kind: input.kind,
+      slug: input.slug,
+      cycle: input.cycle ?? 'monthly',
+      label,
+      mode: 'manual',
+      awaiting: 'comprovante',
+    },
+  });
+
+  const shortId = paymentId ? paymentId.slice(0, 8).toUpperCase() : '—';
+  const message = `Olá! Sou ${user.email}. Fiz o pagamento de ${brl(amount)} referente a ${label} (pedido ${shortId}). Segue o comprovante:`;
+  const whatsapp = receiptLink(settings, message);
+
+  return {
+    ok: true,
+    paymentId: paymentId ?? undefined,
+    amount,
+    label,
+    instructions: pay.manual_instructions,
+    pixKey: pay.pix_key,
+    pixHolder: pay.pix_holder,
+    whatsapp,
+    email: settings.general.support_email,
+  };
 }

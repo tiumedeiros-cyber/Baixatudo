@@ -1,5 +1,5 @@
 'use client';
-import { AVATARS } from '@/lib/catalog/avatars';
+import { AVATARS, SCENES, avatarById, withScene } from '@/lib/catalog/avatars';
 import { useMemo, useState } from 'react';
 import {
   AudioLines,
@@ -566,11 +566,14 @@ export function Inspector() {
                 <button
                   key={a.id}
                   onClick={() =>
-                    patch({ avatar: { preset: a.id, mouth: clip.avatar?.mouth ?? [], intensity: clip.avatar?.intensity ?? 1 }, name: `Avatar ${a.name}` })
+                    patch({
+                      avatar: { preset: withScene(a.id, avatarById(clip.avatar?.preset).scene ?? 'estudio'), mouth: clip.avatar?.mouth ?? [], intensity: clip.avatar?.intensity ?? 1 },
+                      name: `Avatar ${a.name}`,
+                    })
                   }
                   className={cn(
                     'rounded-lg border px-1 py-1 text-[9px] font-semibold transition',
-                    (clip.avatar?.preset ?? 'ana') === a.id
+                    avatarById(clip.avatar?.preset).id === a.id
                       ? 'border-brand-400 bg-brand-500/20 text-white'
                       : 'border-white/10 text-slate-300 hover:border-brand-400/40',
                   )}
@@ -578,6 +581,26 @@ export function Inspector() {
                   {a.name}
                 </button>
               ))}
+            </div>
+            <div className="mt-2">
+              <label className="text-[9px] font-semibold uppercase tracking-wider text-slate-500">Cenário do avatar</label>
+              <select
+                value={avatarById(clip.avatar?.preset).scene ?? 'estudio'}
+                onChange={(e) =>
+                  patch({
+                    avatar: {
+                      preset: withScene(clip.avatar?.preset ?? 'ana', e.target.value as (typeof SCENES)[number]['id']),
+                      mouth: clip.avatar?.mouth ?? [],
+                      intensity: clip.avatar?.intensity ?? 1,
+                    },
+                  })
+                }
+                className="mt-1 w-full rounded-lg border border-white/10 bg-ink-900 px-2 py-1.5 text-[11px] text-white outline-none focus:border-brand-400/60"
+              >
+                {SCENES.map((scene) => (
+                  <option key={scene.id} value={scene.id}>{scene.label}</option>
+                ))}
+              </select>
             </div>
             <Slider
               label="Abertura da boca"

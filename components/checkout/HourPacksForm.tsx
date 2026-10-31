@@ -6,9 +6,26 @@ import { Check, Clock, CreditCard, Hourglass, Loader2, ShieldCheck, Sparkles, Tr
 import { Card } from '@/components/ui';
 import { purchaseHours } from '@/app/checkout/actions';
 import { HOUR_PACKS } from '@/lib/hour-packs';
+import { ManualPayment } from './ManualPayment';
 import { brl } from '@/lib/utils';
 
-export function HourPacksForm({ demo, remaining }: { demo: boolean; remaining: number }) {
+export function HourPacksForm({
+  demo,
+  remaining,
+  manual = false,
+  pixKey = '',
+  pixHolder = '',
+  instructions = '',
+  supportEmail = '',
+}: {
+  demo: boolean;
+  remaining: number;
+  manual?: boolean;
+  pixKey?: string;
+  pixHolder?: string;
+  instructions?: string;
+  supportEmail?: string;
+}) {
   const [selected, setSelected] = useState(HOUR_PACKS[1].slug);
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -104,6 +121,16 @@ export function HourPacksForm({ demo, remaining }: { demo: boolean; remaining: n
         </p>
       ) : null}
 
+      {manual ? (
+        <ManualPayment
+          kind="hours"
+          slug={selected}
+          pixKey={pixKey}
+          pixHolder={pixHolder}
+          instructions={instructions}
+          supportEmail={supportEmail}
+        />
+      ) : (
       <button
         type="button"
         onClick={buy}
@@ -113,10 +140,15 @@ export function HourPacksForm({ demo, remaining }: { demo: boolean; remaining: n
         {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <CreditCard className="h-4 w-4" />}
         {pending ? 'Processando…' : `Comprar ${HOUR_PACKS.find((p) => p.slug === selected)?.label}`}
       </button>
+      )}
 
       <p className="flex items-center justify-center gap-1.5 text-[11px] text-slate-500">
         <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />
-        {demo ? 'Ambiente de demonstração: a liberação é imediata e registrada na auditoria.' : 'Pagamento protegido por antifraude e liberação automática após confirmação.'}
+        {manual
+          ? 'Pagamento manual: o acesso é liberado após a conferência do comprovante.'
+          : demo
+            ? 'Ambiente de demonstração: a liberação é imediata e registrada na auditoria.'
+            : 'Pagamento protegido por antifraude e liberação automática após confirmação.'}
       </p>
 
       <div className="flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.02] px-4 py-3">

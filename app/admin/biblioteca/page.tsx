@@ -1,7 +1,7 @@
 import { requireAdmin } from '@/lib/auth';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { Badge, Card, Input, Select } from '@/components/ui';
-import { saveAsset } from '@/app/admin/actions';
+import { saveAsset, uploadCatalogMedia, importCatalogUrl } from '@/app/admin/actions';
 import { AssetDelete } from '@/components/admin/ActionButtons';
 import type { Asset } from '@/lib/types';
 
@@ -22,8 +22,40 @@ export default async function AdminLibrary() {
         <p className="mt-1 text-sm text-slate-400">{assets.length} itens. Use URLs públicas (MP4, JPG, MP3) ou presets <code>builtin:*</code>.</p>
       </div>
 
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card className="p-4">
+          <h3 className="text-sm font-semibold text-white">Enviar arquivo do dispositivo</h3>
+          <p className="mt-1 text-[11px] text-slate-500">Vídeo, imagem ou áudio — vai direto para o storage e entra na biblioteca.</p>
+          <form action={uploadCatalogMedia} className="mt-3 grid gap-2 sm:grid-cols-2">
+            <input
+              type="file"
+              name="file"
+              required
+              accept="video/*,image/*,audio/*"
+              className="sm:col-span-2 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-slate-300 file:mr-3 file:rounded-lg file:border-0 file:bg-brand-500 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-white"
+            />
+            <Input name="category" placeholder="Categoria" defaultValue="geral" />
+            <Input name="tags" placeholder="tags, separadas, virgula" />
+            <label className="flex items-center gap-2 text-xs text-slate-300"><input type="checkbox" name="premium" className="accent-brand-500" /> Premium</label>
+            <button className="rounded-xl bg-gradient-to-r from-brand-500 to-brand-600 py-2 text-xs font-semibold text-white">Enviar para a biblioteca</button>
+          </form>
+        </Card>
+
+        <Card className="p-4">
+          <h3 className="text-sm font-semibold text-white">Importar por link (Drive, Dropbox…)</h3>
+          <p className="mt-1 text-[11px] text-slate-500">Aceita arquivo público do Google Drive, pasta pública (até 25 arquivos) e link direto.</p>
+          <form action={importCatalogUrl} className="mt-3 grid gap-2 sm:grid-cols-2">
+            <Input name="url" placeholder="https://drive.google.com/file/d/…" required className="sm:col-span-2" />
+            <Input name="category" placeholder="Categoria" defaultValue="geral" />
+            <Input name="tags" placeholder="tags, separadas, virgula" />
+            <label className="flex items-center gap-2 text-xs text-slate-300"><input type="checkbox" name="premium" className="accent-brand-500" /> Premium</label>
+            <button className="rounded-xl border border-white/15 bg-white/5 py-2 text-xs font-semibold text-white">Importar agora</button>
+          </form>
+        </Card>
+      </div>
+
       <Card className="p-4">
-        <h3 className="text-sm font-semibold text-white">Adicionar item</h3>
+        <h3 className="text-sm font-semibold text-white">Adicionar item manualmente</h3>
         <form action={saveAsset} className="mt-3 grid gap-2 sm:grid-cols-3">
           <Input name="name" placeholder="Nome" required />
           <Select name="type" defaultValue="image">

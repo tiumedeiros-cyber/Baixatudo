@@ -8,6 +8,8 @@ import { MobileMenu } from '@/components/ui/MobileMenu';
 import { TimeCreditBar } from '@/components/time/TimeCreditBar';
 import { MobileTimePill } from '@/components/time/MobileTimePill';
 import { formatDate } from '@/lib/utils';
+import { getSettings, supportLink } from '@/lib/settings';
+import { SupportFab } from '@/components/marketing/SupportFab';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,12 +19,14 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const subscription = await getActiveSubscription();
   const plan = subscription?.plans;
   const isAdmin = isAdminEmail(user.email) || profile?.role === 'admin';
+  const settings = await getSettings();
+  const support = supportLink(settings);
 
   return (
     <div className="min-h-screen lg:grid lg:grid-cols-[260px_1fr]">
       <aside className="hidden border-r border-white/8 bg-ink-900 p-4 lg:block">
         <div className="px-2 py-2">
-          <Logo />
+          <Logo name={settings.general.site_name} />
         </div>
         <div className="mt-4">
           <Sidebar isAdmin={isAdmin} />
@@ -96,6 +100,13 @@ export default async function DashboardLayout({ children }: { children: React.Re
           </div>
         </header>
         <main className="px-4 py-6 lg:px-8 lg:py-8">{children}</main>
+        {support.showWhatsapp || support.showEmail ? (
+          <SupportFab
+            whatsapp={support.showWhatsapp ? support.whatsapp : ''}
+            email={support.showEmail ? support.email : ''}
+            message="envie o link do projeto e o que precisa"
+          />
+        ) : null}
       </div>
     </div>
   );
