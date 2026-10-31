@@ -75,6 +75,8 @@ type StudioState = {
 
 
 const DEFAULT_FILTERS = { brightness: 100, contrast: 100, saturation: 100, blur: 0, hue: 0, grayscale: 0 };
+export const DEFAULT_SHADOW = { blur: 0, color: 'rgba(0,0,0,0.65)', offsetY: 0, offsetX: 0 };
+export const DEFAULT_GENERATOR = { preset: 'aurora', colorA: '#4f46e5', colorB: '#22d3ee', speed: 1, intensity: 1 };
 
 /**
  * Garante que todo clipe carregado do banco tenha a estrutura completa.
@@ -100,6 +102,8 @@ function normalizeClip(clip: Clip, fallbackTrackId: string): Clip {
     fadeOut: Number(c.fadeOut ?? 0),
     transform: { ...DEFAULT_TRANSFORM, ...(c.transform ?? {}) },
     filters: { ...DEFAULT_FILTERS, ...(c.filters ?? {}) },
+    shadow: { ...DEFAULT_SHADOW, ...(c.shadow ?? {}) },
+    generator: c.kind === 'generator' ? { ...DEFAULT_GENERATOR, ...(c.generator ?? {}) } : c.generator,
     transitionIn: c.transitionIn ?? { type: 'none', duration: 0.5 },
     transitionOut: c.transitionOut ?? { type: 'none', duration: 0.5 },
     keyframes: Array.isArray(c.keyframes) ? c.keyframes : [],
@@ -181,6 +185,7 @@ export const useStudio = create<StudioState>((set, get) => ({
       speed: 1,
       transform: { ...DEFAULT_TRANSFORM },
       filters: { brightness: 100, contrast: 100, saturation: 100, blur: 0, hue: 0, grayscale: 0 },
+      shadow: { ...DEFAULT_SHADOW },
       transitionIn: { type: 'none', duration: 0.5 },
       transitionOut: { type: 'none', duration: 0.5 },
       fadeIn: 0,

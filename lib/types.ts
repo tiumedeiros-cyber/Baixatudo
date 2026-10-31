@@ -77,7 +77,8 @@ export type ClipKind =
   | 'music'
   | 'object3d'
   | 'overlay'
-  | 'sticker';
+  | 'sticker'
+  | 'generator';
 
 export type TransitionType = 'none' | 'fade' | 'slide' | 'zoom' | 'wipe' | 'glitch' | 'flash';
 
@@ -106,6 +107,17 @@ export type Transform = {
   rotationX: number;
   rotationY: number;
 };
+
+export type GeneratorProps = {
+  /** fundo procedural animado (aurora, partículas, grid, …) */
+  preset: string;
+  colorA: string;
+  colorB: string;
+  speed: number;
+  intensity: number;
+};
+
+export type ShadowProps = { blur: number; color: string; offsetY: number; offsetX: number };
 
 export type Filters = {
   brightness: number;
@@ -140,6 +152,8 @@ export type Clip = {
   object3d?: { shape: string; color: string; metalness: number; spin: number };
   overlay?: { preset: string };
   sticker?: { preset: string; color: string };
+  generator?: GeneratorProps;
+  shadow?: ShadowProps;
   transitionIn: { type: TransitionType; duration: number };
   transitionOut: { type: TransitionType; duration: number };
   fadeIn: number;
@@ -188,7 +202,8 @@ export type AssetType =
   | 'font'
   | 'object3d'
   | 'overlay'
-  | 'sticker';
+  | 'sticker'
+  | 'generator';
 
 export type Asset = {
   id: string;

@@ -248,29 +248,29 @@ export function Preview() {
         </div>
       </div>
 
-      <div className="flex items-center gap-2 rounded-xl border border-white/8 bg-ink-900/70 px-3 py-2">
-        <button onClick={() => useStudio.setState({ playhead: 0 })} className="rounded-lg p-1.5 text-slate-400 hover:bg-white/10 hover:text-white" title="Início">
+      <div className="no-scrollbar flex items-center gap-1 overflow-x-auto rounded-xl border border-white/8 bg-ink-900/70 px-2 py-2 sm:gap-2 sm:px-3">
+        <button onClick={() => useStudio.setState({ playhead: 0 })} className="shrink-0 rounded-lg p-1.5 text-slate-400 hover:bg-white/10 hover:text-white" title="Início">
           <SkipBack className="h-4 w-4" />
         </button>
-        <button onClick={() => jump(-1 / fps)} className="rounded-lg px-1.5 py-1 text-[10px] font-semibold text-slate-400 hover:bg-white/10 hover:text-white">
+        <button onClick={() => jump(-1 / fps)} className="hidden shrink-0 rounded-lg px-1.5 py-1 text-[10px] font-semibold text-slate-400 hover:bg-white/10 hover:text-white sm:block">
           -1f
         </button>
         <button
           onClick={togglePlay}
-          className="grid h-9 w-9 place-items-center rounded-full bg-gradient-to-r from-brand-500 to-brand-600 text-white shadow-[0_8px_20px_-8px_rgba(79,70,229,0.9)]"
+          className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-gradient-to-r from-brand-500 to-brand-600 text-white shadow-[0_8px_20px_-8px_rgba(79,70,229,0.9)]"
         >
           {playing ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4 translate-x-[1px]" />}
         </button>
-        <button onClick={() => jump(1 / fps)} className="rounded-lg px-1.5 py-1 text-[10px] font-semibold text-slate-400 hover:bg-white/10 hover:text-white">
+        <button onClick={() => jump(1 / fps)} className="hidden shrink-0 rounded-lg px-1.5 py-1 text-[10px] font-semibold text-slate-400 hover:bg-white/10 hover:text-white sm:block">
           +1f
         </button>
         <button onClick={() => useStudio.setState({ playhead: duration })} className="rounded-lg p-1.5 text-slate-400 hover:bg-white/10 hover:text-white" title="Fim">
           <SkipForward className="h-4 w-4" />
         </button>
-        <div className="ml-2 font-mono text-xs text-white">
+        <div className="ml-1 shrink-0 whitespace-nowrap font-mono text-[10px] text-white sm:ml-2 sm:text-xs">
           {timecode(playhead, fps)} <span className="text-slate-500">/ {timecode(duration, fps)}</span>
         </div>
-        <div className="ml-auto flex items-center gap-1">
+        <div className="ml-auto flex shrink-0 items-center gap-1">
           <button
             onClick={() => {
               const next = !muted;

@@ -37,13 +37,6 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  if ((path === '/login' || path === '/cadastro') && user) {
-    const url = request.nextUrl.clone();
-    url.pathname = '/dashboard';
-    url.search = '';
-    return NextResponse.redirect(url);
-  }
-
   return response;
 }
 

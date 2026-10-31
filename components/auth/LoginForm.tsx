@@ -8,7 +8,7 @@ import { Button, Field, Input } from '@/components/ui';
 export function LoginForm() {
   const router = useRouter();
   const params = useSearchParams();
-  const next = params.get('next') || '/dashboard';
+  const explicitNext = params.get('next');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -19,7 +19,7 @@ export function LoginForm() {
     setLoading(true);
     setError(null);
     const supabase = createClient();
-    const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+    const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
     if (error) {
       setError(
         error.message === 'Invalid login credentials'
@@ -31,7 +31,16 @@ export function LoginForm() {
       setLoading(false);
       return;
     }
-    router.replace(next.startsWith('/') ? next : '/dashboard');
+    // Admin cai no painel administrativo; cliente no painel do cliente.
+    let destination = explicitNext && explicitNext.startsWith('/') ? explicitNext : '';
+    if (!destination) {
+      const userId = data.user?.id;
+      const { data: profile } = userId
+        ? await supabase.from('es_profiles').select('role').eq('id', userId).maybeSingle()
+        : { data: null };
+      destination = profile?.role === 'admin' ? '/admin' : '/dashboard';
+    }
+    router.replace(destination);
     router.refresh();
   }
 

@@ -47,6 +47,16 @@ export function Studio({
   const duration = useStudio((s) => s.duration);
   const background = useStudio((s) => s.background);
 
+  // garante que as fontes da biblioteca estejam prontas para o canvas
+  useEffect(() => {
+    if (typeof document === 'undefined' || !('fonts' in document)) return;
+    const families = ['Inter', 'Poppins', 'Montserrat', 'Bebas Neue', 'Anton', 'Playfair Display'];
+    families.forEach((family) => {
+      void document.fonts.load(`900 64px "${family}"`).catch(() => undefined);
+      void document.fonts.load(`400 16px "${family}"`).catch(() => undefined);
+    });
+  }, []);
+
   useEffect(() => {
     if (loadedRef.current) return;
     loadedRef.current = true;
@@ -166,7 +176,7 @@ export function Studio({
   }, []);
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-ink-950">
+    <div className="flex h-[100dvh] flex-col overflow-hidden bg-ink-950">
       {/* topbar */}
       <header className="flex h-12 shrink-0 items-center gap-2 border-b border-white/8 bg-ink-900/90 px-2">
         <Link href="/dashboard/projetos" className="grid h-8 w-8 place-items-center rounded-lg text-slate-400 hover:bg-white/10 hover:text-white" title="Voltar">
@@ -178,7 +188,7 @@ export function Studio({
         <input
           value={name}
           onChange={(e) => useStudio.getState().setName(e.target.value)}
-          className="ml-1 w-40 min-w-0 rounded-lg border border-transparent bg-transparent px-2 py-1 text-xs font-semibold text-white outline-none hover:border-white/10 focus:border-brand-400/50 sm:w-64"
+          className="ml-1 w-full min-w-0 max-w-[9rem] rounded-lg border border-transparent bg-transparent px-2 py-1 text-xs font-semibold text-white outline-none hover:border-white/10 focus:border-brand-400/50 sm:max-w-none sm:w-64"
         />
         <span
           className={cn(
@@ -237,27 +247,44 @@ export function Studio({
         </div>
       </div>
 
-      {/* mobile panels */}
-      <div className="flex shrink-0 items-center gap-2 border-t border-white/8 bg-ink-900/95 p-2 lg:hidden">
-        <button onClick={() => setMobilePanel('library')} className="flex-1 rounded-lg border border-white/10 py-2 text-[11px] font-semibold text-slate-300">
-          Biblioteca
+      {/* barra inferior (celular) */}
+      <div className="flex shrink-0 items-center gap-2 border-t border-white/8 bg-ink-900 p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] lg:hidden">
+        <button
+          onClick={() => setMobilePanel('library')}
+          className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-white/10 bg-white/5 py-2.5 text-[11px] font-semibold text-slate-200"
+        >
+          <PanelLeft className="h-3.5 w-3.5" /> Elementos
         </button>
-        <button onClick={() => setMobilePanel('inspector')} className="flex-1 rounded-lg border border-white/10 py-2 text-[11px] font-semibold text-slate-300">
-          Propriedades
+        <button
+          onClick={() => setMobilePanel('inspector')}
+          className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-white/10 bg-white/5 py-2.5 text-[11px] font-semibold text-slate-200"
+        >
+          <PanelRight className="h-3.5 w-3.5" /> Ajustes
         </button>
       </div>
+
+      {/* gavetas deslizantes (celular / tablet) */}
       {mobilePanel ? (
-        <div className="fixed inset-0 z-[70] flex flex-col bg-ink-950/95 p-3 lg:hidden" onClick={() => setMobilePanel(null)}>
-          <div className="mb-2 flex items-center justify-between">
-            <span className="text-xs font-semibold text-white">{mobilePanel === 'library' ? 'Biblioteca' : 'Propriedades'}</span>
-            <button className="rounded-lg bg-white/10 px-2 py-1 text-[11px] text-white">Fechar</button>
-          </div>
-          <div className="min-h-0 flex-1" onClick={(e) => e.stopPropagation()}>
-            {mobilePanel === 'library' ? (
-              <Library assets={assets} userAssets={userAssets} premiumAllowed={premiumAllowed} projectId={project.id} />
-            ) : (
-              <Inspector />
-            )}
+        <div className="fixed inset-0 z-[70] lg:hidden" onClick={() => setMobilePanel(null)}>
+          <div className="absolute inset-0 bg-black/70" />
+          <div
+            className="absolute inset-x-0 bottom-0 flex h-[82dvh] flex-col rounded-t-2xl border-t border-white/10 bg-ink-950 p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mx-auto mb-2 h-1 w-10 rounded-full bg-white/20" />
+            <div className="mb-2 flex items-center justify-between px-1">
+              <span className="text-xs font-semibold text-white">{mobilePanel === 'library' ? 'Elementos' : 'Ajustes do elemento'}</span>
+              <button onClick={() => setMobilePanel(null)} className="rounded-lg bg-white/10 px-2 py-1 text-[11px] text-white">
+                Fechar
+              </button>
+            </div>
+            <div className="min-h-0 flex-1">
+              {mobilePanel === 'library' ? (
+                <Library assets={assets} userAssets={userAssets} premiumAllowed={premiumAllowed} projectId={project.id} />
+              ) : (
+                <Inspector />
+              )}
+            </div>
           </div>
         </div>
       ) : null}

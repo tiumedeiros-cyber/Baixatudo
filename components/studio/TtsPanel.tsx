@@ -24,8 +24,52 @@ export function TtsPanel({ projectId, onAdded }: { projectId: string; onAdded?: 
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [listening, setListening] = useState(false);
+  const [serverEngine, setServerEngine] = useState<string | null>(null);
+  const [serverVoices, setServerVoices] = useState<string[]>([]);
+  const [voiceLabels, setVoiceLabels] = useState<Record<string, string>>({});
+  const [voiceOk, setVoiceOk] = useState<boolean | null>(null);
+  const [testing, setTesting] = useState(false);
+  const [serverVoice, setServerVoice] = useState('');
   const [transcript, setTranscript] = useState('');
   const recognitionRef = useRef<{ stop: () => void } | null>(null);
+
+  // situação real do motor de voz no servidor
+  useEffect(() => {
+    let alive = true;
+    fetch('/api/tts', { cache: 'no-store' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data: { engine?: string; serverVoices?: string[]; voices?: { id: string; label: string }[] } | null) => {
+        if (!alive || !data) return;
+        setServerEngine(data.engine ?? null);
+        setServerVoices(data.serverVoices ?? []);
+        setVoiceLabels(Object.fromEntries((data.voices ?? []).map((v) => [v.id, v.label])));
+        setServerVoice(data.serverVoices?.[0] ?? '');
+      })
+      .catch(() => undefined);
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  async function testVoice() {
+    setTesting(true);
+    setVoiceOk(null);
+    try {
+      const res = await fetch('/api/tts?probe=1', { cache: 'no-store' });
+      const data = (await res.json()) as { ok?: boolean; ms?: number };
+      setVoiceOk(Boolean(data.ok));
+      setInfo(
+        data.ok
+          ? `Voz do servidor funcionando (${Math.round((data.ms ?? 0) / 100) / 10}s para sintetizar).`
+          : 'A voz do servidor não respondeu agora. Use “Ouvir prévia” ou adicione o texto como legenda.',
+      );
+    } catch {
+      setVoiceOk(false);
+      setInfo('Não foi possível testar a voz agora.');
+    } finally {
+      setTesting(false);
+    }
+  }
 
   useEffect(() => {
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
@@ -57,7 +101,7 @@ export function TtsPanel({ projectId, onAdded }: { projectId: string; onAdded?: 
       const res = await fetch('/api/tts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text, lang, projectId, voice: lang }),
+        body: JSON.stringify({ text, lang, projectId, voice: serverVoice || lang }),
       });
       const data = (await res.json()) as { segments?: Segment[]; error?: string; engine?: string };
       if (!res.ok || !data.segments) throw new Error(data.error || 'Falha na geração');
@@ -182,11 +226,14 @@ export function TtsPanel({ projectId, onAdded }: { projectId: string; onAdded?: 
               <option key={l.code} value={l.code}>{l.label}</option>
             ))}
           </select>
-          <select value={voiceURI} onChange={(e) => setVoiceURI(e.target.value)} className="rounded-lg border border-white/10 bg-ink-900 px-1.5 py-1 text-[10px] text-white outline-none">
-            <option value="">Voz padrão</option>
-            {voices.filter((v) => v.lang.startsWith(lang.slice(0, 2))).map((v) => (
-              <option key={v.voiceURI} value={v.voiceURI}>{v.name}</option>
-            ))}
+          <select value={serverVoice} onChange={(e) => setServerVoice(e.target.value)} className="rounded-lg border border-white/10 bg-ink-900 px-1.5 py-1 text-[10px] text-white outline-none">
+            {serverVoices.length ? (
+              serverVoices.map((v) => (
+                <option key={v} value={v}>{voiceLabels[v] ?? v}</option>
+              ))
+            ) : (
+              <option value="">Voz do servidor</option>
+            )}
           </select>
         </div>
         <div className="mt-2 flex gap-1.5">
@@ -197,8 +244,14 @@ export function TtsPanel({ projectId, onAdded }: { projectId: string; onAdded?: 
             {loading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Wand2 className="h-3 w-3" />} Gerar áudio
           </button>
         </div>
+        <select value={voiceURI} onChange={(e) => setVoiceURI(e.target.value)} className="mt-2 w-full rounded-lg border border-white/10 bg-ink-900 px-1.5 py-1 text-[10px] text-white outline-none">
+          <option value="">Voz do navegador (prévia)</option>
+          {voices.filter((v) => v.lang.startsWith(lang.slice(0, 2))).map((v) => (
+            <option key={v.voiceURI} value={v.voiceURI}>{v.name} · {v.lang}</option>
+          ))}
+        </select>
         <p className="mt-1.5 text-[9px] leading-relaxed text-slate-500">
-          “Gerar áudio” cria MP3 salvo na sua conta e adiciona na timeline (usa o motor configurado no servidor).
+          “Ouvir prévia” usa as vozes instaladas no seu navegador. “Gerar áudio” cria o MP3 na conta (motor do servidor) com duração exata do áudio.
         </p>
       </div>
 
@@ -219,8 +272,68 @@ export function TtsPanel({ projectId, onAdded }: { projectId: string; onAdded?: 
         {transcript ? <p className="mt-2 max-h-16 overflow-y-auto rounded bg-black/30 p-1.5 text-[9px] leading-relaxed text-slate-400">{transcript}</p> : null}
       </div>
 
+      {serverEngine ? (
+        <div className={`flex items-center gap-2 rounded-lg border px-2 py-1.5 text-[9px] leading-relaxed ${
+          voiceOk === false
+            ? 'border-amber-400/25 bg-amber-500/10 text-amber-200'
+            : 'border-white/10 bg-white/[0.03] text-slate-400'
+        }`}>
+          <span className="min-w-0 flex-1">
+            Motor: <strong className="text-white">{serverEngine === 'edge' ? 'vozes neurais Microsoft' : serverEngine}</strong>
+            {voiceOk === true ? ' · funcionando' : voiceOk === false ? ' · sem resposta agora' : ' · narração salva na sua conta e inserida na timeline'}
+          </span>
+          <button
+            type="button"
+            onClick={testVoice}
+            disabled={testing}
+            className="shrink-0 rounded border border-white/15 px-1.5 py-0.5 font-semibold text-slate-200 hover:bg-white/10 disabled:opacity-50"
+          >
+            {testing ? 'testando…' : 'testar'}
+          </button>
+        </div>
+      ) : null}
+
       {info ? <p className="rounded-lg border border-emerald-400/25 bg-emerald-500/10 px-2 py-1.5 text-[10px] text-emerald-200">{info}</p> : null}
-      {error ? <p className="rounded-lg border border-rose-400/25 bg-rose-500/10 px-2 py-1.5 text-[10px] text-rose-200">{error}</p> : null}
+      {error ? (
+        <div className="space-y-1.5">
+          <p className="rounded-lg border border-rose-400/25 bg-rose-500/10 px-2 py-1.5 text-[10px] text-rose-200">{error}</p>
+          <button
+            onClick={() => {
+              const s2 = useStudio.getState();
+              const track = s2.tracks.find((t) => t.name.toLowerCase().includes('texto')) ?? s2.tracks.find((t) => t.kind === 'visual');
+              s2.addClip({
+                kind: 'text',
+                src: 'text',
+                name: 'Narração (texto)',
+                trackId: track?.id ?? '',
+                start: s2.playhead,
+                duration: Math.max(2, Math.min(20, text.length / 14)),
+                text: {
+                  content: text,
+                  fontFamily: 'Montserrat',
+                  fontSize: 46,
+                  color: '#ffffff',
+                  weight: 700,
+                  align: 'center',
+                  shadow: true,
+                  stroke: 0,
+                  strokeColor: '#000000',
+                  background: 'rgba(0,0,0,0.5)',
+                  letterSpacing: 0,
+                  lineHeight: 1.2,
+                  gradient: '',
+                  animation: 'none',
+                },
+              });
+              setInfo('Texto adicionado como legenda na timeline.');
+              setError(null);
+            }}
+            className="w-full rounded-lg border border-white/10 bg-white/5 py-1.5 text-[10px] font-semibold text-slate-200 hover:bg-white/10"
+          >
+            Adicionar como legenda na timeline
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 }

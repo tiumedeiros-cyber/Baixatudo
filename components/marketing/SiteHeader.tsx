@@ -30,8 +30,8 @@ export function SiteHeader() {
           <ButtonLink href="/login" variant="ghost" size="sm" className="hidden sm:inline-flex">
             Entrar
           </ButtonLink>
-          <ButtonLink href="/cadastro" size="sm" className="btn-shine">
-            Começar grátis <ArrowRight className="h-4 w-4" />
+          <ButtonLink href="/cadastro" size="sm" className="btn-shine whitespace-nowrap">
+            Começar<span className="hidden sm:inline">&nbsp;grátis</span> <ArrowRight className="h-4 w-4" />
           </ButtonLink>
           <button
             type="button"

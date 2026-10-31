@@ -38,6 +38,7 @@ const KIND_COLORS: Record<string, string> = {
   object3d: 'from-purple-500/60 to-indigo-600/30 border-purple-400/40',
   overlay: 'from-slate-500/50 to-slate-700/30 border-slate-400/30',
   sticker: 'from-rose-500/55 to-red-600/25 border-rose-400/40',
+  generator: 'from-sky-500/60 to-blue-600/30 border-sky-400/40',
 };
 
 export function Timeline() {
@@ -167,9 +168,16 @@ export function Timeline() {
   function handleDrop(e: React.DragEvent, trackId: string) {
     e.preventDefault();
     setMarquee(null);
-    const raw = e.dataTransfer.getData('application/x-studio-clip');
+    // Safari só entrega text/plain; Chrome/Firefox/Edge entregam o tipo próprio.
+    const raw = e.dataTransfer.getData('application/x-studio-clip') || e.dataTransfer.getData('text/plain');
     if (!raw) return;
-    const payload = JSON.parse(raw) as Partial<Clip> & { kind: Clip['kind']; src: string; duration?: number };
+    let payload: Partial<Clip> & { kind: Clip['kind']; src: string; duration?: number };
+    try {
+      payload = JSON.parse(raw);
+    } catch {
+      return;
+    }
+    if (!payload?.kind) return;
     const rect = scrollRef.current!.getBoundingClientRect();
     const x = e.clientX - rect.left + scrollRef.current!.scrollLeft;
     const start = Math.max(0, snapTime(x / pxPerSec));
@@ -243,7 +251,7 @@ export function Timeline() {
         <div style={{ width: totalWidth + HEADER_W }} className="relative">
           {/* régua */}
           <div className="sticky top-0 z-20 flex h-8 border-b border-white/8 bg-ink-900/95 backdrop-blur">
-            <div className="sticky left-0 z-30 flex w-[148px] shrink-0 items-center gap-1 border-r border-white/8 bg-ink-900/95 px-2 text-[10px] uppercase tracking-wider text-slate-500">
+            <div className="sticky left-0 z-30 flex w-[92px] shrink-0 items-center gap-1 border-r border-white/8 bg-ink-900/95 px-2 font-mono text-[9px] uppercase tracking-wider text-slate-500 sm:w-[148px] sm:text-[10px]">
               <Subtitles className="h-3 w-3" /> régua
             </div>
             <div
@@ -275,9 +283,9 @@ export function Timeline() {
           {/* trilhas */}
           {tracks.map((track) => (
             <div key={track.id} className="flex border-b border-white/5" style={{ height: ROW_H }}>
-              <div className="sticky left-0 z-20 flex w-[148px] shrink-0 items-center gap-1 border-r border-white/8 bg-ink-900/95 px-2">
-                <GripVertical className="h-3 w-3 text-slate-600" />
-                <span className="flex-1 truncate text-[11px] font-semibold text-slate-300">{track.name}</span>
+              <div className="sticky left-0 z-20 flex w-[92px] shrink-0 items-center gap-0.5 border-r border-white/8 bg-ink-900/95 px-1.5 sm:w-[148px] sm:gap-1 sm:px-2">
+                <GripVertical className="hidden h-3 w-3 shrink-0 text-slate-600 sm:block" />
+                <span className="min-w-0 flex-1 truncate text-[10px] font-semibold text-slate-300 sm:text-[11px]">{track.name}</span>
                 <button
                   onClick={() => useStudio.getState().updateTrack(track.id, { hidden: !track.hidden })}
                   className="rounded p-0.5 text-slate-500 hover:text-white"
@@ -292,7 +300,7 @@ export function Timeline() {
                 >
                   {track.muted ? <VolumeX className="h-3 w-3" /> : <Volume2 className="h-3 w-3" />}
                 </button>
-                <button onClick={() => useStudio.getState().removeTrack(track.id)} className="rounded p-0.5 text-slate-600 hover:text-rose-300" title="Remover trilha">
+                <button onClick={() => useStudio.getState().removeTrack(track.id)} className="hidden rounded p-0.5 text-slate-600 hover:text-rose-300 sm:block" title="Remover trilha">
                   <Trash2 className="h-3 w-3" />
                 </button>
               </div>

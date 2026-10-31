@@ -4,6 +4,8 @@ const nextConfig = {
   eslint: { ignoreDuringBuilds: true },
   typescript: { ignoreBuildErrors: false },
   experimental: { serverActions: { bodySizeLimit: '25mb' } },
+  // a síntese de voz usa WebSocket nativo no servidor — não empacotar
+  serverExternalPackages: ['edge-tts-universal', 'ws', 'axios', 'https-proxy-agent'],
   images: { remotePatterns: [{ protocol: 'https', hostname: '**' }] },
   async headers() {
     return [

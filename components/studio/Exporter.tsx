@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
-import { Check, Download, Film, Image as ImageIcon, Loader2, X } from 'lucide-react';
+import { Check, Download, FileCode2, Film, Image as ImageIcon, Loader2, X } from 'lucide-react';
 import type { Clip } from '@/lib/types';
 import { useStudio } from './store';
 import { drawFrame } from './render';
@@ -8,6 +8,7 @@ import { media } from './media';
 import { threePool } from './three';
 import { audioEngine } from './audio';
 import { cn } from '@/lib/utils';
+import { buildProjectJson, buildXmeml, downloadText } from '@/lib/timeline-io';
 
 type Phase = 'idle' | 'recording' | 'processing' | 'done' | 'error';
 
@@ -386,6 +387,43 @@ function ExportDialog({ maxQuality, onClose }: { maxQuality: number; onClose: ()
             <button onClick={exportFrame} className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-white/10 py-2 text-xs font-semibold text-slate-300 hover:bg-white/5">
               <ImageIcon className="h-3.5 w-3.5" /> Exportar frame atual (PNG)
             </button>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => {
+                  const s = useStudio.getState();
+                  downloadText(
+                    `${(s.name || 'projeto').replace(/[^\w-]+/g, '-')}-timeline.xml`,
+                    buildXmeml({ name: s.name, fps: s.fps, width: s.width, height: s.height, tracks: s.tracks, clips: s.clips }),
+                    'application/xml',
+                  );
+                }}
+                className="flex items-center justify-center gap-1.5 rounded-xl border border-white/10 py-2 text-[11px] font-semibold text-slate-300 hover:bg-white/5"
+              >
+                <FileCode2 className="h-3.5 w-3.5" /> Timeline XML
+              </button>
+              <button
+                onClick={() => {
+                  const s = useStudio.getState();
+                  downloadText(
+                    `${(s.name || 'projeto').replace(/[^\w-]+/g, '-')}.json`,
+                    buildProjectJson({
+                      name: s.name,
+                      width: s.width,
+                      height: s.height,
+                      fps: s.fps,
+                      duration: s.duration,
+                      background: s.background,
+                      tracks: s.tracks,
+                      clips: s.clips,
+                    }),
+                    'application/json',
+                  );
+                }}
+                className="flex items-center justify-center gap-1.5 rounded-xl border border-white/10 py-2 text-[11px] font-semibold text-slate-300 hover:bg-white/5"
+              >
+                <Download className="h-3.5 w-3.5" /> Projeto JSON
+              </button>
+            </div>
             {error ? <p className="rounded-lg border border-rose-400/30 bg-rose-500/10 px-2 py-1.5 text-[10px] text-rose-200">{error}</p> : null}
             <p className="text-[10px] leading-relaxed text-slate-500">
               {format === 'gif'

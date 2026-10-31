@@ -99,7 +99,7 @@ export default async function LandingPage() {
   }
 
   return (
-    <div className="relative overflow-hidden">
+    <div className="relative overflow-x-clip">
       <SiteHeader />
 
       {/* HERO */}
@@ -107,7 +107,7 @@ export default async function LandingPage() {
         <div className="pointer-events-none absolute inset-0 grid-bg opacity-40 [mask-image:radial-gradient(700px_400px_at_50%_0%,#000,transparent)]" />
         <div className="mx-auto max-w-7xl px-5 pb-16 pt-16 md:pt-24">
           <div className="grid items-center gap-12 lg:grid-cols-[1.05fr_0.95fr]">
-            <div>
+            <div className="min-w-0">
               <div className="inline-flex items-center gap-2 rounded-full border border-brand-400/30 bg-brand-500/10 px-3 py-1 text-xs font-semibold text-brand-200">
                 <Sparkles className="h-3.5 w-3.5" /> 7 dias grátis · sem cartão
               </div>
