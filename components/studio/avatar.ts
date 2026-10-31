@@ -1,5 +1,6 @@
 'use client';
-import { avatarById, type AvatarPreset } from '@/lib/catalog/avatars';
+import { avatarById } from '@/lib/catalog/avatars';
+import type { AvatarPreset } from '@/lib/catalog/avatars';
 
 /**
  * Desenha o avatar falante dentro de uma caixa.
