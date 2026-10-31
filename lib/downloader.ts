@@ -83,14 +83,31 @@ export async function requestDownload(
   const timer = setTimeout(() => controller.abort(), 60_000);
   let data: Record<string, unknown>;
   try {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+    };
+    // instâncias cobalt podem exigir a chave do motor
+    if (process.env.DOWNLOAD_ENGINE_KEY) headers.Authorization = `Api-Key ${process.env.DOWNLOAD_ENGINE_KEY}`;
     const res = await fetch(`${DOWNLOAD_ENGINE_URL}/api/`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      headers,
       body: JSON.stringify(body),
       signal: controller.signal,
       cache: 'no-store',
     });
-    data = (await res.json()) as Record<string, unknown>;
+    const text = await res.text();
+    try {
+      data = JSON.parse(text) as Record<string, unknown>;
+    } catch {
+      if (res.status === 401 || res.status === 403) {
+        return { ok: false, error: 'O motor de download pediu uma chave de acesso. Configure DOWNLOAD_ENGINE_KEY.' };
+      }
+      return { ok: false, error: `O motor respondeu ${res.status} sem JSON.` };
+    }
+    if (!data.status && (res.status === 401 || res.status === 403)) {
+      return { ok: false, error: 'O motor de download pediu uma chave de acesso. Configure DOWNLOAD_ENGINE_KEY.' };
+    }
   } catch {
     return { ok: false, error: 'Não foi possível falar com o motor de download. Tente novamente em instantes.' };
   } finally {
@@ -104,7 +121,12 @@ export async function requestDownload(
   }
 
   const items: DownloadItem[] = [];
-  const tunnels = Array.isArray(data.tunnel) ? (data.tunnel as string[]).filter(Boolean) : [];
+  const tunnelField = data.tunnel;
+  const tunnels = Array.isArray(tunnelField)
+    ? (tunnelField as string[]).filter(Boolean)
+    : typeof tunnelField === 'string' && tunnelField
+      ? [tunnelField]
+      : [];
   const mediaType = opts.audio ? 'audio' : 'video';
 
   // O túnel do motor é um proxy público: funciona de qualquer IP (inclusive do

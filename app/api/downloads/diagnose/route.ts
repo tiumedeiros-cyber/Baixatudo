@@ -65,9 +65,11 @@ export async function GET(request: Request) {
   };
 
   const first = result.items[0];
+  const rawStatus = (result as { raw?: Record<string, unknown> }).raw?.status;
   return NextResponse.json({
     engine: DOWNLOAD_ENGINE_URL,
     ok: true,
+    rawStatus,
     status: result.status,
     filename: result.filename,
     ms: Date.now() - started,
