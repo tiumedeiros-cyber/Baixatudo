@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { effectivePayments, getSettings } from '@/lib/settings';
+import { VOICES } from '@/lib/catalog/voices';
+import { AVATARS, SCENES } from '@/lib/catalog/avatars';
 
 export const runtime = 'nodejs';
 
@@ -7,11 +10,16 @@ export async function GET() {
   try {
     const db = createAdminClient();
     const { count, error } = await db.from('es_plans').select('id', { count: 'exact', head: true });
+    const settings = await getSettings();
     return NextResponse.json({
       ok: !error,
       database: error ? error.message : 'connected',
       plans: count ?? 0,
-      payments: process.env.STRIPE_SECRET_KEY ? 'stripe' : process.env.MERCADOPAGO_ACCESS_TOKEN ? 'mercadopago' : 'demo',
+      payments: effectivePayments(settings).mode,
+      support: settings.general.support_mode,
+      voices: VOICES.length,
+      avatars: AVATARS.length,
+      scenes: SCENES.length,
       engine: process.env.DOWNLOAD_ENGINE_URL ?? 'https://baixartudo.me',
       time: new Date().toISOString(),
     });

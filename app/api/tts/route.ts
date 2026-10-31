@@ -63,6 +63,40 @@ export async function GET(request: Request) {
     );
   }
 
+  // Testa códigos de idioma arbitrários: /api/tts?probe=langs&list=sl,fa,az
+  if (url.searchParams.get('probe') === 'langs') {
+    const list = (url.searchParams.get('list') ?? 'pt-BR')
+      .split(',')
+      .map((v) => v.trim())
+      .filter(Boolean)
+      .slice(0, 80);
+    const out: { lang: string; ok: boolean; ms: number; bytes: number }[] = [];
+    await Promise.all(
+      list.map(async (lang) => {
+        const t0 = Date.now();
+        try {
+          const res = await fetch(
+            `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&ttsspeed=1&tl=${encodeURIComponent(lang)}&q=${encodeURIComponent('olá')}`,
+            {
+              headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36',
+                Referer: 'https://translate.google.com/',
+              },
+              cache: 'no-store',
+              signal: AbortSignal.timeout(7_000),
+            },
+          );
+          const buf = Buffer.from(await res.arrayBuffer());
+          out.push({ lang, ok: res.ok && buf.length > 1000, ms: Date.now() - t0, bytes: buf.length });
+        } catch {
+          out.push({ lang, ok: false, ms: Date.now() - t0, bytes: 0 });
+        }
+      }),
+    );
+    out.sort((a, b) => (a.lang < b.lang ? -1 : 1));
+    return NextResponse.json({ ok: out.every((r) => r.ok), results: out }, { headers: { 'cache-control': 'no-store' } });
+  }
+
   if (url.searchParams.get('probe') === '1') {
     const results: Record<string, { ok: boolean; ms: number; detail?: string }> = {};
     const run = async (name: string, fn: () => Promise<boolean>) => {
