@@ -130,6 +130,15 @@ let edgeCooldownUntil = 0;
 
 async function freeTts(text: string, lang: string, voice?: string) {
   const warnings: string[] = [];
+
+  // 1) Google translate_tts: resposta em ~120 ms e sempre disponível em produção.
+  try {
+    return { audio: await withTimeout(googleTts(text, lang), 10_000, 'voz Google'), engine: 'google', warnings };
+  } catch (err) {
+    warnings.push(`voz Google indisponível (${err instanceof Error ? err.message : 'erro'})`);
+  }
+
+  // 2) Voz neural Microsoft — quando o ambiente permite WebSocket.
   if (Date.now() > edgeCooldownUntil) {
     try {
       return { audio: await edgeTts(text, lang, voice), engine: 'edge', warnings };
@@ -138,11 +147,8 @@ async function freeTts(text: string, lang: string, voice?: string) {
       warnings.push(`voz neural indisponível (${err instanceof Error ? err.message : 'erro'})`);
     }
   }
-  try {
-    return { audio: await withTimeout(googleTts(text, lang), 10_000, 'voz Google'), engine: 'google', warnings };
-  } catch (err) {
-    warnings.push(`voz Google indisponível (${err instanceof Error ? err.message : 'erro'})`);
-  }
+
+  // 3) Última alternativa pública.
   return { audio: await withTimeout(streamElementsTts(text, lang), 10_000, 'voz alternativa'), engine: 'streamelements', warnings };
 }
 
