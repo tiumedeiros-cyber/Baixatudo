@@ -42,27 +42,38 @@ export async function GET(request: Request) {
     }
   };
 
+  // Sonda leve: pede só os primeiros bytes com Range e corta em 6 s para não
+  // estourar o tempo da função (o arquivo pode ter centenas de MB).
   const probe = async (target: string) => {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 6000);
     try {
       const res = await fetch(target, {
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36',
           Accept: '*/*',
+          Range: 'bytes=0-2047',
         },
         redirect: 'follow',
         cache: 'no-store',
+        signal: ctrl.signal,
       });
       const buf = Buffer.from(await res.arrayBuffer());
       return {
         status: res.status,
         contentType: res.headers.get('content-type'),
+        contentRange: res.headers.get('content-range'),
         bytes: buf.length,
-        head: buf.subarray(0, 4).toString('hex'),
+        head: buf.subarray(0, 8).toString('hex'),
       };
     } catch (err) {
       return { error: err instanceof Error ? err.message : 'erro' };
+    } finally {
+      clearTimeout(timer);
     }
   };
+
+  const withProbe = searchParams.get('probe') === '1';
 
   const first = result.items[0];
   const rawStatus = (result as { raw?: Record<string, unknown> }).raw?.status;
@@ -76,7 +87,7 @@ export async function GET(request: Request) {
     itemCount: result.items.length,
     tunnels: result.tunnels.length,
     items: result.items.map((i) => ({ type: i.type, host: host(i.url) })),
-    saveProbe: first?.url ? await probe(first.url) : null,
-    tunnelProbe: result.tunnels[0] ? await probe(result.tunnels[0]) : null,
+    saveProbe: withProbe && first?.url ? await probe(first.url) : undefined,
+    tunnelProbe: withProbe && result.tunnels[0] ? await probe(result.tunnels[0]) : undefined,
   });
 }
