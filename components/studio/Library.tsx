@@ -290,7 +290,7 @@ export function Library({
   const filteredFiles = userAssets.filter((a) => !query || a.name.toLowerCase().includes(query.toLowerCase()));
 
   return (
-    <div className="flex h-full min-h-0 flex-col rounded-xl border border-white/8 bg-ink-900">
+    <div className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden rounded-xl border border-white/8 bg-ink-900">
       <div className="flex gap-1 overflow-x-auto border-b border-white/5 p-1.5 no-scrollbar">
         {TABS.map((t) => (
           <button

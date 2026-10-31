@@ -3,7 +3,6 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AlertCircle, ArrowDownToLine, Check, Download, Loader2, Music4, Plus, Sparkles, Video } from 'lucide-react';
 import { Button, Card, Field, Input, Select } from '@/components/ui';
-import { createClient } from '@/lib/supabase/client';
 
 type Item = { url: string; type: string; name: string; downloadUrl: string; thumb?: string };
 type Result = { id?: string; status: string; filename?: string; service?: string | null; items: Item[] };
@@ -17,6 +16,8 @@ export function DownloaderClient({ userId }: { userId: string }) {
   const [result, setResult] = useState<Result | null>(null);
   const [savingIdx, setSavingIdx] = useState<number | null>(null);
   const [saved, setSaved] = useState<number[]>([]);
+  const [autoSaving, setAutoSaving] = useState(false);
+  const [savedUrl, setSavedUrl] = useState<string | null>(null);
   const router = useRouter();
 
   async function submit(e: React.FormEvent) {
@@ -35,6 +36,30 @@ export function DownloaderClient({ userId }: { userId: string }) {
       if (!res.ok) throw new Error(data.error || 'Falha no download');
       setResult(data);
       router.refresh();
+
+      // salva automaticamente o arquivo principal na biblioteca (no servidor)
+      if (data.id && data.items?.length) {
+        setAutoSaving(true);
+        try {
+          const saveRes = await fetch('/api/downloads/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: data.id, index: 0 }),
+          });
+          const saveData = await saveRes.json();
+          if (saveRes.ok) {
+            setSaved([0]);
+            setSavedUrl(saveData.url ?? null);
+            router.refresh();
+          } else {
+            setError(saveData.error || 'O arquivo baixou, mas não foi salvo na biblioteca. Use o botão “Biblioteca”.');
+          }
+        } catch {
+          setError('O arquivo baixou, mas não foi salvo na biblioteca. Use o botão “Biblioteca”.');
+        } finally {
+          setAutoSaving(false);
+        }
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro inesperado');
     } finally {
@@ -43,30 +68,22 @@ export function DownloaderClient({ userId }: { userId: string }) {
   }
 
   async function saveToLibrary(item: Item, index: number) {
+    if (!result?.id) {
+      setError('O histórico deste download não está disponível. Faça o download novamente.');
+      return;
+    }
     setSavingIdx(index);
     setError(null);
     try {
-      const blob = await (await fetch(item.downloadUrl)).blob();
-      if (blob.size > 300 * 1024 * 1024) throw new Error('Arquivo maior que 300 MB. Baixe localmente e envie em "Meus arquivos".');
-      const supabase = createClient();
-      const ext = item.type === 'audio' ? 'mp3' : item.type === 'photo' ? 'jpg' : item.type === 'gif' ? 'gif' : 'mp4';
-      const clean = item.name.replace(/[^\w.\-]+/g, '_').slice(0, 60) || 'arquivo';
-      const path = `${userId}/downloads/${Date.now()}-${clean}.${ext}`;
-      const { error: upErr } = await supabase.storage.from('media').upload(path, blob, { contentType: blob.type || 'application/octet-stream' });
-      if (upErr) throw upErr;
-      const { data: pub } = supabase.storage.from('media').getPublicUrl(path);
-      const type = item.type === 'audio' ? 'audio' : item.type === 'photo' || item.type === 'gif' ? 'image' : 'video';
-      const { error: insErr } = await supabase.from('es_user_assets').insert({
-        user_id: userId,
-        name: item.name,
-        type,
-        url: pub.publicUrl,
-        storage_path: path,
-        size_bytes: blob.size,
-        metadata: {},
+      const res = await fetch('/api/downloads/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: result.id, index }),
       });
-      if (insErr) throw insErr;
-      setSaved((s) => [...s, index]);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Falha ao salvar na biblioteca');
+      setSaved((s) => (s.includes(index) ? s : [...s, index]));
+      setSavedUrl(data.url ?? null);
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Falha ao salvar na biblioteca');
@@ -177,9 +194,29 @@ export function DownloaderClient({ userId }: { userId: string }) {
               </li>
             ))}
           </ul>
-          <p className="mt-3 text-[11px] text-slate-500">
-            “Biblioteca” salva o arquivo na sua conta para arrastar direto na timeline do editor.
+          <p className="mt-3 text-[11px] leading-relaxed text-slate-500">
+            {autoSaving
+              ? 'Salvando o arquivo principal na sua biblioteca…'
+              : saved.length
+                ? 'Arquivo salvo na sua conta — abra o editor e escolha em Elementos → Arquivos (ou em Meus arquivos).'
+                : '“Biblioteca” salva o arquivo na sua conta para arrastar direto na timeline do editor.'}
           </p>
+          {savedUrl ? (
+            <div className="mt-2 flex flex-wrap gap-2">
+              <a
+                href="/dashboard/projetos"
+                className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-brand-500/20 px-3 text-[11px] font-semibold text-brand-100 hover:bg-brand-500/30"
+              >
+                <Video className="h-3.5 w-3.5" /> Abrir no editor
+              </a>
+              <a
+                href="/dashboard/arquivos"
+                className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-white/10 px-3 text-[11px] font-semibold text-slate-200 hover:bg-white/5"
+              >
+                <ArrowDownToLine className="h-3.5 w-3.5" /> Meus arquivos
+              </a>
+            </div>
+          ) : null}
         </Card>
       ) : null}
 

@@ -12,7 +12,11 @@
 
 * { -webkit-tap-highlight-color: transparent; }
 
-html, body { height: 100%; }
+html, body { height: 100%; max-width: 100%; overflow-x: clip; }
+
+/* nada pode estourar a largura da tela (celular / modo desktop no celular) */
+img, video, canvas, svg { max-width: 100%; }
+h1, h2, h3, p, li { overflow-wrap: anywhere; }
 
 body {
   background:

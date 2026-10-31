@@ -219,7 +219,7 @@ export function Studio({
 
       <div
         className={cn(
-          'grid min-h-0 flex-1 gap-2 p-2',
+          'grid min-h-0 min-w-0 flex-1 grid-cols-1 gap-2 overflow-hidden p-2',
           showLeft && showRight
             ? 'lg:grid-cols-[264px_minmax(0,1fr)_292px]'
             : showLeft
@@ -229,20 +229,20 @@ export function Studio({
                 : 'lg:grid-cols-1',
         )}
       >
-        <div className={cn('hidden min-h-0 lg:block', !showLeft && 'lg:hidden')}>
+        <div className={cn('hidden min-h-0 min-w-0 lg:block', !showLeft && 'lg:hidden')}>
           <Library assets={assets} userAssets={userAssets} premiumAllowed={premiumAllowed} projectId={project.id} />
         </div>
 
-        <div className="flex min-h-0 flex-col gap-2">
-          <div className="min-h-0 flex-1">
+        <div className="flex min-h-0 min-w-0 flex-col gap-2">
+          <div className="min-h-0 min-w-0 flex-1 overflow-hidden">
             <Preview />
           </div>
-          <div className="h-[38vh] min-h-[200px] shrink-0 lg:h-[34vh]">
+          <div className="h-[40dvh] max-h-[46dvh] min-h-[150px] shrink-0 lg:h-[34vh] lg:max-h-none">
             <Timeline />
           </div>
         </div>
 
-        <div className={cn('hidden min-h-0 lg:block', !showRight && 'lg:hidden')}>
+        <div className={cn('hidden min-h-0 min-w-0 lg:block', !showRight && 'lg:hidden')}>
           <Inspector />
         </div>
       </div>

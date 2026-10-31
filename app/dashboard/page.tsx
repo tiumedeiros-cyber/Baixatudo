@@ -10,7 +10,8 @@ import type { Project } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
 
-export default async function DashboardHome() {
+export default async function DashboardHome({ searchParams }: { searchParams?: Promise<{ semPermissao?: string }> }) {
+  const semPermissao = (await searchParams)?.semPermissao;
   const { user, profile } = await requireUser();
   const subscription = await getActiveSubscription();
   const plan = subscription?.plans;
@@ -29,6 +30,25 @@ export default async function DashboardHome() {
 
   return (
     <div className="space-y-6">
+      {semPermissao ? (
+        <div className="rounded-2xl border border-amber-400/30 bg-amber-500/10 p-4 text-sm text-amber-100">
+          <p className="font-semibold text-amber-200">Esta conta não tem permissão de administrador.</p>
+          <p className="mt-1 text-[13px] leading-relaxed text-amber-100/80">
+            O painel administrativo usa a conta <strong>tiumedeiros@gmail.com</strong>. Saia desta conta e entre com o
+            e-mail de administrador para abrir o /admin.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <form action="/auth/signout" method="post">
+              <button className="rounded-lg bg-amber-500/25 px-3 py-1.5 text-xs font-semibold text-amber-100 hover:bg-amber-500/35">
+                Sair e entrar como administrador
+              </button>
+            </form>
+            <Link href="/dashboard" className="rounded-lg border border-white/15 px-3 py-1.5 text-xs font-semibold text-slate-200 hover:bg-white/5">
+              Continuar nesta conta
+            </Link>
+          </div>
+        </div>
+      ) : null}
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="font-display text-2xl font-bold text-white">

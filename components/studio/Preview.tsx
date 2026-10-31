@@ -230,8 +230,8 @@ export function Preview() {
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-2">
-      <div ref={wrapRef} className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden rounded-xl border border-white/8 bg-ink-950/70 p-2">
+    <div className="flex h-full min-h-0 min-w-0 flex-col gap-2">
+      <div ref={wrapRef} className="relative flex min-h-0 min-w-0 flex-1 items-center justify-center overflow-hidden rounded-xl border border-white/8 bg-ink-950/70 p-2">
         <canvas
           ref={canvasRef}
           width={canvasW}

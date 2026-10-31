@@ -111,7 +111,7 @@ export default async function LandingPage() {
               <div className="inline-flex items-center gap-2 rounded-full border border-brand-400/30 bg-brand-500/10 px-3 py-1 text-xs font-semibold text-brand-200">
                 <Sparkles className="h-3.5 w-3.5" /> 7 dias grátis · sem cartão
               </div>
-              <h1 className="mt-5 font-display text-4xl font-extrabold leading-[1.05] tracking-tight text-white text-balance md:text-6xl">
+              <h1 className="mt-5 font-display text-[32px] font-extrabold leading-[1.08] tracking-tight text-white text-balance sm:text-4xl md:text-6xl">
                 Edição profissional de <span className="gradient-text">vídeo e imagem</span> direto no navegador
               </h1>
               <p className="mt-5 max-w-xl text-[15px] leading-relaxed text-slate-300 md:text-base">
@@ -260,7 +260,7 @@ export default async function LandingPage() {
         <div className="grid items-center gap-10 lg:grid-cols-2">
           <div>
             <Badge tone="success">Integrado</Badge>
-            <h2 className="mt-3 font-display text-3xl font-bold text-white md:text-4xl">
+            <h2 className="mt-3 font-display text-[26px] font-bold leading-tight text-white sm:text-3xl md:text-4xl">
               O <span className="gradient-text">Baixa Tudo</span> agora vive dentro do seu editor
             </h2>
             <p className="mt-3 text-sm leading-relaxed text-slate-300">
@@ -284,17 +284,17 @@ export default async function LandingPage() {
               <ButtonLink href="/cadastro">Criar conta grátis <ArrowRight className="h-4 w-4" /></ButtonLink>
             </div>
           </div>
-          <Card className="p-6">
+          <Card className="min-w-0 overflow-hidden p-6">
             <div className="flex items-center gap-2 text-sm font-semibold text-white">
-              <MonitorPlay className="h-4 w-4 text-brand-300" /> Dentro do editor · biblioteca de mídia
+              <MonitorPlay className="h-4 w-4 shrink-0 text-brand-300" /> Dentro do editor · biblioteca de mídia
             </div>
             <div className="mt-4 rounded-xl border border-white/10 bg-ink-900/80 p-3">
               <div className="text-[11px] uppercase tracking-wide text-slate-500">Link do vídeo</div>
-              <div className="mt-1.5 flex items-center gap-2">
-                <div className="flex-1 truncate rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-xs text-slate-300">
+              <div className="mt-1.5 flex items-center gap-2 overflow-hidden">
+                <div className="min-w-0 flex-1 truncate rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-xs text-slate-300">
                   https://www.youtube.com/watch?v=dQw4w9WgXcQ
                 </div>
-                <span className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-slate-300">Importar</span>
+                <span className="shrink-0 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-slate-300">Importar</span>
               </div>
             </div>
             <div className="mt-3 space-y-2">
@@ -466,6 +466,7 @@ export default async function LandingPage() {
               <a className="block hover:text-white" href="#recursos">Recursos</a>
               <a className="block hover:text-white" href="#planos">Planos</a>
               <a className="block hover:text-white" href="#baixa-tudo">Baixa Tudo</a>
+              <a className="block text-amber-200/80 hover:text-amber-100" href="/admin">Painel administrativo</a>
             </div>
             <div className="space-y-2">
               <p className="font-semibold text-white">Legal</p>

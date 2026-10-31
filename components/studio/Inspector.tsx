@@ -248,7 +248,7 @@ export function Inspector() {
                 : clip.transform.rotationY;
 
   return (
-    <div className="flex h-full min-h-0 flex-col rounded-xl border border-white/8 bg-ink-900">
+    <div className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden rounded-xl border border-white/8 bg-ink-900">
       {/* cabeçalho do elemento */}
       <div className="flex items-center gap-2 border-b border-white/5 px-3 py-2">
         <span className="rounded bg-brand-500/20 px-1.5 py-0.5 text-[9px] font-bold uppercase text-brand-200">{clip.kind}</span>

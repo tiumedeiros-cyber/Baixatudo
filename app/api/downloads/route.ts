@@ -68,7 +68,12 @@ export async function POST(request: Request) {
       service,
       media_type: payload.audio ? 'audio' : 'video',
       status: 'ready',
-      result: { status: result.status, filename: result.filename, items: items.map(({ downloadUrl, ...rest }) => rest) },
+      result: {
+        status: result.status,
+        filename: result.filename,
+        items: items.map(({ downloadUrl, ...rest }) => rest),
+        tunnel: result.tunnels,
+      },
     })
     .select('id')
     .single();

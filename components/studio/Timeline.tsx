@@ -188,8 +188,8 @@ export function Timeline() {
   const setDuration = useStudio((s) => s.setDuration);
 
   return (
-    <div className="flex h-full min-h-0 flex-col rounded-xl border border-white/8 bg-ink-900/60">
-      <div className="flex items-center gap-2 border-b border-white/5 px-2 py-1.5">
+    <div className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden rounded-xl border border-white/8 bg-ink-900/60">
+      <div className="no-scrollbar flex shrink-0 items-center gap-1 overflow-x-auto border-b border-white/5 px-2 py-1.5 sm:gap-2">
         <button
           onClick={() => useStudio.getState().splitAtPlayhead()}
           className="inline-flex h-7 items-center gap-1 rounded-lg px-2 text-[11px] font-semibold text-slate-300 hover:bg-white/10"
@@ -247,7 +247,7 @@ export function Timeline() {
         </div>
       </div>
 
-      <div ref={scrollRef} className="relative min-h-0 flex-1 overflow-auto">
+      <div ref={scrollRef} className="relative min-h-0 min-w-0 flex-1 overflow-auto">
         <div style={{ width: totalWidth + HEADER_W }} className="relative">
           {/* régua */}
           <div className="sticky top-0 z-20 flex h-8 border-b border-white/8 bg-ink-900/95 backdrop-blur">

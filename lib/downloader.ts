@@ -64,7 +64,7 @@ export function friendlyError(code?: string) {
 }
 
 export type EngineResult =
-  | { ok: true; status: string; filename?: string; items: DownloadItem[]; raw: Record<string, unknown> }
+  | { ok: true; status: string; filename?: string; items: DownloadItem[]; tunnels: string[]; raw: Record<string, unknown> }
   | { ok: false; error: string };
 
 export async function requestDownload(
@@ -104,15 +104,35 @@ export async function requestDownload(
   }
 
   const items: DownloadItem[] = [];
+  const tunnels = Array.isArray(data.tunnel) ? (data.tunnel as string[]).filter(Boolean) : [];
+  const mediaType = opts.audio ? 'audio' : 'video';
+
+  // O túnel do motor é um proxy público: funciona de qualquer IP (inclusive do
+  // servidor da Vercel), então vem primeiro. O link direto fica como alternativa.
+  if (tunnels.length) items.push({ url: tunnels[0], type: mediaType });
+
   const picker = (data.picker as DownloadItem[] | undefined) ?? [];
   if (Array.isArray(picker)) items.push(...picker.filter((p) => p?.url));
-  if (typeof data.url === 'string' && data.url) items.push({ url: data.url, type: opts.audio ? 'audio' : 'video' });
-  if (Array.isArray(data.tunnel)) {
-    for (const t of data.tunnel as string[]) items.push({ url: t, type: 'video' });
-  }
+  if (typeof data.url === 'string' && data.url) items.push({ url: data.url, type: mediaType });
   if (typeof data.audio === 'string' && data.audio) items.push({ url: data.audio, type: 'audio' });
+  for (const t of tunnels) items.push({ url: t, type: mediaType });
 
-  return { ok: true, status: String(data.status), filename: data.filename as string | undefined, items, raw: data };
+  // sem duplicatas (mesma URL não entra duas vezes)
+  const seen = new Set<string>();
+  const unique = items.filter((item) => {
+    if (!item.url || seen.has(item.url)) return false;
+    seen.add(item.url);
+    return true;
+  });
+
+  return {
+    ok: true,
+    status: String(data.status),
+    filename: data.filename as string | undefined,
+    items: unique,
+    tunnels,
+    raw: data,
+  };
 }
 
 /* ----------------------------- URLs assinadas ----------------------------- */
