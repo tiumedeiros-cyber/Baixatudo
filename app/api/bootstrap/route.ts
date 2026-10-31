@@ -51,7 +51,13 @@ export async function GET(request: Request) {
     await db.auth.admin.updateUserById(userId, { password, email_confirm: true });
   }
 
-  await db.from('es_profiles').upsert({ id: userId, email, role: 'admin', status: 'active', full_name: 'Administrador' });
+  const { error: profileError } = await db
+    .from('es_profiles')
+    .upsert({ id: userId, email, role: 'admin', status: 'active', full_name: 'Administrador' });
+  if (profileError) {
+    return NextResponse.json({ error: `perfil: ${profileError.message}` }, { status: 500 });
+  }
+  const { data: profile } = await db.from('es_profiles').select('role').eq('id', userId).maybeSingle();
 
   const checks = await Promise.all([
     db.from('es_plans').select('id', { count: 'exact', head: true }),
@@ -63,6 +69,7 @@ export async function GET(request: Request) {
     ok: true,
     admin: email,
     created,
+    role: profile?.role ?? 'desconhecido',
     plans: checks[0].count ?? 0,
     assets: checks[1].count ?? 0,
     settings: checks[2].count ?? 0,
