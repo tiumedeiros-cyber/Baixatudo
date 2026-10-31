@@ -85,6 +85,7 @@ export function Preview() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
   const holdingRef = useRef(false);
+  const warnedRef = useRef(false);
   const dragRef = useRef<{ startX: number; startY: number; x: number; y: number; id: string } | null>(null);
   const [muted, setMuted] = useState(false);
   const width = useStudio((s) => s.width);
@@ -132,19 +133,32 @@ export function Preview() {
 
       const canvas = canvasRef.current;
       if (canvas) {
-        const ctx = canvas.getContext('2d');
+        let ctx: CanvasRenderingContext2D | null = null;
+        try {
+          ctx = canvas.getContext('2d');
+        } catch {
+          ctx = null;
+        }
         if (ctx) {
-          drawFrame({
-            ctx,
-            width: canvas.width,
-            height: canvas.height,
-            background: useStudio.getState().background,
-            clips: useStudio.getState().clips,
-            tracks: useStudio.getState().tracks,
-            time,
-            media,
-            three: threePool,
-          });
+          try {
+            drawFrame({
+              ctx,
+              width: canvas.width,
+              height: canvas.height,
+              background: useStudio.getState().background,
+              clips: useStudio.getState().clips,
+              tracks: useStudio.getState().tracks,
+              time,
+              media,
+              three: threePool,
+            });
+          } catch (err) {
+            // Um clipe inválido (dado antigo, WebGL indisponível) não pode derrubar o editor.
+            if (!warnedRef.current) {
+              warnedRef.current = true;
+              console.warn('[studio] falha ao desenhar frame:', err);
+            }
+          }
         }
       }
       raf = requestAnimationFrame(loop);
@@ -261,7 +275,7 @@ export function Preview() {
             onClick={() => {
               const next = !muted;
               setMuted(next);
-              audioEngine.master!.gain.value = next ? 0 : 1;
+              audioEngine.setMasterVolume(next ? 0 : 1);
             }}
             className="rounded-lg p-1.5 text-slate-400 hover:bg-white/10 hover:text-white"
           >

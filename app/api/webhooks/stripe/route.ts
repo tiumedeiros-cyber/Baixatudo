@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { activateSubscription, recordPayment } from '@/lib/payments';
+import { findHourPack, grantTime } from '@/lib/time';
 
 export const runtime = 'nodejs';
 
@@ -50,6 +51,39 @@ export async function POST(request: Request) {
 
   if (event.type === 'checkout.session.completed') {
     const userId = metadata.user_id ?? (obj.client_reference_id as string | undefined);
+
+    // Compra de horas avulsas (plano por hora)
+    if (userId && metadata.kind === 'hours') {
+      const pack = findHourPack(metadata.pack ?? '');
+      const hours = pack?.hours ?? Number(metadata.hours ?? 0);
+      if (hours > 0) {
+        await grantTime({
+          userId,
+          hours,
+          kind: 'purchase',
+          note: `Compra de ${pack?.label ?? `${hours}h`} via Stripe`,
+          reference: `stripe:${obj.id as string}`,
+        });
+        await recordPayment({
+          userId,
+          planId: null,
+          amount: Number(obj.amount_total ?? 0) / 100,
+          status: 'approved',
+          gateway: 'stripe',
+          gatewayPaymentId: obj.id as string,
+          metadata: { kind: 'hours', pack: metadata.pack, hours },
+        });
+        await admin.from('es_audit_logs').insert({
+          user_id: userId,
+          action: 'time_purchased',
+          entity: 'time_credit',
+          entity_id: obj.id as string,
+          meta: { gateway: 'stripe', pack: metadata.pack, hours },
+        });
+      }
+      return NextResponse.json({ received: true, hours: hours });
+    }
+
     const planId = metadata.plan_id;
     const cycle = (metadata.cycle as 'monthly' | 'yearly') ?? 'monthly';
     if (userId && planId) {

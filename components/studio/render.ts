@@ -71,7 +71,8 @@ function getGrain() {
   const c = document.createElement('canvas');
   c.width = 256;
   c.height = 256;
-  const ctx = c.getContext('2d')!;
+  const ctx = c.getContext('2d');
+  if (!ctx) return c;
   const img = ctx.createImageData(256, 256);
   for (let i = 0; i < img.data.length; i += 4) {
     const v = Math.random() * 255;
@@ -398,9 +399,19 @@ export function drawFrame(opts: FrameOptions) {
       drawText(ctx, clip, local, width, height, scaleBase * tScale);
     } else if (clip.kind === 'object3d') {
       const obj = clip.object3d ?? { shape: 'box', color: '#818cf8', metalness: 0.4, spin: 0.6 };
-      const canvas = three.render(obj.shape, obj.color, local, obj.spin, rotX, rotY);
-      const size = height * 0.7;
-      ctx.drawImage(canvas, -size / 2, -size / 2, size, size);
+      try {
+        const canvas = three.render(obj.shape, obj.color, local, obj.spin, rotX, rotY);
+        const size = height * 0.7;
+        ctx.drawImage(canvas, -size / 2, -size / 2, size, size);
+      } catch {
+        // WebGL indisponível (alguns navegadores/dispositivos antigos): desenha um placeholder.
+        const size = height * 0.5;
+        ctx.fillStyle = obj.color || '#818cf8';
+        ctx.globalAlpha *= 0.35;
+        ctx.beginPath();
+        ctx.arc(0, 0, size / 2, 0, Math.PI * 2);
+        ctx.fill();
+      }
     } else if (clip.kind === 'sticker') {
       drawSticker(ctx, clip, height * 0.4);
     }

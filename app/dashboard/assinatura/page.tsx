@@ -1,4 +1,6 @@
-import { Check, CreditCard, Sparkles, TriangleAlert } from 'lucide-react';
+import { Check, Clock, CreditCard, Hourglass, Sparkles, TriangleAlert } from 'lucide-react';
+import { TimeCreditBar } from '@/components/time/TimeCreditBar';
+import { HOUR_PACKS } from '@/lib/hour-packs';
 import { getActiveSubscription, requireUser } from '@/lib/auth';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { Badge, ButtonLink, Card } from '@/components/ui';
@@ -15,8 +17,9 @@ const statusLabel: Record<string, { label: string; tone: 'success' | 'warning' |
   refunded: { label: 'Reembolsado', tone: 'brand' },
 };
 
-export default async function SubscriptionPage() {
+export default async function SubscriptionPage({ searchParams }: { searchParams: Promise<{ semTempo?: string; horas?: string }> }) {
   const { user } = await requireUser();
+  const { semTempo, horas } = await searchParams;
   const sub = await getActiveSubscription();
   const supabase = await createSupabaseServerClient();
   const [{ data: payments }, { data: plans }] = await Promise.all([
@@ -34,7 +37,24 @@ export default async function SubscriptionPage() {
         <p className="mt-1 text-sm text-slate-400">Gerencie plano, renovação e histórico de pagamentos.</p>
       </div>
 
+      {semTempo ? (
+        <div className="flex items-start gap-2 rounded-xl border border-rose-400/30 bg-rose-500/10 px-4 py-3 text-xs text-rose-100">
+          <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>
+            Seu tempo de edição acabou. Compre horas avulsas ou assine um plano para abrir o editor novamente — seus projetos
+            continuam salvos.
+          </span>
+        </div>
+      ) : null}
+      {horas === 'aprovado' ? (
+        <div className="flex items-center gap-2 rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-4 py-3 text-xs text-emerald-100">
+          <Check className="h-4 w-4" /> Pagamento aprovado! Suas horas já estão disponíveis no saldo abaixo.
+        </div>
+      ) : null}
+
       <div className="grid gap-4 lg:grid-cols-[1.2fr_1fr]">
+        <div className="space-y-4">
+        <TimeCreditBar />
         <Card className="relative overflow-hidden p-6">
           <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-brand-500/20 blur-3xl" />
           <div className="flex items-start justify-between">
@@ -93,6 +113,7 @@ export default async function SubscriptionPage() {
             </p>
           ) : null}
         </Card>
+        </div>
 
         <Card className="p-6">
           <h3 className="text-sm font-semibold text-white">Limites do plano</h3>
@@ -133,6 +154,29 @@ export default async function SubscriptionPage() {
           </Card>
         ))}
       </div>
+
+      <Card className="p-5">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h3 className="flex items-center gap-2 text-sm font-semibold text-white">
+              <Hourglass className="h-4 w-4 text-brand-300" /> Plano por hora
+            </h3>
+            <p className="mt-1 text-xs text-slate-400">Compre horas avulsas: não expiram e o cronômetro só corre com o editor aberto.</p>
+          </div>
+          <ButtonLink href="/checkout/hora" size="sm">Comprar horas</ButtonLink>
+        </div>
+        <div className="mt-4 grid gap-2 sm:grid-cols-3">
+          {HOUR_PACKS.map((pack) => (
+            <div key={pack.slug} className="rounded-xl border border-white/8 bg-white/[0.02] px-3 py-2.5">
+              <p className="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                <Clock className="h-3 w-3" /> {pack.label}
+              </p>
+              <p className="mt-0.5 text-sm font-bold text-white">{brl(pack.price)}</p>
+              <p className="text-[10px] text-slate-500">{brl(pack.perHour)}/hora</p>
+            </div>
+          ))}
+        </div>
+      </Card>
 
       <Card className="overflow-hidden">
         <div className="flex items-center gap-2 border-b border-white/5 px-5 py-4">

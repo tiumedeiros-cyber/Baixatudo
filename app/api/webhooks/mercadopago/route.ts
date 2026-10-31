@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { activateSubscription, recordPayment } from '@/lib/payments';
+import { findHourPack, grantTime } from '@/lib/time';
 
 export const runtime = 'nodejs';
 
@@ -38,7 +39,53 @@ export async function POST(request: Request) {
 
   const status = String(payment.status ?? '');
   const externalRef = String(payment.external_reference ?? '');
-  const [userId, planId, cycle] = externalRef.split('|');
+  const [first, second, third, fourth] = externalRef.split('|');
+
+  // Compra de horas avulsas: hours|userId|pack|horas
+  if (first === 'hours') {
+    const userId = second;
+    const pack = findHourPack(third ?? '');
+    const hours = pack?.hours ?? Number(fourth ?? 0);
+    if (!userId || !hours) return NextResponse.json({ received: true, ignored: 'sem referência' });
+    if (status === 'approved') {
+      await grantTime({
+        userId,
+        hours,
+        kind: 'purchase',
+        note: `Compra de ${pack?.label ?? `${hours}h`} via Mercado Pago`,
+        reference: `mp:${paymentId}`,
+      });
+      await recordPayment({
+        userId,
+        planId: null,
+        amount: Number(payment.transaction_amount ?? 0),
+        status: 'approved',
+        gateway: 'mercadopago',
+        gatewayPaymentId: String(payment.id ?? paymentId),
+        metadata: { kind: 'hours', pack: third, hours, method: payment.payment_method_id },
+      });
+      await admin.from('es_audit_logs').insert({
+        user_id: userId,
+        action: 'time_purchased',
+        entity: 'time_credit',
+        entity_id: String(payment.id ?? paymentId),
+        meta: { gateway: 'mercadopago', pack: third, hours },
+      });
+    } else if (['rejected', 'cancelled'].includes(status)) {
+      await recordPayment({
+        userId,
+        planId: null,
+        amount: Number(payment.transaction_amount ?? 0),
+        status: 'refused',
+        gateway: 'mercadopago',
+        gatewayPaymentId: String(payment.id ?? paymentId),
+        metadata: { kind: 'hours', pack: third, status },
+      });
+    }
+    return NextResponse.json({ received: true, hours });
+  }
+
+  const [userId, planId, cycle] = [first, second, third];
   if (!userId || !planId) return NextResponse.json({ received: true, ignored: 'sem referência' });
 
   if (status === 'approved') {

@@ -6,6 +6,7 @@ import {
   CreditCard,
   Download,
   FolderOpen,
+  Hourglass,
   LayoutDashboard,
   ScrollText,
   Settings,
@@ -18,6 +19,7 @@ const LINKS = [
   { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/admin/usuarios', label: 'Usuários', icon: Users },
   { href: '/admin/planos', label: 'Planos', icon: FolderOpen },
+  { href: '/admin/horas', label: 'Plano por hora', icon: Hourglass, badge: 'novo' },
   { href: '/admin/pagamentos', label: 'Pagamentos', icon: CreditCard },
   { href: '/admin/biblioteca', label: 'Biblioteca', icon: BarChart3 },
   { href: '/admin/downloads', label: 'Downloads', icon: Download },
@@ -40,7 +42,10 @@ export function AdminNav() {
               active ? 'bg-amber-500/15 text-amber-100 ring-1 ring-amber-400/25' : 'text-slate-400 hover:bg-white/5 hover:text-white',
             )}
           >
-            <l.icon className="h-4 w-4" /> {l.label}
+            <l.icon className="h-4 w-4" /> <span className="flex-1">{l.label}</span>
+            {'badge' in l && l.badge ? (
+              <span className="rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[9px] font-bold uppercase text-emerald-300">{l.badge}</span>
+            ) : null}
           </Link>
         );
       })}

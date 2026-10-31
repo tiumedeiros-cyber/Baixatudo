@@ -73,6 +73,39 @@ type StudioState = {
   pushHistory: () => void;
 };
 
+
+const DEFAULT_FILTERS = { brightness: 100, contrast: 100, saturation: 100, blur: 0, hue: 0, grayscale: 0 };
+
+/**
+ * Garante que todo clipe carregado do banco tenha a estrutura completa.
+ * Projetos salvos por versões antigas (ou editados por fora) podem vir sem
+ * `transform`, `filters` ou `keyframes` — o preview quebrava com isso.
+ */
+function normalizeClip(clip: Clip, fallbackTrackId: string): Clip {
+  const c = (clip ?? {}) as Partial<Clip>;
+  return {
+    ...(c as Clip),
+    id: c.id ?? uid('clip'),
+    kind: c.kind ?? 'text',
+    src: c.src ?? '',
+    trackId: c.trackId ?? fallbackTrackId,
+    start: Number.isFinite(Number(c.start)) ? Math.max(0, Number(c.start)) : 0,
+    duration: Number.isFinite(Number(c.duration)) ? Math.max(0.1, Number(c.duration)) : 5,
+    trimStart: Number(c.trimStart ?? 0),
+    speed: Number(c.speed ?? 1) || 1,
+    volume: Number(c.volume ?? 1),
+    opacity: Number.isFinite(Number(c.opacity)) ? Number(c.opacity) : 1,
+    muted: Boolean(c.muted),
+    fadeIn: Number(c.fadeIn ?? 0),
+    fadeOut: Number(c.fadeOut ?? 0),
+    transform: { ...DEFAULT_TRANSFORM, ...(c.transform ?? {}) },
+    filters: { ...DEFAULT_FILTERS, ...(c.filters ?? {}) },
+    transitionIn: c.transitionIn ?? { type: 'none', duration: 0.5 },
+    transitionOut: c.transitionOut ?? { type: 'none', duration: 0.5 },
+    keyframes: Array.isArray(c.keyframes) ? c.keyframes : [],
+  } as Clip;
+}
+
 const memory = (s: StudioState): Snapshot => ({
   clips: JSON.parse(JSON.stringify(s.clips)),
   tracks: JSON.parse(JSON.stringify(s.tracks)),
@@ -117,7 +150,7 @@ export const useStudio = create<StudioState>((set, get) => ({
             { id: 't1', name: 'Texto', kind: 'visual', muted: false, hidden: false },
             { id: 'a1', name: 'Áudio 1', kind: 'audio', muted: false, hidden: false },
           ],
-      clips: data.timeline?.clips ?? [],
+      clips: (data.timeline?.clips ?? []).map((c) => normalizeClip(c, data.timeline?.tracks?.[0]?.id ?? 'v1')),
       selectedId: null,
       playhead: 0,
       past: [],

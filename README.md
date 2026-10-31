@@ -16,6 +16,7 @@ ferramenta **Baixa Tudo** integrada (download de vídeos, imagens e áudios).
 | Landing page | Hero, recursos, fluxo, seção Baixa Tudo, planos (dinâmicos do banco), depoimentos, FAQ, CTA, LGPD — responsiva, com menu sanduíche no mobile |
 | Autenticação | Supabase Auth (e-mail/senha), middleware de sessão, rotas protegidas, bloqueio de conta |
 | Painel do cliente | Visão geral com métricas, projetos, arquivos (upload real p/ Storage com fallback server-side), assinatura, perfil, suporte, atalho para o admin, menu sanduíche e botão sair no mobile |
+| Plano por hora | Créditos de tempo (`es_time_credits`), barra de progresso no painel, consumo atômico via RPC com trava por conta + clamp de tempo, pacotes de 1h/5h/10h, aviso e bloqueio ao zerar o saldo, admin libera tempo de teste/bônus |
 | Editor Studio | Canvas de preview WYSIWYG, timeline multi-trilha, arrastar/soltar, trim nas bordas, split (C/S), snap, zoom (Ctrl+rolagem), keyframes, undo/redo, autosave 2s, atalhos |
 | Mídia | Vídeo, imagem, texto, formas, overlays (vinheta/grão/moldura), objetos 3D WebGL, transições (fade/slide/zoom/wipe/glitch/flash), filtros de cor |
 | Áudio | Volume por clipe, mute do áudio original, fades, mixagem Web Audio, SFX/trilhas procedurais (whoosh, riser, impacto, lo-fi, cinematic) |
@@ -95,3 +96,13 @@ npm run dev
 
 A central Baixa Tudo deve ser usada apenas com conteúdo próprio, licenciado ou de domínio público.
 Os assets procedurais (sons, transições, formas) são gerados pela própria plataforma.
+
+## Plano por hora (detalhes técnicos)
+
+- Tabela `es_time_credits` (RLS: cada usuário só lê o próprio saldo; escrita só via service_role).
+- `es_consume_time(p_seconds)` — `security definer`, `pg_advisory_xact_lock` por usuário, `select ... for update`,
+  e desconto limitado ao tempo realmente decorrido desde `es_profiles.time_last_tick` (máx. 120 s por chamada),
+  impedindo consumo duplicado com várias abas ou chamadas forjadas.
+- `/api/time` (GET saldo, POST heartbeat de 30 s feito pelo editor) e `components/studio/TimeGuard.tsx` (aviso + bloqueio).
+- Assinantes (trial/ativo) usam o editor sem consumir horas; sem assinatura o editor exige saldo.
+- Admin: `/admin/horas` libera tempo de teste/cortesia por usuário (ou bônus em lote) com auditoria em `es_audit_logs`.

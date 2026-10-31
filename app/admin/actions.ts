@@ -1,7 +1,9 @@
 'use server';
+import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { requireAdmin } from '@/lib/auth';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { grantTime } from '@/lib/time';
 
 async function admin() {
   await requireAdmin();
@@ -135,4 +137,75 @@ export async function saveSetting(key: string, value: Record<string, unknown>) {
   const db = await admin();
   await db.from('es_settings').upsert({ key, value, updated_at: new Date().toISOString() });
   revalidatePath('/admin/configuracoes');
+}
+
+/* --------------------------- Plano por hora (admin) --------------------------- */
+
+/**
+ * Libera tempo de teste/cortesia para um usuário.
+ * Tudo é registrado em `es_time_credits` (com `granted_by`) e em `es_audit_logs`.
+ */
+export async function grantUserTime(formData: FormData) {
+  const { user } = await requireAdmin();
+  const db = createAdminClient();
+
+  const userId = String(formData.get('userId') || '');
+  const hours = Number(formData.get('hours') || 0);
+  const note = String(formData.get('note') || '').trim();
+  if (!userId || !Number.isFinite(hours) || hours <= 0 || hours > 100) {
+    redirect('/admin/horas?erro=horas');
+  }
+
+  const { data: target } = await db.from('es_profiles').select('id, email').eq('id', userId).maybeSingle();
+  if (!target?.id) redirect('/admin/horas?erro=usuario');
+
+  const balance = await grantTime({
+    userId,
+    hours,
+    kind: note.toLowerCase().includes('bônus') || note.toLowerCase().includes('bonus') ? 'bonus' : 'trial',
+    note: note || `Tempo liberado pelo admin (${hours}h)`,
+    grantedBy: user!.id,
+  });
+
+  await db.from('es_audit_logs').insert({
+    user_id: userId,
+    actor_email: user!.email,
+    action: 'time_granted',
+    entity: 'time_credit',
+    entity_id: userId,
+    meta: { hours, note, remaining_seconds: balance.remaining, by: 'admin' },
+  });
+
+  revalidatePath('/admin/horas');
+  redirect('/admin/horas?ok=1');
+}
+
+/** Libera tempo de teste em lote para todos os clientes sem saldo. */
+export async function grantTimeToAll(formData: FormData) {
+  const { user } = await requireAdmin();
+  const db = createAdminClient();
+  const hours = Number(formData.get('hours') || 0);
+  if (!Number.isFinite(hours) || hours <= 0 || hours > 10) redirect('/admin/horas?erro=horas');
+
+  const { data: profiles } = await db.from('es_profiles').select('id').eq('role', 'client').limit(500);
+  for (const profile of profiles ?? []) {
+    await grantTime({
+      userId: profile.id,
+      hours,
+      kind: 'bonus',
+      note: `Bônus de ${hours}h liberado para todos`,
+      grantedBy: user!.id,
+      reference: `lote:${new Date().toISOString().slice(0, 10)}:${hours}`,
+    });
+  }
+
+  await db.from('es_audit_logs').insert({
+    actor_email: user!.email,
+    action: 'time_granted_bulk',
+    entity: 'time_credit',
+    meta: { hours, users: profiles?.length ?? 0 },
+  });
+
+  revalidatePath('/admin/horas');
+  redirect(`/admin/horas?ok=lote&qtd=${profiles?.length ?? 0}`);
 }

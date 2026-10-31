@@ -62,7 +62,7 @@ export async function activateSubscription(opts: {
 
 export async function recordPayment(opts: {
   userId: string;
-  planId: string;
+  planId: string | null;
   subscriptionId?: string | null;
   amount: number;
   status: 'pending' | 'approved' | 'refused' | 'refunded';
@@ -187,6 +187,77 @@ export async function createMercadoPagoPreference(opts: {
         success: `${SITE_URL}/dashboard/assinatura?pagamento=aprovado`,
         failure: `${SITE_URL}/dashboard/assinatura?pagamento=recusado`,
         pending: `${SITE_URL}/dashboard/assinatura?pagamento=pendente`,
+      },
+      auto_return: 'approved',
+      notification_url: `${SITE_URL}/api/webhooks/mercadopago`,
+    }),
+  });
+  const data = (await res.json()) as { init_point?: string; id?: string; message?: string };
+  if (!res.ok || !data.init_point) throw new Error(data.message || 'Falha ao criar preferência Mercado Pago');
+  return data;
+}
+
+/* --------------------------- Plano por hora (avulso) --------------------------- */
+
+/** Checkout Stripe de pagamento único para pacotes de horas. */
+export async function createStripeHoursCheckout(opts: {
+  pack: { slug: string; hours: number; price: number; label: string };
+  userId: string;
+  email: string;
+}) {
+  const key = process.env.STRIPE_SECRET_KEY;
+  if (!key) throw new Error('Stripe não configurado');
+  const body = new URLSearchParams();
+  body.set('mode', 'payment');
+  body.set('success_url', `${SITE_URL}/dashboard/assinatura?horas=aprovado`);
+  body.set('cancel_url', `${SITE_URL}/checkout/hora?horas=cancelado`);
+  body.set('client_reference_id', opts.userId);
+  body.set('customer_email', opts.email);
+  body.set('metadata[kind]', 'hours');
+  body.set('metadata[user_id]', opts.userId);
+  body.set('metadata[pack]', opts.pack.slug);
+  body.set('metadata[hours]', String(opts.pack.hours));
+  body.set('line_items[0][quantity]', '1');
+  body.set('line_items[0][price_data][currency]', 'brl');
+  body.set('line_items[0][price_data][unit_amount]', String(Math.round(opts.pack.price * 100)));
+  body.set('line_items[0][price_data][product_data][name]', `Editor Studio · ${opts.pack.label} de edição`);
+
+  const res = await fetch('https://api.stripe.com/v1/checkout/sessions', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/x-www-form-urlencoded' },
+    body,
+  });
+  const data = (await res.json()) as { url?: string; id?: string; error?: { message: string } };
+  if (!res.ok || !data.url) throw new Error(data.error?.message || 'Falha ao criar checkout Stripe');
+  return data;
+}
+
+/** Preferência Mercado Pago para pacotes de horas. */
+export async function createMercadoPagoHoursPreference(opts: {
+  pack: { slug: string; hours: number; price: number; label: string };
+  userId: string;
+  email: string;
+}) {
+  const token = process.env.MERCADOPAGO_ACCESS_TOKEN;
+  if (!token) throw new Error('Mercado Pago não configurado');
+  const res = await fetch('https://api.mercadopago.com/checkout/preferences', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      items: [
+        {
+          title: `Editor Studio · ${opts.pack.label} de edição`,
+          quantity: 1,
+          currency_id: 'BRL',
+          unit_price: Number(opts.pack.price.toFixed(2)),
+        },
+      ],
+      payer: { email: opts.email },
+      external_reference: `hours|${opts.userId}|${opts.pack.slug}|${opts.pack.hours}`,
+      back_urls: {
+        success: `${SITE_URL}/dashboard/assinatura?horas=aprovado`,
+        failure: `${SITE_URL}/checkout/hora?horas=recusado`,
+        pending: `${SITE_URL}/checkout/hora?horas=pendente`,
       },
       auto_return: 'approved',
       notification_url: `${SITE_URL}/api/webhooks/mercadopago`,

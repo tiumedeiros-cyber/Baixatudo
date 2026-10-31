@@ -74,7 +74,22 @@ export function Inspector() {
   const selectedId = useStudio((s) => s.selectedId);
   const clip = useStudio((s) => s.clips.find((c) => c.id === s.selectedId));
   const playhead = useStudio((s) => s.playhead);
-  const project = useStudio((s) => ({ name: s.name, width: s.width, height: s.height, fps: s.fps, background: s.background, duration: s.duration }));
+  // Atenção: seletores do zustand/React 19 precisam de referência estável.
+  // Retornar um objeto novo a cada render causa loop infinito (tela de erro no editor).
+  const projectName = useStudio((s) => s.name);
+  const projectWidth = useStudio((s) => s.width);
+  const projectHeight = useStudio((s) => s.height);
+  const projectFps = useStudio((s) => s.fps);
+  const projectBackground = useStudio((s) => s.background);
+  const projectDuration = useStudio((s) => s.duration);
+  const project = {
+    name: projectName,
+    width: projectWidth,
+    height: projectHeight,
+    fps: projectFps,
+    background: projectBackground,
+    duration: projectDuration,
+  };
 
   const keyframeProps: KeyframeProp[] = useMemo(() => ['x', 'y', 'scale', 'rotation', 'opacity', 'rotationX', 'rotationY'], []);
 

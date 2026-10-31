@@ -11,7 +11,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const { profile } = await requireAdmin();
   return (
     <div className="min-h-screen lg:grid lg:grid-cols-[248px_1fr]">
-      <aside className="hidden border-r border-amber-400/10 bg-ink-950/70 p-4 lg:block">
+      <aside className="hidden border-r border-amber-400/10 bg-ink-900 p-4 lg:block">
         <div className="px-2 py-1"><Logo /></div>
         <p className="mt-3 px-2 text-[10px] font-bold uppercase tracking-wider text-amber-300">Administração</p>
         <div className="mt-2"><AdminNav /></div>
@@ -21,7 +21,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         </div>
       </aside>
       <div className="min-w-0">
-        <header className="flex h-14 items-center gap-2 border-b border-white/5 bg-ink-950/70 px-4 backdrop-blur lg:px-8">
+        <header className="sticky top-0 z-40 flex h-14 items-center gap-2 border-b border-white/8 bg-ink-900 px-4 lg:px-8">
           <MobileMenu title="Administração">
             <div className="px-1"><AdminNav /></div>
           </MobileMenu>

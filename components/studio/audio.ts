@@ -199,6 +199,11 @@ export class AudioEngine {
   resume() {
     void this.ctx?.resume();
   }
+
+  /** Volume geral (botão de mudo do preview). Não cria o AudioContext se ainda não existir. */
+  setMasterVolume(volume: number) {
+    if (this.master) this.master.gain.value = volume;
+  }
 }
 
 export const audioEngine = new AudioEngine();

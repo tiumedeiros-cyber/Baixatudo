@@ -116,7 +116,7 @@ export default async function LandingPage() {
               </h1>
               <p className="mt-5 max-w-xl text-[15px] leading-relaxed text-slate-300 md:text-base">
                 Timeline com régua, corte por frame, objetos 3D, biblioteca infinita de assets, narração por IA e o
-                <strong className="text-white"> Baixa Tudo</strong> integrado para baixar vídeos, imagens e áudios em um clique.
+                <strong className="text-white"> Baixa Tudo</strong> integrado para trazer vídeos, imagens e áudios direto para a sua biblioteca.
               </p>
               <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
                 <ButtonLink href="/cadastro" size="lg" className="btn-shine w-full sm:w-auto">
@@ -270,9 +270,9 @@ export default async function LandingPage() {
             <ul className="mt-5 space-y-2.5 text-sm text-slate-300">
               {[
                 'YouTube, TikTok, Instagram, X, Facebook, Reddit, Pinterest, Vimeo e mais',
-                'Download de vídeo, foto, GIF e áudio (MP3)',
+                'Vídeo, foto, GIF e áudio (MP3) importados para a biblioteca',
                 'Itens múltiplos (carrossel / galeria) em um clique',
-                'Histórico de downloads e envio direto para o projeto',
+                'Histórico das importações e envio direto para o projeto',
                 'Roda 100% dentro do sistema — sem instalar extensão',
               ].map((t) => (
                 <li key={t} className="flex items-start gap-2">
@@ -281,12 +281,12 @@ export default async function LandingPage() {
               ))}
             </ul>
             <div className="mt-7 flex flex-wrap gap-3">
-              <ButtonLink href="/cadastro">Usar o Baixa Tudo <Download className="h-4 w-4" /></ButtonLink>
+              <ButtonLink href="/cadastro">Criar conta grátis <ArrowRight className="h-4 w-4" /></ButtonLink>
             </div>
           </div>
           <Card className="p-6">
             <div className="flex items-center gap-2 text-sm font-semibold text-white">
-              <MonitorPlay className="h-4 w-4 text-brand-300" /> Central de downloads
+              <MonitorPlay className="h-4 w-4 text-brand-300" /> Dentro do editor · biblioteca de mídia
             </div>
             <div className="mt-4 rounded-xl border border-white/10 bg-ink-900/80 p-3">
               <div className="text-[11px] uppercase tracking-wide text-slate-500">Link do vídeo</div>
@@ -294,7 +294,7 @@ export default async function LandingPage() {
                 <div className="flex-1 truncate rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-xs text-slate-300">
                   https://www.youtube.com/watch?v=dQw4w9WgXcQ
                 </div>
-                <span className="rounded-lg bg-gradient-to-r from-brand-500 to-brand-600 px-3 py-2 text-xs font-semibold text-white">Baixar</span>
+                <span className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-slate-300">Importar</span>
               </div>
             </div>
             <div className="mt-3 space-y-2">
@@ -309,12 +309,12 @@ export default async function LandingPage() {
                     <p className="truncate text-xs font-semibold text-white">{t}</p>
                     <p className="text-[11px] text-slate-500">{s}</p>
                   </div>
-                  <Download className="h-4 w-4 text-slate-400" />
+                  <BadgeCheck className="h-4 w-4 text-emerald-400" />
                 </div>
               ))}
             </div>
             <p className="mt-3 text-[11px] leading-relaxed text-slate-500">
-              Respeite os direitos autorais. Use apenas conteúdo próprio, licenciado ou de domínio público.
+              Área exclusiva de clientes: a importação só aparece depois do login. Respeite os direitos autorais.
             </p>
           </Card>
         </div>
@@ -414,6 +414,24 @@ export default async function LandingPage() {
         </div>
       </section>
 
+      {/* PLANO POR HORA */}
+      <section id="por-hora" className="mx-auto max-w-7xl px-5 pb-4">
+        <div className="flex flex-col items-start justify-between gap-4 rounded-2xl border border-white/10 bg-ink-900 p-6 sm:flex-row sm:items-center">
+          <div>
+            <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-brand-200">
+              <Timer className="h-3.5 w-3.5" /> Sem mensalidade
+            </p>
+            <h3 className="mt-1 font-display text-xl font-bold text-white">Plano por hora: edite só o tempo que precisar</h3>
+            <p className="mt-1 text-sm text-slate-400">
+              A partir de {brl(19.9)} a hora, com cronômetro que só corre no editor e progresso do saldo no seu painel.
+            </p>
+          </div>
+          <ButtonLink href="/cadastro" variant="secondary" className="shrink-0">
+            Começar com horas <ArrowRight className="h-4 w-4" />
+          </ButtonLink>
+        </div>
+      </section>
+
       {/* CTA */}
       <section className="mx-auto max-w-7xl px-5 pb-20">
         <div className="relative overflow-hidden rounded-3xl border border-brand-400/25 bg-gradient-to-br from-brand-600/25 via-ink-900 to-ink-950 p-10 text-center">
@@ -447,7 +465,7 @@ export default async function LandingPage() {
               <p className="font-semibold text-white">Produto</p>
               <a className="block hover:text-white" href="#recursos">Recursos</a>
               <a className="block hover:text-white" href="#planos">Planos</a>
-              <a className="block hover:text-white" href="/dashboard/baixa-tudo">Baixa Tudo</a>
+              <a className="block hover:text-white" href="#baixa-tudo">Baixa Tudo</a>
             </div>
             <div className="space-y-2">
               <p className="font-semibold text-white">Legal</p>
