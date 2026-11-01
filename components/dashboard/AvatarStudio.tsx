@@ -15,7 +15,7 @@ import {
 } from '@/lib/catalog/avatars';
 import type { ExpressionId, FramingId, HairStyle, PoseId, SceneId } from '@/lib/catalog/avatars';
 import { VOICES, DEFAULT_VOICE } from '@/lib/catalog/voices';
-import { computeEnvelope } from '@/components/studio/envelope';
+import { computeEnvelope, ENVELOPE_STEP } from '@/components/studio/envelope';
 import { cn } from '@/lib/utils';
 
 type Segment = { url: string; text: string; duration: number };
@@ -114,7 +114,7 @@ export function AvatarStudio({
       setPreview(data.segments[0].url);
 
       setStage('Sincronizando a boca do avatar com o áudio…');
-      const envelope = await computeEnvelope(data.segments.map((s) => s.url));
+      const envelope = await computeEnvelope(data.segments.map((s) => s.url), ENVELOPE_STEP);
 
       setStage('Montando o projeto no editor…');
       const project = await fetch('/api/avatar-project', {

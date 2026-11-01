@@ -205,6 +205,95 @@ const SFX: Array<{ id: string; label: string; seconds: number; recipe: SfxRecipe
     },
   },
   {
+    id: 'bubble',
+    label: 'Bolha / pop suave',
+    seconds: 0.45,
+    recipe: (ctx, out) => {
+      const osc = ctx.createOscillator();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(300, 0);
+      osc.frequency.exponentialRampToValueAtTime(900, 0.18);
+      const gain = ctx.createGain();
+      gain.gain.setValueAtTime(0.001, 0);
+      gain.gain.exponentialRampToValueAtTime(0.7, 0.04);
+      gain.gain.exponentialRampToValueAtTime(0.0001, 0.4);
+      osc.connect(gain).connect(out);
+      osc.start(0);
+      osc.stop(0.45);
+    },
+  },
+  {
+    id: 'glitch',
+    label: 'Glitch digital',
+    seconds: 0.7,
+    recipe: (ctx, out) => {
+      for (let i = 0; i < 6; i += 1) {
+        const start = i * 0.11;
+        const osc = ctx.createOscillator();
+        osc.type = 'square';
+        osc.frequency.value = 180 + Math.random() * 1400;
+        const gain = ctx.createGain();
+        gain.gain.setValueAtTime(0.22, start);
+        gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.09);
+        osc.connect(gain).connect(out);
+        osc.start(start);
+        osc.stop(start + 0.1);
+      }
+    },
+  },
+  {
+    id: 'tech',
+    label: 'Tecnologia (blips)',
+    seconds: 1.2,
+    recipe: (ctx, out) => {
+      [660, 990, 1320].forEach((freq, index) => {
+        const start = index * 0.16;
+        const osc = ctx.createOscillator();
+        osc.type = 'sine';
+        osc.frequency.value = freq;
+        const gain = ctx.createGain();
+        gain.gain.setValueAtTime(0.4, start);
+        gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.14);
+        osc.connect(gain).connect(out);
+        osc.start(start);
+        osc.stop(start + 0.15);
+      });
+    },
+  },
+  {
+    id: 'drum',
+    label: 'Batida (loop 2s)',
+    seconds: 2,
+    recipe: (ctx, out) => {
+      const kick = (start: number) => {
+        const osc = ctx.createOscillator();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(140, start);
+        osc.frequency.exponentialRampToValueAtTime(45, start + 0.18);
+        const gain = ctx.createGain();
+        gain.gain.setValueAtTime(0.9, start);
+        gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.25);
+        osc.connect(gain).connect(out);
+        osc.start(start);
+        osc.stop(start + 0.26);
+      };
+      const hat = (start: number) => {
+        const src = ctx.createBufferSource();
+        src.buffer = noiseBuffer(ctx, 0.08);
+        const hp = ctx.createBiquadFilter();
+        hp.type = 'highpass';
+        hp.frequency.value = 7000;
+        const gain = ctx.createGain();
+        gain.gain.setValueAtTime(0.18, start);
+        gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.07);
+        src.connect(hp).connect(gain).connect(out);
+        src.start(start);
+      };
+      [0, 1, 0.5, 1.5].forEach((time) => kick(time));
+      [0.5, 1.5].forEach((time) => hat(time));
+    },
+  },
+  {
     id: 'swipe',
     label: 'Swipe (arrastar)',
     seconds: 0.6,
@@ -219,6 +308,85 @@ const SFX: Array<{ id: string; label: string; seconds: number; recipe: SfxRecipe
       gain.gain.setValueAtTime(0.6, 0);
       gain.gain.exponentialRampToValueAtTime(0.0001, 0.6);
       src.connect(filter).connect(gain).connect(out);
+      src.start(0);
+    },
+  },
+  {
+    id: 'laser',
+    label: 'Laser (tech)',
+    seconds: 0.7,
+    recipe: (ctx, out) => {
+      const osc = ctx.createOscillator();
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(2600, 0);
+      osc.frequency.exponentialRampToValueAtTime(220, 0.6);
+      const gain = ctx.createGain();
+      gain.gain.setValueAtTime(0.35, 0);
+      gain.gain.exponentialRampToValueAtTime(0.0001, 0.68);
+      osc.connect(gain).connect(out);
+      osc.start(0);
+      osc.stop(0.7);
+    },
+  },
+  {
+    id: 'coin',
+    label: 'Moeda (game)',
+    seconds: 0.6,
+    recipe: (ctx, out) => {
+      [988, 1319].forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        osc.type = 'triangle';
+        osc.frequency.value = freq;
+        const gain = ctx.createGain();
+        gain.gain.setValueAtTime(0.0001, i * 0.09);
+        gain.gain.exponentialRampToValueAtTime(0.4, i * 0.09 + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, i * 0.09 + 0.32);
+        osc.connect(gain).connect(out);
+        osc.start(i * 0.09);
+        osc.stop(i * 0.09 + 0.35);
+      });
+    },
+  },
+  {
+    id: 'heartbeat',
+    label: 'Batimento (tensão)',
+    seconds: 1.6,
+    recipe: (ctx, out) => {
+      const beat = (start: number, volume: number) => {
+        const osc = ctx.createOscillator();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(78, start);
+        osc.frequency.exponentialRampToValueAtTime(40, start + 0.22);
+        const gain = ctx.createGain();
+        gain.gain.setValueAtTime(volume, start);
+        gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.3);
+        osc.connect(gain).connect(out);
+        osc.start(start);
+        osc.stop(start + 0.32);
+      };
+      beat(0, 0.9);
+      beat(0.32, 0.55);
+      beat(0.8, 0.9);
+      beat(1.12, 0.55);
+    },
+  },
+  {
+    id: 'page',
+    label: 'Folha / papel',
+    seconds: 0.65,
+    recipe: (ctx, out) => {
+      const src = ctx.createBufferSource();
+      src.buffer = noiseBuffer(ctx, 0.65);
+      const bp = ctx.createBiquadFilter();
+      bp.type = 'bandpass';
+      bp.frequency.setValueAtTime(2400, 0);
+      bp.frequency.exponentialRampToValueAtTime(1100, 0.6);
+      bp.Q.value = 0.7;
+      const gain = ctx.createGain();
+      gain.gain.setValueAtTime(0.0001, 0);
+      gain.gain.exponentialRampToValueAtTime(0.5, 0.08);
+      gain.gain.exponentialRampToValueAtTime(0.0001, 0.6);
+      src.connect(bp).connect(gain).connect(out);
       src.start(0);
     },
   },
@@ -300,17 +468,17 @@ export function AiTools() {
     setBusy('bg');
     setCutout(null);
     try {
-      const { removeBackground: remove } = await import('@imgly/background-removal');
-      const blob = await remove(file, { output: { format: 'image/png' } });
-      const dataUrl = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(String(reader.result));
-        reader.onerror = () => reject(new Error('Não foi possível ler a imagem.'));
-        reader.readAsDataURL(blob);
-      });
-      setCutout(dataUrl);
-      await saveAsset(dataUrl, `${file.name.replace(/\.[a-z0-9]+$/i, '')}-sem-fundo`, 'image');
-      setMessage('Imagem sem fundo salva em Meus arquivos (PNG transparente).');
+      const form = new FormData();
+      form.append('file', file);
+      form.append('tolerance', '46');
+      const res = await fetch('/api/ai/cutout', { method: 'POST', body: form });
+      const data = (await res.json()) as { dataUrl?: string; error?: string; removedPercent?: number };
+      if (!res.ok || !data.dataUrl) throw new Error(data.error || 'Falha ao recortar.');
+      setCutout(data.dataUrl);
+      await saveAsset(data.dataUrl, `${file.name.replace(/\.[a-z0-9]+$/i, '')}-sem-fundo`, 'image');
+      setMessage(
+        `Fundo removido (${data.removedPercent ?? 0}% da imagem) e salvo em Meus arquivos. Se sobrou fundo, use uma foto com fundo branco/liso.`,
+      );
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Falha ao remover o fundo.');
     } finally {
@@ -337,21 +505,54 @@ export function AiTools() {
       const rendered = await offline.startRendering();
       setProgress('Transcrevendo no seu dispositivo…');
 
-      const cdn = 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.7.5';
+      const cdn = 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.7.5/+esm';
       const mod = (await (new Function('u', 'return import(u)') as (u: string) => Promise<Record<string, unknown>>)(cdn)) as {
         pipeline: (task: string, model: string, options?: Record<string, unknown>) => Promise<unknown>;
       };
-      const transcriber = (await mod.pipeline('automatic-speech-recognition', 'Xenova/whisper-tiny', {
-        dtype: 'q8',
-      })) as (audio: Float32Array, options?: Record<string, unknown>) => Promise<{ text: string; chunks?: Array<{ timestamp: [number, number]; text: string }> }>;
+      const loadModel = mod.pipeline as unknown as (
+        task: string,
+        model: string,
+        options?: Record<string, unknown>,
+      ) => Promise<(audio: Float32Array, options?: Record<string, unknown>) => Promise<{ text: string; chunks?: Array<{ timestamp: [number, number]; text: string }> }>>;
+      const withTimeout = async <T,>(promise: Promise<T>, ms: number, label: string): Promise<T> => {
+        let timer: ReturnType<typeof setTimeout> | undefined;
+        try {
+          return await Promise.race([
+            promise,
+            new Promise<T>((_, reject) => {
+              timer = setTimeout(() => reject(new Error(`${label} demorou mais de ${Math.round(ms / 1000)}s. Verifique a internet e tente um áudio mais curto.`)), ms);
+            }),
+          ]);
+        } finally {
+          if (timer) clearTimeout(timer);
+        }
+      };
+      const transcriber = await withTimeout(
+        loadModel('automatic-speech-recognition', 'Xenova/whisper-tiny', {
+          dtype: 'q8',
+          progress_callback: (info: { status?: string; progress?: number; file?: string }) => {
+            if (info?.status === 'progress' && typeof info.progress === 'number') {
+              setProgress(`Baixando o modelo… ${Math.round(info.progress)}%`);
+            } else if (info?.status === 'ready') {
+              setProgress('Modelo pronto, transcrevendo…');
+            }
+          },
+        }),
+        120_000,
+        'Baixar o modelo de transcrição',
+      );
 
-      const result = await transcriber(rendered.getChannelData(0), {
+      const result = await withTimeout(
+        transcriber(rendered.getChannelData(0), {
         language: 'portuguese',
         task: 'transcribe',
         chunk_length_s: 30,
         stride_length_s: 5,
         return_timestamps: true,
-      });
+        }),
+        180_000,
+        'A transcrição',
+      );
 
       setTranscript(result.text?.trim() ?? '');
       const chunks = result.chunks ?? [];

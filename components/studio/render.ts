@@ -733,7 +733,11 @@ export function drawFrame(opts: FrameOptions) {
       const avatar = clip.avatar ?? { preset: 'theo', mouth: [] };
       const intensity = avatar.intensity ?? 1;
       const mouth = avatar.mouth?.length
-        ? Math.min(1, mouthFromEnvelope(avatar.mouth, local + clip.trimStart) * intensity)
+        ? Math.min(
+            1,
+            mouthFromEnvelope(avatar.mouth, (local + clip.trimStart) * (clip.speed && clip.speed > 0 ? clip.speed : 1)) *
+              intensity,
+          )
         : 0.3 + 0.35 * Math.abs(Math.sin((local + clip.trimStart) * 6.5)) * intensity;
       ctx.save();
       ctx.beginPath();

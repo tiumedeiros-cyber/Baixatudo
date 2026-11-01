@@ -1,0 +1,32 @@
+import { NextResponse } from 'next/server';
+import QRCode from 'qrcode';
+
+export const runtime = 'nodejs';
+
+/**
+ * GET /api/free/qr?text=… → PNG do QR Code gerado aqui mesmo (sem serviço externo).
+ * Assim o QR nunca depende de terceiros e funciona offline do lado do cliente.
+ */
+export async function GET(request: Request) {
+  const url = new URL(request.url);
+  const text = (url.searchParams.get('text') || '').slice(0, 900);
+  if (!text) return NextResponse.json({ error: 'Informe o texto do QR Code.' }, { status: 400 });
+  const size = Math.min(1200, Math.max(160, Number(url.searchParams.get('size') || 600)));
+  try {
+    const png = await QRCode.toBuffer(text, {
+      type: 'png',
+      width: size,
+      margin: 2,
+      errorCorrectionLevel: 'M',
+      color: { dark: '#000000ff', light: '#ffffffff' },
+    });
+    return new NextResponse(new Uint8Array(png), {
+      headers: {
+        'Content-Type': 'image/png',
+        'Cache-Control': 'public, max-age=3600',
+      },
+    });
+  } catch (err) {
+    return NextResponse.json({ error: err instanceof Error ? err.message : 'Falha ao gerar o QR Code.' }, { status: 500 });
+  }
+}

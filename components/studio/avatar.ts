@@ -1609,11 +1609,24 @@ function blinkAt(time: number) {
   return 1;
 }
 
-/** Amostra o volume (envelope) do áudio para animar a boca. */
-export function mouthFromEnvelope(envelope: number[] | undefined, localTime: number, step = 0.05) {
+/**
+ * Amostra o volume (envelope) do áudio para animar a boca.
+ *
+ * - interpola entre amostras (sem “escadinha” de 50 ms);
+ * - lê ~30 ms à frente para compensar a latência do quadro/áudio;
+ * - aplica ataque rápido e queda suave, que é como uma boca real se move.
+ */
+export function mouthFromEnvelope(envelope: number[] | undefined, localTime: number, step = 0.02) {
   if (!envelope || envelope.length === 0) return 0.18;
-  const index = Math.max(0, Math.min(envelope.length - 1, Math.floor(localTime / step)));
-  return envelope[index] ?? 0;
+  const lookAhead = 0.03;
+  const position = Math.max(0, (localTime + lookAhead) / step);
+  const index = Math.floor(position);
+  const fraction = position - index;
+  const current = envelope[Math.min(envelope.length - 1, Math.max(0, index))] ?? 0;
+  const next = envelope[Math.min(envelope.length - 1, Math.max(0, index + 1))] ?? current;
+  const interpolated = current + (next - current) * fraction;
+  // abertura: pequena nos sons fracos, total nos fortes
+  return Math.min(1, Math.pow(interpolated, 0.8) * 1.15);
 }
 
 export function avatarPresets() {

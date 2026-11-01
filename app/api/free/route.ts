@@ -98,7 +98,10 @@ export async function POST(request: Request) {
   if (action === 'qr') {
     const text = String(body.text ?? '').trim();
     if (!text) return NextResponse.json({ error: 'Cole o link ou texto do QR Code.' }, { status: 400 });
-    const saved = await saveToLibrary(user.id, qrUrl(text), String(body.name || 'qr-code'), 'image');
+    // gerado aqui mesmo (sem serviço externo): nunca depende de terceiros
+    const QRCode = (await import('qrcode')).default;
+    const png = await QRCode.toBuffer(text.slice(0, 900), { type: 'png', width: 900, margin: 2, errorCorrectionLevel: 'M' });
+    const saved = await saveBufferToLibrary(user.id, png, String(body.name || 'qr-code'), 'image', 'image/png');
     return NextResponse.json(saved, { status: saved.error ? 422 : 200 });
   }
 
@@ -138,6 +141,43 @@ const MIME_EXT: Record<string, string> = {
   'video/mp4': 'mp4',
   'video/webm': 'webm',
 };
+
+async function saveBufferToLibrary(
+  userId: string,
+  buffer: Buffer,
+  rawName: string,
+  kind: string,
+  contentType: string,
+  sourceUrl = 'gerado-no-sistema',
+) {
+  const admin = createAdminClient();
+  const settings = await getSettings();
+  const sub = await getActiveSubscription();
+  const quota = await getQuota(admin, userId, Number(sub?.plans?.limits?.storage_gb ?? 5));
+  if (buffer.length > quota.freeBytes) {
+    return { error: `Sem espaço no plano (${formatBytes(quota.freeBytes)} livres de ${formatBytes(quota.limitBytes)}).` };
+  }
+  const ext = MIME_EXT[contentType] || 'png';
+  const safeName = rawName.replace(/[^\p{L}\p{N}\-_. ]/gu, '').trim().slice(0, 60) || 'gerado';
+  const path = `${userId}/livre/${Date.now()}-${safeName.replace(/\s+/g, '-').toLowerCase()}.${ext}`;
+  const stored = await storeFile(admin, settings, path, buffer, contentType);
+  if ('error' in stored) return { error: `Falha ao guardar o arquivo (${stored.error}).` };
+  const assetType: 'video' | 'image' | 'audio' = contentType.startsWith('audio') ? 'audio' : contentType.startsWith('video') ? 'video' : 'image';
+  const { error: dbErr } = await admin.from('es_user_assets').insert({
+    user_id: userId,
+    name: `${safeName}.${ext}`,
+    type: assetType,
+    url: stored.url,
+    storage_path: path,
+    size_bytes: buffer.length,
+    metadata: { source: 'free-media', source_url: sourceUrl, license_note: 'Gerado no Editor Studio' },
+  });
+  if (dbErr) {
+    await admin.storage.from('media').remove([path]);
+    return { error: `Falha ao registrar o arquivo (${dbErr.message}).` };
+  }
+  return { ok: true, url: stored.url, bytes: buffer.length, type: assetType };
+}
 
 async function saveToLibrary(userId: string, url: string, rawName: string, kind: string) {
   const admin = createAdminClient();

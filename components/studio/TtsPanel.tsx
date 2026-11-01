@@ -21,6 +21,7 @@ export function TtsPanel({ projectId, onAdded }: { projectId: string; onAdded?: 
   const [serverEngine, setServerEngine] = useState<string | null>(null);
   const [serverVoices, setServerVoices] = useState<string[]>([]);
   const [voiceLabels, setVoiceLabels] = useState<Record<string, string>>({});
+  const [neuralVoices, setNeuralVoices] = useState<{ id: string; label: string; lang: string }[]>([]);
   const [voiceOk, setVoiceOk] = useState<boolean | null>(null);
   const [testing, setTesting] = useState(false);
   const [serverVoice, setServerVoice] = useState(DEFAULT_VOICE);
@@ -33,11 +34,12 @@ export function TtsPanel({ projectId, onAdded }: { projectId: string; onAdded?: 
     let alive = true;
     fetch('/api/tts', { cache: 'no-store' })
       .then((r) => (r.ok ? r.json() : null))
-      .then((data: { engine?: string; serverVoices?: string[]; voices?: { id: string; label: string }[] } | null) => {
+      .then((data: { engine?: string; serverVoices?: string[]; voices?: { id: string; label: string; lang: string }[] } | null) => {
         if (!alive || !data) return;
         setServerEngine(data.engine ?? null);
         setServerVoices(data.serverVoices ?? []);
         setVoiceLabels(Object.fromEntries((data.voices ?? []).map((v) => [v.id, v.label])));
+        setNeuralVoices((data.voices ?? []) as { id: string; label: string; lang: string }[]);
         setServerVoice((prev) => prev || DEFAULT_VOICE);
       })
       .catch(() => undefined);
@@ -222,11 +224,19 @@ export function TtsPanel({ projectId, onAdded }: { projectId: string; onAdded?: 
             value={serverVoice}
             onChange={(e) => {
               setServerVoice(e.target.value);
-              const v = VOICES.find((x) => x.id === e.target.value);
+              const neural = neuralVoices.find((x) => x.id === e.target.value);
+              const v = neural ?? VOICES.find((x) => x.id === e.target.value);
               if (v) setLang(v.lang);
             }}
             className="w-full rounded-lg border border-white/10 bg-ink-900 px-1.5 py-1 text-[10px] text-white outline-none"
           >
+            {neuralVoices.length ? (
+              <optgroup label="Vozes neurais (timbres diferentes)">
+                {neuralVoices.map((v) => (
+                  <option key={v.id} value={v.id}>{v.label}</option>
+                ))}
+              </optgroup>
+            ) : null}
             {LOCALES.map((locale) => (
               <optgroup key={locale} label={locale}>
                 {VOICES.filter((v) => v.locale === locale).map((v) => (
@@ -241,7 +251,9 @@ export function TtsPanel({ projectId, onAdded }: { projectId: string; onAdded?: 
             ))}
           </select>
         </div>
-        <p className="mt-1 text-[9px] text-slate-500">{VOICES.length} vozes reais disponíveis · {LOCALES.length} idiomas/sotaques</p>
+        <p className="mt-1 text-[9px] text-slate-500">
+          {(VOICES.length + neuralVoices.length).toString()} vozes disponíveis · {neuralVoices.filter((v) => v.lang === 'pt-BR').length || 13} em português com timbres diferentes
+        </p>
         <div className="mt-2 flex gap-1.5">
           <button onClick={previewBrowser} className="flex flex-1 items-center justify-center gap-1 rounded-lg border border-white/10 bg-white/5 py-1.5 text-[10px] font-semibold text-slate-200 hover:bg-white/10">
             <Play className="h-3 w-3" /> Ouvir prévia

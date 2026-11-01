@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { Download, ImageIcon, Loader2, Music, QrCode, Search, Sparkles, Wand2 } from 'lucide-react';
 import { Button, Card } from '@/components/ui';
-import { pollinationsUrl, qrUrl, type FreeItem } from '@/lib/free-media';
+import { pollinationsUrl, type FreeItem } from '@/lib/free-media';
 import { cn } from '@/lib/utils';
 
 type Tab = 'images' | 'audio' | 'icons' | 'ai' | 'qr';
@@ -14,6 +14,9 @@ const TABS: Array<{ id: Tab; label: string; icon: typeof ImageIcon }> = [
   { id: 'ai', label: 'Gerar com IA', icon: Wand2 },
   { id: 'qr', label: 'QR Code', icon: QrCode },
 ];
+
+/** Imagens de fontes abertas passam pelo nosso proxy (sem hotlink/CORS). */
+const proxy = (url: string) => (url ? `/api/free/proxy?u=${encodeURIComponent(url)}` : '');
 
 const SUGGESTIONS: Record<Tab, string[]> = {
   images: ['fundo abstrato', 'praia', 'escritório', 'produto', 'neon', 'comida'],
@@ -208,7 +211,11 @@ export function FreeResources({ storageLabel }: { storageLabel: string }) {
           {aiUrl ? (
             <div className="mt-3 space-y-2">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={aiUrl} alt="Imagem gerada" className="max-h-[380px] w-full rounded-xl border border-white/10 bg-black object-contain" />
+              <img
+                src={proxy(aiUrl)}
+                alt="Imagem gerada"
+                className="max-h-[380px] w-full rounded-xl border border-white/10 bg-black object-contain"
+              />
               <Button
                 onClick={() => save({ url: aiUrl, name: aiPrompt.slice(0, 50) || 'imagem-ia', kind: 'image' }, 'ai')}
                 disabled={savingId === 'ai'}
@@ -239,7 +246,11 @@ export function FreeResources({ storageLabel }: { storageLabel: string }) {
           </div>
           {qrText.trim() ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={qrUrl(qrText)} alt="QR Code" className="mt-3 h-48 w-48 rounded-xl border border-white/10 bg-white p-2" />
+            <img
+              src={`/api/free/qr?text=${encodeURIComponent(qrText)}&size=600`}
+              alt="QR Code"
+              className="mt-3 h-48 w-48 rounded-xl border border-white/10 bg-white p-2"
+            />
           ) : null}
         </Card>
       )}
@@ -256,7 +267,7 @@ export function FreeResources({ storageLabel }: { storageLabel: string }) {
               <div className="relative aspect-video bg-black/40">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src={item.thumb}
+                  src={item.kind === 'icon' ? proxy(item.thumb) : proxy(item.thumb)}
                   alt={item.title}
                   loading="lazy"
                   className={cn('h-full w-full', item.kind === 'icon' ? 'object-contain p-6 invert' : 'object-cover')}

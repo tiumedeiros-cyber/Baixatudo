@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getSessionUser } from '@/lib/auth';
 import { rateLimit } from '@/lib/rate-limit';
 import { synthesizeToStorage, TTS_VOICES, CATALOG } from '@/lib/tts';
+import { createHash } from 'node:crypto';
 import { VOICES } from '@/lib/catalog/voices';
 
 export const runtime = 'nodejs';
@@ -97,6 +98,38 @@ export async function GET(request: Request) {
     return NextResponse.json({ ok: out.every((r) => r.ok), results: out }, { headers: { 'cache-control': 'no-store' } });
   }
 
+  // Testa várias vozes neurais e mostra que cada uma devolve um áudio diferente.
+  if (url.searchParams.get('probe') === 'voices') {
+    const { edgeSynthesize } = await import('@/lib/edge-tts');
+    const ids = TTS_VOICES.filter((v) => v.lang.startsWith('pt-BR')).map((v) => v.id);
+    const out: { id: string; ok: boolean; ms: number; bytes?: number; hash?: string; detail?: string }[] = [];
+    for (const id of ids) {
+      const t0 = Date.now();
+      try {
+        const audio = await edgeSynthesize({ text: 'Olá, esta é a minha voz.', voice: id, timeoutMs: 12_000 });
+        out.push({
+          id,
+          ok: audio.length > 1000,
+          ms: Date.now() - t0,
+          bytes: audio.length,
+          hash: createHash('sha1').update(audio).digest('hex').slice(0, 10),
+        });
+      } catch (err) {
+        out.push({ id, ok: false, ms: Date.now() - t0, detail: (err instanceof Error ? err.message : 'erro').slice(0, 120) });
+      }
+    }
+    const hashes = new Set(out.filter((r) => r.ok).map((r) => r.hash));
+    return NextResponse.json(
+      {
+        ok: out.every((r) => r.ok),
+        total: out.length,
+        distinct: hashes.size,
+        results: out,
+      },
+      { headers: { 'cache-control': 'no-store' } },
+    );
+  }
+
   if (url.searchParams.get('probe') === '1') {
     const results: Record<string, { ok: boolean; ms: number; detail?: string }> = {};
     const run = async (name: string, fn: () => Promise<boolean>) => {
@@ -110,13 +143,9 @@ export async function GET(request: Request) {
     };
 
     await run('edge', async () => {
-      const { EdgeTTS } = await import('edge-tts-universal');
-      const tts = new EdgeTTS('Teste de voz do Editor Studio.', 'pt-BR-FranciscaNeural');
-      const out = await Promise.race([
-        tts.synthesize(),
-        new Promise<never>((_, reject) => setTimeout(() => reject(new Error('tempo esgotado (10s)')), 10_000)),
-      ]);
-      return (await out.audio.arrayBuffer()).byteLength > 1000;
+      const { edgeSynthesize } = await import('@/lib/edge-tts');
+      const audio = await edgeSynthesize({ text: 'Teste de voz do Editor Studio.', voice: 'pt-BR-FranciscaNeural', timeoutMs: 12_000 });
+      return audio.length > 1000;
     });
 
     await run('google', async () => {

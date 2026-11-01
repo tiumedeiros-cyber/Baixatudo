@@ -305,6 +305,60 @@ export function Inspector() {
         </button>
       </div>
 
+      {/* atalho de som sempre visível para clipes de áudio e vídeo */}
+      {isAudio || clip.kind === 'video' ? (
+        <div className="border-b border-white/5 bg-white/[0.02] px-3 py-2">
+          <div className="flex items-center gap-2">
+            <AudioLines className="h-3.5 w-3.5 shrink-0 text-brand-300" />
+            <input
+              type="range"
+              min={0}
+              max={200}
+              value={Math.round(clip.volume * 100)}
+              onChange={(e) => patch({ volume: Number(e.target.value) / 100 })}
+              className="h-1 min-w-0 flex-1 accent-brand-500"
+              aria-label="Volume do clipe"
+            />
+            <span className="w-9 shrink-0 text-right text-[10px] font-semibold text-white">{Math.round(clip.volume * 100)}%</span>
+            <button
+              onClick={() => patch({ muted: !clip.muted })}
+              className={cn(
+                'shrink-0 rounded px-1.5 py-0.5 text-[9px] font-semibold',
+                clip.muted ? 'bg-rose-500/20 text-rose-200' : 'bg-white/8 text-slate-300 hover:bg-white/12',
+              )}
+            >
+              {clip.muted ? 'mudo' : 'som'}
+            </button>
+          </div>
+          <div className="mt-1.5 grid grid-cols-2 gap-2">
+            <label className="flex items-center gap-1 text-[9px] text-slate-400">
+              fade in
+              <input
+                type="number"
+                min={0}
+                max={5}
+                step={0.1}
+                value={clip.fadeIn}
+                onChange={(e) => patch({ fadeIn: Math.max(0, Math.min(5, Number(e.target.value))) })}
+                className="w-full rounded border border-white/10 bg-black/30 px-1 py-0.5 text-[10px] text-white outline-none"
+              />
+            </label>
+            <label className="flex items-center gap-1 text-[9px] text-slate-400">
+              fade out
+              <input
+                type="number"
+                min={0}
+                max={5}
+                step={0.1}
+                value={clip.fadeOut}
+                onChange={(e) => patch({ fadeOut: Math.max(0, Math.min(5, Number(e.target.value))) })}
+                className="w-full rounded border border-white/10 bg-black/30 px-1 py-0.5 text-[10px] text-white outline-none"
+              />
+            </label>
+          </div>
+        </div>
+      ) : null}
+
       {/* menu lateral de ajustes */}
       <div className="flex gap-1 overflow-x-auto border-b border-white/5 p-1.5 no-scrollbar">
         {available.map((s) => (

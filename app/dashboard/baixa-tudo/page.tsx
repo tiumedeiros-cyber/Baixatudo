@@ -2,6 +2,8 @@ import { Download, ExternalLink, History } from 'lucide-react';
 import { requireUser, getActiveSubscription } from '@/lib/auth';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { DownloaderClient } from '@/components/downloader/DownloaderClient';
+import { HistoryDelete } from '@/components/downloader/HistoryDelete';
+import { HistoryItems } from '@/components/downloader/HistoryItems';
 import { Badge, Card, EmptyState } from '@/components/ui';
 import { formatDateTime, truncate } from '@/lib/utils';
 import type { DownloadRecord } from '@/lib/types';
@@ -48,17 +50,26 @@ export default async function BaixaTudoPage() {
               {history.map((h) => {
                 const count = Array.isArray(h.result?.items) ? h.result.items.length : 0;
                 return (
-                  <li key={h.id} className="flex items-center gap-3 py-2.5">
-                    <div className="grid h-8 w-8 place-items-center rounded-lg bg-white/5 text-[10px] uppercase text-slate-400">
+                  <li key={h.id} className="flex flex-wrap items-center gap-2 py-2.5 sm:flex-nowrap sm:gap-3">
+                    <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-white/5 text-[10px] uppercase text-slate-400">
                       {h.media_type === 'audio' ? 'mp3' : 'mp4'}
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-xs text-slate-200">{truncate(h.source_url, 56)}</p>
-                      <p className="text-[11px] text-slate-500">
-                        {h.service ?? 'link'} · {formatDateTime(h.created_at)} · {count ? `${count} arquivo(s)` : h.result?.error ?? 'sem arquivos'}
+                    <div className="min-w-0 flex-1 basis-[calc(100%-4.5rem)] sm:basis-auto">
+                      <p className="break-all text-[11px] leading-snug text-slate-200 sm:truncate sm:text-xs" title={h.source_url}>
+                        {truncate(h.source_url, 48)}
                       </p>
+                      <p className="mt-0.5 break-words text-[10px] leading-snug text-slate-500">
+                        {h.service ?? 'link'} · {formatDateTime(h.created_at)}
+                      </p>
+                      <p className="break-words text-[10px] leading-snug text-slate-500">
+                        {count ? `${count} arquivo(s)` : h.result?.error ?? 'sem arquivos'}
+                      </p>
+                      {count ? <HistoryItems id={h.id} items={(h.result?.items ?? []) as { url: string; filename?: string; type?: string; quality?: string; size?: number }[]} /> : null}
                     </div>
-                    <Badge tone={h.status === 'ready' ? 'success' : h.status === 'error' ? 'danger' : 'warning'}>{h.status}</Badge>
+                    <div className="flex shrink-0 items-center gap-1.5">
+                      <Badge tone={h.status === 'ready' ? 'success' : h.status === 'error' ? 'danger' : 'warning'}>{h.status}</Badge>
+                      <HistoryDelete id={h.id} />
+                    </div>
                   </li>
                 );
               })}

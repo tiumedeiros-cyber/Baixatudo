@@ -1,4 +1,5 @@
 import { SUPABASE_URL } from '@/lib/env';
+import { EDGE_FALLBACK, edgeSynthesize } from '@/lib/edge-tts';
 import { VOICES, voiceById } from '@/lib/catalog/voices';
 import { createAdminClient } from '@/lib/supabase/admin';
 
@@ -50,27 +51,64 @@ export function chunkText(text: string, max = MAX_CHUNK) {
 
 /* ----------------------------- Microsoft Edge (neural) ----------------------------- */
 
-const EDGE_VOICES: Record<string, string> = {
+/**
+ * Vozes neurais que dão timbre próprio a cada idioma do catálogo (84 idiomas).
+ * Sem isso, todo idioma cairia na mesma voz padrão.
+ */
+const EDGE_BY_LANG: Record<string, string> = {
+  ...EDGE_FALLBACK,
   'pt-BR': 'pt-BR-FranciscaNeural',
-  'pt-PT': 'pt-PT-RaquelNeural',
-  'en-US': 'en-US-AvaMultilingualNeural',
-  'en-GB': 'en-GB-SoniaNeural',
-  'es-ES': 'es-ES-ElviraNeural',
-  'fr-FR': 'fr-FR-DeniseNeural',
-  'de-DE': 'de-DE-KatjaNeural',
+  'en-AU': 'en-AU-NatashaNeural',
+  'en-CA': 'en-CA-ClaraNeural',
+  'en-IN': 'en-IN-NeerjaNeural',
+  'es-MX': 'es-MX-DaliaNeural',
+  'es-AR': 'es-AR-ElenaNeural',
+  'es-CO': 'es-CO-SalomeNeural',
+  'fr-CA': 'fr-CA-SylvieNeural',
+  'de-AT': 'de-AT-IngridNeural',
+  'de-CH': 'de-CH-JanNeural',
   'it-IT': 'it-IT-ElsaNeural',
+  'nl-NL': 'nl-NL-ColetteNeural',
+  'pl-PL': 'pl-PL-AgnieszkaNeural',
+  'ru-RU': 'ru-RU-SvetlanaNeural',
+  'tr-TR': 'tr-TR-EmelNeural',
+  'ja-JP': 'ja-JP-NanamiNeural',
+  'ko-KR': 'ko-KR-SunHiNeural',
+  'zh-CN': 'zh-CN-XiaoxiaoNeural',
+  'zh-TW': 'zh-TW-HsiaoChenNeural',
+  'hi-IN': 'hi-IN-SwaraNeural',
+  'ar-SA': 'ar-SA-ZariyahNeural',
+  'id-ID': 'id-ID-GadisNeural',
+  'vi-VN': 'vi-VN-HoaiMyNeural',
+  'th-TH': 'th-TH-PremwadeeNeural',
+  'sv-SE': 'sv-SE-SofieNeural',
+  'da-DK': 'da-DK-ChristelNeural',
+  'fi-FI': 'fi-FI-NooraNeural',
+  'nb-NO': 'nb-NO-PernilleNeural',
+  'cs-CZ': 'cs-CZ-VlastaNeural',
+  'sk-SK': 'sk-SK-ViktoriaNeural',
+  'hu-HU': 'hu-HU-NoemiNeural',
+  'ro-RO': 'ro-RO-AlinaNeural',
+  'el-GR': 'el-GR-AthinaNeural',
+  'he-IL': 'he-IL-HilaNeural',
+  'uk-UA': 'uk-UA-PolinaNeural',
+  'bg-BG': 'bg-BG-KalinaNeural',
+  'hr-HR': 'hr-HR-GabrijelaNeural',
+  'sr-RS': 'sr-RS-SophieNeural',
+  'ca-ES': 'ca-ES-JoanaNeural',
+  'lt-LT': 'lt-LT-OnaNeural',
+  'lv-LV': 'lv-LV-EveritaNeural',
+  'et-EE': 'et-EE-AnuNeural',
+  'sl-SI': 'sl-SI-PetraNeural',
 };
 
 /**
  * Vozes neurais do Microsoft Edge — sem chave de API, qualidade de estúdio.
- * É o motor principal quando não há ElevenLabs/OpenAI configurados.
+ * Motor principal quando não há ElevenLabs/OpenAI configurados.
  */
 async function edgeTts(text: string, lang: string, voice?: string) {
-  const chosen = voice && /^[a-z]{2}-[A-Z]{2}-\w+Neural$/.test(voice) ? voice : EDGE_VOICES[lang] ?? EDGE_VOICES['pt-BR'];
-  const { EdgeTTS } = await import('edge-tts-universal');
-  const tts = new EdgeTTS(text, chosen, { rate: '+0%', volume: '+0%', pitch: '+0Hz' });
-  const result = await withTimeout(tts.synthesize(), 6_000, 'voz neural');
-  const buffer = Buffer.from(await result.audio.arrayBuffer());
+  const chosen = voice && /^[a-z]{2,3}-[A-Z]{2}-\w+Neural$/.test(voice) ? voice : EDGE_BY_LANG[lang] ?? EDGE_BY_LANG['pt-BR'];
+  const buffer = await edgeSynthesize({ text, voice: chosen, timeoutMs: 12_000 });
   if (buffer.length < 500) throw new Error('Voz neural devolveu áudio vazio');
   return buffer;
 }
@@ -79,15 +117,41 @@ async function edgeTts(text: string, lang: string, voice?: string) {
 export const CATALOG = VOICES;
 
 export const TTS_VOICES: { id: string; label: string; lang: string }[] = [
-  { id: 'pt-BR-FranciscaNeural', label: 'Francisca · feminina (Brasil)', lang: 'pt-BR' },
-  { id: 'pt-BR-AntonioNeural', label: 'Antônio · masculina (Brasil)', lang: 'pt-BR' },
+  // Português (Brasil) — timbres realmente diferentes
+  { id: 'pt-BR-FranciscaNeural', label: 'Francisca · feminina adulta (Brasil)', lang: 'pt-BR' },
   { id: 'pt-BR-ThalitaMultilingualNeural', label: 'Thalita · jovem (Brasil)', lang: 'pt-BR' },
-  { id: 'en-US-AvaMultilingualNeural', label: 'Ava · feminina (inglês)', lang: 'en-US' },
-  { id: 'en-US-AndrewMultilingualNeural', label: 'Andrew · masculina (inglês)', lang: 'en-US' },
+  { id: 'pt-BR-BrendaNeural', label: 'Brenda · feminina suave (Brasil)', lang: 'pt-BR' },
+  { id: 'pt-BR-ElzaNeural', label: 'Elza · feminina madura (Brasil)', lang: 'pt-BR' },
+  { id: 'pt-BR-GiovannaNeural', label: 'Giovanna · feminina expressiva (Brasil)', lang: 'pt-BR' },
+  { id: 'pt-BR-ManuelaNeural', label: 'Manuela · feminina calorosa (Brasil)', lang: 'pt-BR' },
+  { id: 'pt-BR-AntonioNeural', label: 'Antônio · masculina adulta (Brasil)', lang: 'pt-BR' },
+  { id: 'pt-BR-DonatoNeural', label: 'Donato · masculina grave (Brasil)', lang: 'pt-BR' },
+  { id: 'pt-BR-FabioNeural', label: 'Fábio · masculina jovem (Brasil)', lang: 'pt-BR' },
+  { id: 'pt-BR-HumbertoNeural', label: 'Humberto · masculina madura (Brasil)', lang: 'pt-BR' },
+  { id: 'pt-BR-JulioNeural', label: 'Júlio · masculina firme (Brasil)', lang: 'pt-BR' },
+  { id: 'pt-BR-NicolauNeural', label: 'Nicolau · masculina séria (Brasil)', lang: 'pt-BR' },
+  { id: 'pt-BR-ValerioNeural', label: 'Valério · masculina profunda (Brasil)', lang: 'pt-BR' },
+  // Português (Portugal)
+  { id: 'pt-PT-RaquelNeural', label: 'Raquel · feminina (Portugal)', lang: 'pt-PT' },
+  { id: 'pt-PT-DuarteNeural', label: 'Duarte · masculina (Portugal)', lang: 'pt-PT' },
+  // Inglês
+  { id: 'en-US-AvaMultilingualNeural', label: 'Ava · feminina (inglês EUA)', lang: 'en-US' },
+  { id: 'en-US-EmmaMultilingualNeural', label: 'Emma · feminina jovem (inglês EUA)', lang: 'en-US' },
+  { id: 'en-US-AriaNeural', label: 'Aria · feminina expressiva (inglês EUA)', lang: 'en-US' },
+  { id: 'en-US-JennyNeural', label: 'Jenny · feminina neutra (inglês EUA)', lang: 'en-US' },
+  { id: 'en-US-AndrewMultilingualNeural', label: 'Andrew · masculina (inglês EUA)', lang: 'en-US' },
+  { id: 'en-US-BrianMultilingualNeural', label: 'Brian · masculina profunda (inglês EUA)', lang: 'en-US' },
+  { id: 'en-US-GuyNeural', label: 'Guy · masculina animada (inglês EUA)', lang: 'en-US' },
+  { id: 'en-GB-SoniaNeural', label: 'Sonia · feminina (inglês UK)', lang: 'en-GB' },
+  { id: 'en-GB-RyanNeural', label: 'Ryan · masculina (inglês UK)', lang: 'en-GB' },
+  // Outros idiomas
   { id: 'es-ES-ElviraNeural', label: 'Elvira · feminina (espanhol)', lang: 'es-ES' },
+  { id: 'es-MX-DaliaNeural', label: 'Dalia · feminina (espanhol MX)', lang: 'es-MX' },
   { id: 'fr-FR-DeniseNeural', label: 'Denise · feminina (francês)', lang: 'fr-FR' },
   { id: 'de-DE-KatjaNeural', label: 'Katja · feminina (alemão)', lang: 'de-DE' },
   { id: 'it-IT-ElsaNeural', label: 'Elsa · feminina (italiano)', lang: 'it-IT' },
+  { id: 'ja-JP-NanamiNeural', label: 'Nanami · feminina (japonês)', lang: 'ja-JP' },
+  { id: 'ko-KR-SunHiNeural', label: 'SunHi · feminina (coreano)', lang: 'ko-KR' },
 ];
 
 async function googleTts(text: string, lang: string, speed?: string) {
@@ -132,26 +196,44 @@ async function streamElementsTts(text: string, lang: string) {
 
 // Se a voz neural falhar neste ambiente, não insistimos em cada frase.
 let edgeCooldownUntil = 0;
+let edgeFailures = 0;
+
+/** Memória curta: a mesma frase com a mesma voz não é sintetizada duas vezes. */
+const audioCache = new Map<string, { audio: Buffer; engine: string }>();
+function cacheKey(text: string, voice: string) {
+  return `${voice}|${text.length}|${text.slice(0, 24)}|${text.slice(-24)}`;
+}
 
 async function freeTts(text: string, lang: string, voice?: string, speed?: string) {
   const warnings: string[] = [];
+  const key = cacheKey(text, voice ?? lang);
+  const cached = audioCache.get(key);
+  if (cached) return { audio: cached.audio, engine: cached.engine, warnings };
 
-  // 1) Google translate_tts: resposta em ~120 ms e sempre disponível em produção.
-  //    O catálogo escolhe o sotaque (lang) e o ritmo.
-  try {
-    return { audio: await withTimeout(googleTts(text, lang, speed), 10_000, 'voz Google'), engine: 'google', warnings };
-  } catch (err) {
-    warnings.push(`voz Google indisponível (${err instanceof Error ? err.message : 'erro'})`);
-  }
-
-  // 2) Voz neural Microsoft — quando o ambiente permite WebSocket.
+  // 1) Voz neural do Edge — é o único motor que dá um timbre diferente por voz.
   if (Date.now() > edgeCooldownUntil) {
     try {
-      return { audio: await edgeTts(text, lang, voice), engine: 'edge', warnings };
+      const audio = await edgeTts(text, lang, voice);
+      if (audioCache.size > 60) audioCache.clear();
+      audioCache.set(key, { audio, engine: 'edge' });
+      edgeFailures = 0;
+      return { audio, engine: 'edge', warnings };
     } catch (err) {
-      edgeCooldownUntil = Date.now() + 10 * 60_000;
+      edgeFailures += 1;
+      // 1 falha isolada = pausa curta; 3 falhas seguidas = pausa longa
+      edgeCooldownUntil = Date.now() + (edgeFailures >= 3 ? 10 * 60_000 : 20_000);
       warnings.push(`voz neural indisponível (${err instanceof Error ? err.message : 'erro'})`);
     }
+  }
+
+  // 2) Google translate_tts — rápido e estável (um timbre por idioma).
+  try {
+    const audio = await withTimeout(googleTts(text, lang, speed), 10_000, 'voz Google');
+    if (audioCache.size > 60) audioCache.clear();
+    audioCache.set(key, { audio, engine: 'google' });
+    return { audio, engine: 'google', warnings };
+  } catch (err) {
+    warnings.push(`voz Google indisponível (${err instanceof Error ? err.message : 'erro'})`);
   }
 
   // 3) Última alternativa pública.

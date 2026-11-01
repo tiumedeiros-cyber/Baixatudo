@@ -1,7 +1,8 @@
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { Suspense } from 'react';
 import { ArrowRight, Clapperboard, Clock, Download, FolderKanban, HardDrive, Sparkles, Wand2 } from 'lucide-react';
-import { getActiveSubscription, requireUser } from '@/lib/auth';
+import { getActiveSubscription, requireUser, isAdminEmail } from '@/lib/auth';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { Badge, ButtonLink, Card, EmptyState, Stat } from '@/components/ui';
 import { NewProjectButton } from '@/components/dashboard/NewProject';
@@ -10,9 +11,18 @@ import type { Project } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
 
-export default async function DashboardHome({ searchParams }: { searchParams?: Promise<{ semPermissao?: string }> }) {
-  const semPermissao = (await searchParams)?.semPermissao;
+export default async function DashboardHome({
+  searchParams,
+}: {
+  searchParams?: Promise<{ semPermissao?: string; cliente?: string }>;
+}) {
+  const params = (await searchParams) ?? {};
+  const semPermissao = params.semPermissao;
   const { user, profile } = await requireUser();
+  // administrador cai direto no painel dele; ?cliente=1 permite ver o painel do cliente
+  if (isAdminEmail(user?.email) || profile?.role === 'admin') {
+    if (params.cliente !== '1') redirect('/admin');
+  }
   const subscription = await getActiveSubscription();
   const plan = subscription?.plans;
   const supabase = await createSupabaseServerClient();
@@ -34,8 +44,8 @@ export default async function DashboardHome({ searchParams }: { searchParams?: P
         <div className="rounded-2xl border border-amber-400/30 bg-amber-500/10 p-4 text-sm text-amber-100">
           <p className="font-semibold text-amber-200">Esta conta não tem permissão de administrador.</p>
           <p className="mt-1 text-[13px] leading-relaxed text-amber-100/80">
-            O painel administrativo usa a conta <strong>tiumedeiros@gmail.com</strong>. Saia desta conta e entre com o
-            e-mail de administrador para abrir o /admin.
+            Esta conta não é de administrador. Ao entrar com o e-mail de administrador o sistema abre o painel dele
+            automaticamente.
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
             <form action="/auth/signout" method="post">

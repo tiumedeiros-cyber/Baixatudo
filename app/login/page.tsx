@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import { ShieldCheck } from 'lucide-react';
 import { redirect } from 'next/navigation';
 import { Suspense } from 'react';
 import { AuthShell } from '@/components/auth/AuthShell';
@@ -31,12 +30,6 @@ export default async function LoginPage() {
       <Suspense fallback={null}>
         <LoginForm />
       </Suspense>
-      <a
-        href="/admin"
-        className="mt-4 flex items-center justify-center gap-1.5 rounded-xl border border-amber-400/25 bg-amber-500/10 px-3 py-2 text-xs font-semibold text-amber-200 hover:bg-amber-500/20"
-      >
-        <ShieldCheck className="h-3.5 w-3.5" /> Acesso ao painel administrativo
-      </a>
     </AuthShell>
   );
 }

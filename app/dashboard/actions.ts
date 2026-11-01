@@ -234,3 +234,14 @@ export async function planLimits() {
   const sub = await getActiveSubscription();
   return sub?.plans?.limits ?? null;
 }
+
+/** Apaga um item do histórico do Baixa Tudo (só do dono). */
+export async function deleteDownloadHistory(id: string) {
+  const user = await getSessionUser();
+  if (!user) return;
+  const admin = createAdminClient();
+  const { data } = await admin.from('es_downloads').select('id,user_id').eq('id', id).maybeSingle();
+  if (!data || data.user_id !== user.id) return;
+  await admin.from('es_downloads').delete().eq('id', id);
+  revalidatePath('/dashboard/baixa-tudo');
+}

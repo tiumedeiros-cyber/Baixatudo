@@ -4,7 +4,10 @@
  * Calcula o envelope de volume do áudio (0..1 a cada 50 ms).
  * É o que faz a boca do avatar abrir e fechar junto com a narração.
  */
-export async function computeEnvelope(urls: string[], step = 0.05): Promise<number[]> {
+/** Resolução do envelope (20 ms = 50 quadros por segundo: boca acompanha a fala). */
+export const ENVELOPE_STEP = 0.02;
+
+export async function computeEnvelope(urls: string[], step = ENVELOPE_STEP): Promise<number[]> {
   if (typeof window === 'undefined') return [];
   const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
   if (!AudioCtx) return [];
@@ -31,7 +34,8 @@ export async function computeEnvelope(urls: string[], step = 0.05): Promise<numb
       }
       // normaliza pelo pico para a boca usar toda a faixa 0..1
       const peak = raw.reduce((a, b) => Math.max(a, b), 0.0001);
-      raw.forEach((v) => out.push(Math.min(1, Math.pow(v / peak, 0.65))));
+      // curva com ataque rápido: sílaba fraca abre pouco, sílaba forte abre quase tudo
+      raw.forEach((v) => out.push(Math.min(1, Math.pow(v / peak, 0.55))));
     }
   } catch {
     /* sem WebAudio: o avatar anima sozinho */

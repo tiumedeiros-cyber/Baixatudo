@@ -9,6 +9,10 @@ import { TimeCreditBar } from '@/components/time/TimeCreditBar';
 import { MobileTimePill } from '@/components/time/MobileTimePill';
 import { formatDate } from '@/lib/utils';
 import { getSettings, supportLink } from '@/lib/settings';
+import { PlanStatusBar } from '@/components/dashboard/PlanStatusBar';
+import { getQuota } from '@/lib/quota';
+import { getTimeBalance } from '@/lib/time';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { SupportFab } from '@/components/marketing/SupportFab';
 
 export const dynamic = 'force-dynamic';
@@ -19,6 +23,12 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const subscription = await getActiveSubscription();
   const plan = subscription?.plans;
   const isAdmin = isAdminEmail(user.email) || profile?.role === 'admin';
+
+  const planGb = Number(plan?.limits?.storage_gb ?? 5);
+  const [quota, timeBalance] = await Promise.all([
+    getQuota(createAdminClient(), user.id, planGb),
+    getTimeBalance(user.id),
+  ]);
   const settings = await getSettings();
   const support = supportLink(settings);
 
@@ -99,6 +109,16 @@ export default async function DashboardLayout({ children }: { children: React.Re
             </div>
           </div>
         </header>
+        <PlanStatusBar
+          planName={plan?.name ?? null}
+          status={subscription?.status ?? null}
+          periodEnd={subscription?.current_period_end ?? null}
+          timeRemaining={timeBalance.remaining}
+          hasCreditPlan={timeBalance.total > 0}
+          usedBytes={quota.usedBytes}
+          limitBytes={quota.limitBytes}
+          planGb={planGb}
+        />
         <main className="px-4 py-6 lg:px-8 lg:py-8">{children}</main>
         {support.showWhatsapp || support.showEmail ? (
           <SupportFab
