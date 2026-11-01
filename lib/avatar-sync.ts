@@ -21,6 +21,24 @@ const DEFAULT_SPACES = [
 
 const CONNECT_TIMEOUT = 30_000;
 
+/** Limite de segurança para não estourar memória/tempo da função. */
+const MAX_ASSET_BYTES = 14 * 1024 * 1024;
+
+const EXT_BY_MIME: Record<string, string> = {
+  'image/png': 'png',
+  'image/jpeg': 'jpg',
+  'image/jpg': 'jpg',
+  'image/webp': 'webp',
+  'audio/mpeg': 'mp3',
+  'audio/mp3': 'mp3',
+  'audio/wav': 'wav',
+  'audio/x-wav': 'wav',
+  'audio/wave': 'wav',
+  'audio/ogg': 'ogg',
+  'audio/webm': 'webm',
+  'video/mp4': 'mp4',
+};
+
 export type LipSyncResult =
   | { ok: true; videoUrl: string; space: string; ms: number; endpoint: string }
   | { ok: false; error: string; tried: { space: string; error: string }[] };
@@ -63,6 +81,42 @@ function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promi
     timer = setTimeout(() => reject(new Error(message)), ms);
   });
   return Promise.race([promise, timeout]).finally(() => clearTimeout(timer)) as Promise<T>;
+}
+
+/**
+ * O Gradio só sabe enviar arquivo de verdade (Blob/File) ou URL `http(s)`.
+ * Aqui normalizamos os dois casos que o app usa:
+ *   • `data:image/…;base64,…` (foto enviada pelo usuário)
+ *   • URL pública do Supabase (áudio do TTS)
+ * Sempre devolvemos um `File` com nome/extensão corretos — foi o que fez o
+ * SadTalker aceitar a foto em vez de reclamar de caminho inválido.
+ */
+async function toUploadable(url: string, baseName: string): Promise<File | Blob> {
+  const dataMatch = /^data:([^;,]+)?(;base64)?,([\s\S]*)$/.exec(url);
+  let mime = '';
+  let bytes: ArrayBuffer | null = null;
+
+  if (dataMatch) {
+    mime = dataMatch[1] || 'application/octet-stream';
+    const raw = dataMatch[3] ?? '';
+    const buf = dataMatch[2]
+      ? Buffer.from(raw, 'base64')
+      : Buffer.from(decodeURIComponent(raw), 'utf8');
+    bytes = buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength) as ArrayBuffer;
+  } else {
+    const res = await fetch(url, { signal: AbortSignal.timeout(45_000), cache: 'no-store' });
+    if (!res.ok) throw new Error(`não consegui baixar ${baseName} (HTTP ${res.status})`);
+    mime = (res.headers.get('content-type') ?? '').split(';')[0].trim() || 'application/octet-stream';
+    bytes = await res.arrayBuffer();
+  }
+
+  if (!bytes.byteLength) throw new Error(`${baseName} está vazio`);
+  if (bytes.byteLength > MAX_ASSET_BYTES) throw new Error(`${baseName} é grande demais para o Space gratuito`);
+
+  const ext = EXT_BY_MIME[mime] ?? (mime.startsWith('audio/') ? 'mp3' : 'png');
+  const name = `${baseName}.${ext}`;
+  if (typeof File === 'undefined') return new Blob([bytes], { type: mime });
+  return new File([bytes], name, { type: mime });
 }
 
 /** Descobre o endpoint certo do Space (prefere `/predict`, senão o 1º com 2 entradas). */
@@ -108,7 +162,24 @@ export async function generateLipSyncVideo(options: LipSyncOptions): Promise<Lip
   const budget = Math.max(30_000, Math.min(options.budgetMs ?? 240_000, 280_000));
   const spaces = unique([options.space, process.env.AVATAR_LIPSYNC_SPACE, ...DEFAULT_SPACES]);
   const tried: { space: string; error: string }[] = [];
+
   const status = options.onStatus ?? (() => undefined);
+
+  // Prepara foto + áudio uma única vez e reaproveita em todos os Spaces.
+  let media: [File | Blob, File | Blob];
+  try {
+    status('Preparando a imagem do avatar e a narração…');
+    media = await Promise.all([
+      toUploadable(options.imageUrl, 'avatar'),
+      toUploadable(options.audioUrl, 'narracao'),
+    ]);
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : String(error),
+      tried: [],
+    };
+  }
 
   // import dinâmico: o pacote só carrega quando a função é usada de verdade
   const { Client, handle_file } = await import('@gradio/client');
@@ -135,7 +206,7 @@ export async function generateLipSyncVideo(options: LipSyncOptions): Promise<Lip
 
       status(`Gerando sincronização labial (isso pode levar alguns minutos)…`);
       const prediction = await withTimeout(
-        client.predict(endpoint, [handle_file(options.imageUrl), handle_file(options.audioUrl)]),
+        client.predict(endpoint, [handle_file(media[0]), handle_file(media[1])]),
         budget - (Date.now() - started),
         'a geração passou do tempo limite',
       );
@@ -204,4 +275,47 @@ export async function probeLipSyncSpaces() {
   );
 
   return { spaces: results, ok: Object.values(results).some((r) => r.ok) };
+}
+
+/**
+ * Diagnóstico "de verdade": conecta com o `@gradio/client` (handshake SSE +
+ * leitura da API) sem gerar vídeo. Rápido (segundos) e serve para saber se o
+ * caminho que o botão usa está saudável — `?probe=connect`.
+ */
+export async function probeConnect(space?: string) {
+  const target = unique([space, process.env.AVATAR_LIPSYNC_SPACE, ...DEFAULT_SPACES])[0];
+  const t0 = Date.now();
+  try {
+    const { Client } = await import('@gradio/client');
+    const client = await withTimeout(
+      Client.connect(target, hfToken() ? { hf_token: hfToken() as `hf_${string}` } : undefined),
+      CONNECT_TIMEOUT,
+      'o Space não respondeu (pode estar dormindo)',
+    );
+    try {
+      const api = await withTimeout(client.view_api(), 20_000, 'não foi possível ler a API do Space');
+      const endpoint = pickEndpoint(api);
+      return {
+        ok: Boolean(endpoint),
+        space: target,
+        endpoint,
+        ms: Date.now() - t0,
+        detail: endpoint ? 'cliente conectado e endpoint pronto' : 'o Space não expõe imagem + áudio',
+      };
+    } finally {
+      try {
+        client.close();
+      } catch {
+        /* noop */
+      }
+    }
+  } catch (error) {
+    return {
+      ok: false,
+      space: target,
+      endpoint: null,
+      ms: Date.now() - t0,
+      detail: (error instanceof Error ? error.message : String(error)).slice(0, 200),
+    };
+  }
 }

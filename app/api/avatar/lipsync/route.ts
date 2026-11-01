@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getSessionUser } from '@/lib/auth';
 import { clientIp, rateLimit } from '@/lib/rate-limit';
-import { generateLipSyncVideo, probeLipSyncSpaces } from '@/lib/avatar-sync';
+import { generateLipSyncVideo, probeConnect, probeLipSyncSpaces } from '@/lib/avatar-sync';
 import { SITE_URL, SUPABASE_URL } from '@/lib/env';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getActiveSubscription } from '@/lib/auth';
@@ -24,20 +24,27 @@ export const maxDuration = 300;
 export async function GET(request: Request) {
   const limit = rateLimit(`lipsync-probe:${clientIp(request.headers)}`, 10, 60_000);
   if (!limit.ok) return NextResponse.json({ error: 'Muitos pedidos.' }, { status: 429 });
+  const url = new URL(request.url);
+  // ?probe=connect → testa o cliente Gradio de ponta a ponta (sem gerar vídeo)
+  if (url.searchParams.get('probe') === 'connect') {
+    const result = await probeConnect(url.searchParams.get('space') ?? undefined);
+    return NextResponse.json(result, { headers: { 'cache-control': 'no-store' } });
+  }
   const probe = await probeLipSyncSpaces();
   return NextResponse.json(probe, { headers: { 'cache-control': 'no-store' } });
 }
 
 /** Só aceitamos mídia do próprio sistema (evita SSRF e uso como proxy aberto). */
-function resolveMediaUrl(raw: string): string | null {
+function resolveMediaUrl(raw: string, extraHosts: string[] = []): string | null {
   const value = String(raw || '').trim();
   if (!value) return null;
-  if (value.startsWith('data:image/')) return value;
+  // mídia já embutida (foto enviada pelo usuário / áudio do TTS): nada de rede
+  if (value.startsWith('data:image/') || value.startsWith('data:audio/')) return value;
   if (value.startsWith('/')) return `${SITE_URL}${value}`;
   try {
     const url = new URL(value);
     if (!/^https?:$/.test(url.protocol)) return null;
-    const allowed = ['supabase.co', 'vercel.app', 'localhost'];
+    const allowed = ['supabase.co', 'vercel.app', 'localhost', ...extraHosts];
     if (SUPABASE_URL) {
       try {
         allowed.push(new URL(SUPABASE_URL).hostname);
@@ -66,8 +73,18 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Requisição inválida.' }, { status: 400 });
   }
 
-  const imageUrl = resolveMediaUrl(body.imageUrl ?? '');
-  const audioUrl = resolveMediaUrl(body.audioUrl ?? '');
+  const settings = await getSettings();
+
+  // o TTS pode estar em storage S3-compatível próprio (R2/B2/MinIO)
+  const s3Base = settings.storage?.public_base ?? '';
+  let s3Host = '';
+  try {
+    if (s3Base) s3Host = new URL(s3Base).hostname;
+  } catch {
+    /* noop */
+  }
+  const imageUrl = resolveMediaUrl(body.imageUrl ?? '', s3Host ? [s3Host] : []);
+  const audioUrl = resolveMediaUrl(body.audioUrl ?? '', s3Host ? [s3Host] : []);
   if (!imageUrl) return NextResponse.json({ error: 'Imagem do avatar inválida (use a foto do próprio sistema).' }, { status: 400 });
   if (!audioUrl) return NextResponse.json({ error: 'Áudio da narração inválido.' }, { status: 400 });
 
