@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { Download, ImageIcon, Loader2, Music, QrCode, Search, Sparkles, Wand2 } from 'lucide-react';
 import { Button, Card } from '@/components/ui';
-import { pollinationsUrl, type FreeItem } from '@/lib/free-media';
+import type { FreeItem } from '@/lib/free-media';
 import { cn } from '@/lib/utils';
 
 type Tab = 'images' | 'audio' | 'icons' | 'ai' | 'qr';
@@ -37,6 +37,7 @@ export function FreeResources({ storageLabel }: { storageLabel: string }) {
   const [aiPrompt, setAiPrompt] = useState('');
   const [aiSize, setAiSize] = useState<'1024x1024' | '1024x576' | '576x1024'>('1024x1024');
   const [aiSeed, setAiSeed] = useState(1);
+  const [aiResult, setAiResult] = useState<{ dataUrl: string; name: string } | null>(null);
   const [qrText, setQrText] = useState('');
 
   async function search(withQuery?: string) {
@@ -108,7 +109,53 @@ export function FreeResources({ storageLabel }: { storageLabel: string }) {
   }
 
   const [aiW, aiH] = aiSize.split('x').map(Number);
-  const aiUrl = aiPrompt.trim() ? pollinationsUrl(aiPrompt, aiW, aiH, aiSeed) : '';
+
+  /** Gera a imagem no servidor (com novas tentativas) e mostra o resultado real. */
+  async function generateAi() {
+    if (aiPrompt.trim().length < 3) {
+      setError('Descreva a imagem que você quer gerar.');
+      return;
+    }
+    setError('');
+    setMessage('');
+    setAiResult(null);
+    setSavingId('ai-generating');
+    try {
+      const res = await fetch('/api/free/ai-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: aiPrompt.trim(), width: aiW, height: aiH, seed: aiSeed }),
+      });
+      const data = (await res.json()) as { dataUrl?: string; error?: string; seed?: number };
+      if (!res.ok || !data.dataUrl) throw new Error(data.error || 'O gerador não respondeu.');
+      setAiResult({ dataUrl: data.dataUrl, name: aiPrompt.trim().slice(0, 50) || 'imagem-ia' });
+      setMessage('Imagem gerada. Use “Salvar em Meus arquivos” para levar para o editor.');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Falha ao gerar a imagem.');
+    } finally {
+      setSavingId('');
+    }
+  }
+
+  async function saveAi() {
+    if (!aiResult) return;
+    setSavingId('ai');
+    setError('');
+    try {
+      const res = await fetch('/api/free/asset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dataUrl: aiResult.dataUrl, name: aiResult.name, kind: 'image' }),
+      });
+      const data = (await res.json()) as { error?: string };
+      if (!res.ok || data.error) throw new Error(data.error || 'Falha ao salvar.');
+      setMessage('Imagem salva em Meus arquivos.');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Falha ao salvar.');
+    } finally {
+      setSavingId('');
+    }
+  }
 
   return (
     <div className="space-y-4">
@@ -193,7 +240,17 @@ export function FreeResources({ storageLabel }: { storageLabel: string }) {
               <option value="1024x576">Horizontal (16:9)</option>
               <option value="576x1024">Vertical (9:16 story)</option>
             </select>
-            <Button variant="secondary" onClick={() => setAiSeed(Math.floor(Math.random() * 999_999) + 1)}>
+            <Button onClick={() => void generateAi()} disabled={savingId === 'ai-generating'}>
+              {savingId === 'ai-generating' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
+              {savingId === 'ai-generating' ? 'Gerando…' : 'Gerar imagem'}
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setAiSeed(Math.floor(Math.random() * 999_999) + 1);
+                setAiResult(null);
+              }}
+            >
               <Sparkles className="h-4 w-4" /> Outra versão
             </Button>
           </div>
@@ -208,24 +265,30 @@ export function FreeResources({ storageLabel }: { storageLabel: string }) {
               </button>
             ))}
           </div>
-          {aiUrl ? (
+          {aiResult ? (
             <div className="mt-3 space-y-2">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={proxy(aiUrl)}
+                src={aiResult.dataUrl}
                 alt="Imagem gerada"
                 className="max-h-[380px] w-full rounded-xl border border-white/10 bg-black object-contain"
               />
-              <Button
-                onClick={() => save({ url: aiUrl, name: aiPrompt.slice(0, 50) || 'imagem-ia', kind: 'image' }, 'ai')}
-                disabled={savingId === 'ai'}
-              >
-                {savingId === 'ai' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />} Salvar em Meus arquivos
-              </Button>
+              <div className="flex flex-wrap gap-2">
+                <Button onClick={() => void saveAi()} disabled={savingId === 'ai'}>
+                  {savingId === 'ai' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />} Salvar em Meus arquivos
+                </Button>
+                <a
+                  href={aiResult.dataUrl}
+                  download={`${aiResult.name.replace(/\s+/g, '-').toLowerCase()}.png`}
+                  className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-white/10 px-3 text-xs font-semibold text-slate-200 hover:bg-white/5"
+                >
+                  <Download className="h-4 w-4" /> Baixar
+                </a>
+              </div>
             </div>
           ) : (
             <p className="mt-3 text-[11px] text-slate-500">
-              Geração gratuita, sem chave e sem marca d’água. Escreva o prompt para ver a prévia.
+              Geração gratuita, sem chave e sem marca d’água. Escreva o prompt e clique em <strong className="text-slate-300">Gerar imagem</strong>.
             </p>
           )}
         </Card>

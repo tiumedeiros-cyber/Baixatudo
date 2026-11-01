@@ -56,6 +56,36 @@ export async function GET() {
     results.wikimedia = { ok: false, ms: Date.now() - t0, detail: (err instanceof Error ? err.message : String(err)).slice(0, 200) };
   }
 
+  t0 = Date.now();
+  try {
+    const prompt = encodeURIComponent('red apple on a wooden table, photo, studio light');
+    const res = await fetch(`https://image.pollinations.ai/prompt/${prompt}?width=512&height=512&nologo=true&model=sana&seed=11`, {
+      signal: AbortSignal.timeout(35_000),
+      headers: { 'User-Agent': 'EditorStudio/1.0' },
+    });
+    const buf = Buffer.from(await res.arrayBuffer());
+    results.pollinations = {
+      ok: res.ok && buf.length > 1000 && (res.headers.get('content-type') ?? '').startsWith('image'),
+      ms: Date.now() - t0,
+      bytes: buf.length,
+      detail: res.ok ? res.headers.get('content-type') ?? undefined : `HTTP ${res.status} ${buf.toString('utf8').slice(0, 80)}`,
+    };
+  } catch (err) {
+    results.pollinations = { ok: false, ms: Date.now() - t0, detail: (err instanceof Error ? err.message : String(err)).slice(0, 200) };
+  }
+
+  t0 = Date.now();
+  try {
+    const res = await fetch('https://archive.org/advancedsearch.php?q=collection%3Aaudio_music&fl%5B%5D=identifier&rows=1&page=1&output=json', {
+      signal: AbortSignal.timeout(9_000),
+      headers: { 'User-Agent': 'EditorStudio/1.0' },
+    });
+    const data = (await res.json()) as { response?: { numFound?: number } };
+    results.internetArchive = { ok: Boolean(data.response?.numFound), ms: Date.now() - t0, detail: `${data.response?.numFound ?? 0} itens` };
+  } catch (err) {
+    results.internetArchive = { ok: false, ms: Date.now() - t0, detail: (err instanceof Error ? err.message : String(err)).slice(0, 200) };
+  }
+
   return NextResponse.json(
     { ok: Object.values(results).every((r) => r.ok), results },
     { headers: { 'cache-control': 'no-store' } },
