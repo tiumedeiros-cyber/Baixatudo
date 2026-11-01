@@ -52,7 +52,7 @@ export type LipSyncOptions = {
   space?: string;
   /** coloca a foto sobre fundo #00FF00 (padrão: true) para o chroma key do editor */
   greenScreen?: boolean;
-  /** orçamento total em ms (padrão: 240 s) */
+  /** orçamento total em ms (padrão: 270 s) */
   budgetMs?: number;
   /** recebe mensagens de andamento para a UI */
   onStatus?: (message: string) => void;
@@ -186,7 +186,8 @@ export async function generateLipSyncVideo(options: LipSyncOptions): Promise<Lip
     return { ok: false, error: 'Envie a imagem do avatar e o áudio da narração.', tried: [] };
   }
 
-  const budget = Math.max(30_000, Math.min(options.budgetMs ?? 240_000, 280_000));
+  // 270 s: quase todo o limite da função (300 s) — SadTalker em CPU é lento
+  const budget = Math.max(30_000, Math.min(options.budgetMs ?? 270_000, 285_000));
   const spaces = unique([options.space, process.env.AVATAR_LIPSYNC_SPACE, ...DEFAULT_SPACES]);
   const tried: { space: string; error: string }[] = [];
 
