@@ -165,7 +165,11 @@ export async function GET(request: Request) {
   let driveReport: unknown;
   if (drive) {
     const target = /^https?:/i.test(drive) ? drive : `https://drive.google.com/file/d/${drive}/view`;
-    driveReport = await diagnoseDrive(target);
+    try {
+      driveReport = await diagnoseDrive(target);
+    } catch (err) {
+      driveReport = { ok: false, error: err instanceof Error ? err.message : String(err) };
+    }
   }
 
   return NextResponse.json(

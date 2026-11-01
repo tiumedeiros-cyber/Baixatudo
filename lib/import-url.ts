@@ -204,7 +204,12 @@ export async function diagnoseDrive(rawUrl: string) {
   const report: Array<Record<string, unknown>> = [];
   for (const url of candidates) {
     try {
-      const res = await fetch(url, { headers: { 'User-Agent': UA, Accept: '*/*' }, redirect: 'follow', cache: 'no-store' });
+      const res = await fetch(url, {
+        headers: { 'User-Agent': UA, Accept: '*/*' },
+        redirect: 'follow',
+        cache: 'no-store',
+        signal: AbortSignal.timeout(12_000),
+      });
       const type = (res.headers.get('content-type') ?? '').toLowerCase();
       const entry: Record<string, unknown> = {
         url: url.slice(0, 120),
@@ -218,12 +223,16 @@ export async function diagnoseDrive(rawUrl: string) {
         entry.hint = driveHtmlHint(html);
       } else {
         // lê só os primeiros bytes para confirmar que é mídia de verdade
-        const reader = res.body?.getReader();
-        if (reader) {
-          const chunk = await reader.read();
-          entry.firstBytes = chunk.value?.length ?? 0;
-          entry.magic = chunk.value ? Buffer.from(chunk.value.slice(0, 12)).toString('hex') : '';
-          await reader.cancel().catch(() => undefined);
+        try {
+          const reader = res.body?.getReader();
+          if (reader) {
+            const chunk = await reader.read();
+            entry.firstBytes = chunk.value?.length ?? 0;
+            entry.magic = chunk.value ? Buffer.from(chunk.value.slice(0, 12)).toString('hex') : '';
+            await reader.cancel().catch(() => undefined);
+          }
+        } catch {
+          entry.readError = 'não foi possível ler os primeiros bytes';
         }
       }
       report.push(entry);

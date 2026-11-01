@@ -249,7 +249,6 @@ export async function searchMet(query: string, limit = 12): Promise<FreeItem[]> 
   );
   return objects
     .filter((obj): obj is Record<string, unknown> => Boolean(obj) && Boolean((obj as Record<string, unknown>).primaryImage))
-    .filter((obj) => obj.isPublicDomain !== false)
     .map((obj) => ({
       id: `met-${obj.objectID}`,
       title: String(obj.title ?? 'Obra').slice(0, 90),
