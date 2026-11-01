@@ -25,7 +25,8 @@ export type SceneId =
   | 'podcast'
   | 'floresta'
   | 'chroma'
-  | 'transparente';
+  | 'transparente'
+  | 'setup';
 
 export type AvatarPreset = {
   id: string;
@@ -47,7 +48,49 @@ export type AvatarPreset = {
   freckles?: boolean;
   /** textura da camisa */
   fabric?: 'seda' | 'algodao' | 'social' | 'malha' | 'couro';
+  /** enquadramento: só rosto, meio corpo (busto) ou corpo inteiro */
+  framing?: FramingId;
+  /** pose dos braços/mãos */
+  pose?: PoseId;
+  /** expressão facial base (a boca ainda abre com o áudio) */
+  expression?: ExpressionId;
+  /** tatuagens no braço e no rosto */
+  tattoos?: boolean;
+  /** headset de gamer */
+  headphones?: boolean;
+  /** corrente/cordão no pescoço */
+  chain?: boolean;
+  /** relógio no pulso */
+  watch?: boolean;
+  /** cor do cabelo das sobrancelhas (padrão: hairColor) */
+  browColor?: string;
 };
+
+export type FramingId = 'rosto' | 'meio' | 'corpo';
+export type PoseId = 'neutro' | 'joinha' | 'apontando' | 'acenando' | 'cruzado' | 'bolso';
+export type ExpressionId = 'sorriso' | 'neutro' | 'serio' | 'surpreso';
+
+export const FRAMINGS: { id: FramingId; label: string; hint: string }[] = [
+  { id: 'rosto', label: 'Rosto', hint: 'só o rosto e os ombros' },
+  { id: 'meio', label: 'Meio corpo', hint: 'busto: rosto, tronco e mãos' },
+  { id: 'corpo', label: 'Corpo inteiro', hint: 'personagem completo em cena' },
+];
+
+export const POSES: { id: PoseId; label: string }[] = [
+  { id: 'neutro', label: 'Natural' },
+  { id: 'joinha', label: 'Joinha' },
+  { id: 'apontando', label: 'Apontando' },
+  { id: 'acenando', label: 'Acenando' },
+  { id: 'cruzado', label: 'Braços cruzados' },
+  { id: 'bolso', label: 'Mãos no bolso' },
+];
+
+export const EXPRESSIONS: { id: ExpressionId; label: string }[] = [
+  { id: 'sorriso', label: 'Sorrindo' },
+  { id: 'neutro', label: 'Neutro' },
+  { id: 'serio', label: 'Sério' },
+  { id: 'surpreso', label: 'Surpreso' },
+];
 
 export const SCENES: { id: SceneId; label: string; hint: string }[] = [
   { id: 'estudio', label: 'Estúdio', hint: 'luz de recorte + fundo limpo' },
@@ -60,6 +103,7 @@ export const SCENES: { id: SceneId; label: string; hint: string }[] = [
   { id: 'floresta', label: 'Floresta', hint: 'bokeh verde, externa' },
   { id: 'chroma', label: 'Fundo verde', hint: 'chroma key para trocar depois' },
   { id: 'transparente', label: 'Sem fundo', hint: 'overlay: aparece sobre o vídeo de baixo' },
+  { id: 'setup', label: 'Setup gamer', hint: 'mesa com PC RGB, monitor e microfone' },
 ];
 
 export const AVATARS: AvatarPreset[] = [
@@ -295,6 +339,129 @@ export const AVATARS: AvatarPreset[] = [
     beard: true,
     fabric: 'algodao',
   },
+  {
+    id: 'theo',
+    name: 'Theo',
+    role: 'Criador gamer · setup + reação',
+    gender: 'm',
+    skin: '#e8b892',
+    skinShadow: '#c6936c',
+    hair: 'curto',
+    hairColor: '#241d1a',
+    shirt: '#e8e2d4',
+    bg: ['#0b1020', '#3b1d6e'],
+    scene: 'setup',
+    framing: 'meio',
+    pose: 'joinha',
+    expression: 'sorriso',
+    glasses: true,
+    beard: true,
+    tattoos: true,
+    headphones: true,
+    chain: true,
+    watch: true,
+    earrings: true,
+    fabric: 'algodao',
+  },
+  {
+    id: 'lucas',
+    name: 'Lucas',
+    role: 'Apresentador · review de tech',
+    gender: 'm',
+    skin: '#c98a5f',
+    skinShadow: '#a56c45',
+    hair: 'cacheado',
+    hairColor: '#1b1412',
+    shirt: '#111827',
+    bg: ['#0f172a', '#1d4ed8'],
+    scene: 'setup',
+    framing: 'corpo',
+    pose: 'apontando',
+    expression: 'sorriso',
+    tattoos: true,
+    chain: true,
+    fabric: 'malha',
+  },
+  {
+    id: 'rafa',
+    name: 'Rafa',
+    role: 'Streamer · react e cortes',
+    gender: 'm',
+    skin: '#f0c8a4',
+    skinShadow: '#cfa07c',
+    hair: 'franja',
+    hairColor: '#3a2a1e',
+    shirt: '#7c3aed',
+    bg: ['#0b1020', '#7c2d12'],
+    scene: 'neon',
+    framing: 'meio',
+    pose: 'cruzado',
+    expression: 'serio',
+    headphones: true,
+    tattoos: true,
+    earrings: true,
+    fabric: 'algodao',
+  },
+  {
+    id: 'bia',
+    name: 'Bia',
+    role: 'Criadora · lifestyle e dicas',
+    gender: 'f',
+    skin: '#e9b78f',
+    skinShadow: '#c9926a',
+    hair: 'rabo',
+    hairColor: '#5b3a22',
+    shirt: '#22d3ee',
+    bg: ['#082f49', '#0e7490'],
+    scene: 'setup',
+    framing: 'meio',
+    pose: 'acenando',
+    expression: 'sorriso',
+    lipstick: '#c2415c',
+    earrings: true,
+    freckles: true,
+    fabric: 'malha',
+  },
+  {
+    id: 'igor',
+    name: 'Igor',
+    role: 'Dev · tutoriais e código',
+    gender: 'm',
+    skin: '#8f5c3d',
+    skinShadow: '#6e4429',
+    hair: 'calvo',
+    hairColor: '#171310',
+    shirt: '#0f766e',
+    bg: ['#052e2b', '#155e75'],
+    scene: 'escritorio',
+    framing: 'corpo',
+    pose: 'bolso',
+    expression: 'neutro',
+    glasses: true,
+    beard: true,
+    watch: true,
+    fabric: 'social',
+  },
+  {
+    id: 'nara',
+    name: 'Nara',
+    role: 'Âncora · notícias e institucional',
+    gender: 'f',
+    skin: '#f6d2b4',
+    skinShadow: '#d8ac8c',
+    hair: 'coque',
+    hairColor: '#2b1d15',
+    shirt: '#1e293b',
+    bg: ['#0b1220', '#1e3a8a'],
+    scene: 'podcast',
+    framing: 'meio',
+    pose: 'neutro',
+    expression: 'serio',
+    lipstick: '#9f1239',
+    earrings: true,
+    chain: true,
+    fabric: 'social',
+  },
 ];
 
 export const DEFAULT_AVATAR = AVATARS[0];
@@ -311,6 +478,13 @@ export type AvatarEdit = {
   glasses?: boolean;
   beard?: boolean;
   lipstick?: string;
+  framing?: FramingId;
+  pose?: PoseId;
+  expression?: ExpressionId;
+  tattoos?: boolean;
+  headphones?: boolean;
+  chain?: boolean;
+  watch?: boolean;
 };
 
 const HAIRS: HairStyle[] = ['curto', 'longo', 'coque', 'cacheado', 'calvo', 'franja', 'rabo', 'tranca'];
@@ -340,6 +514,13 @@ export function encodeAvatar(edit: AvatarEdit): string {
   if (edit.glasses !== undefined) payload.g = edit.glasses ? 1 : 0;
   if (edit.beard !== undefined) payload.d = edit.beard ? 1 : 0;
   if (edit.lipstick) payload.l = edit.lipstick;
+  if (edit.framing && edit.framing !== 'rosto') payload.f = edit.framing;
+  if (edit.pose && edit.pose !== 'neutro') payload.p = edit.pose;
+  if (edit.expression && edit.expression !== 'sorriso') payload.e = edit.expression;
+  if (edit.tattoos !== undefined) payload.k = edit.tattoos ? 1 : 0;
+  if (edit.headphones !== undefined) payload.x = edit.headphones ? 1 : 0;
+  if (edit.chain !== undefined) payload.y = edit.chain ? 1 : 0;
+  if (edit.watch !== undefined) payload.z = edit.watch ? 1 : 0;
   return `c:${b64encode(JSON.stringify(payload))}`;
 }
 
@@ -358,6 +539,13 @@ export function decodeAvatar(id: string): AvatarEdit | null {
       glasses: typeof raw.g === 'number' ? Boolean(raw.g) : undefined,
       beard: typeof raw.d === 'number' ? Boolean(raw.d) : undefined,
       lipstick: typeof raw.l === 'string' ? raw.l : undefined,
+      framing: FRAMINGS.some((f) => f.id === raw.f) ? (raw.f as FramingId) : undefined,
+      pose: POSES.some((p) => p.id === raw.p) ? (raw.p as PoseId) : undefined,
+      expression: EXPRESSIONS.some((e) => e.id === raw.e) ? (raw.e as ExpressionId) : undefined,
+      tattoos: typeof raw.k === 'number' ? Boolean(raw.k) : undefined,
+      headphones: typeof raw.x === 'number' ? Boolean(raw.x) : undefined,
+      chain: typeof raw.y === 'number' ? Boolean(raw.y) : undefined,
+      watch: typeof raw.z === 'number' ? Boolean(raw.z) : undefined,
     };
   } catch {
     return null;
@@ -385,6 +573,13 @@ export function avatarById(id?: string | null): AvatarPreset {
       glasses: custom.glasses ?? base.glasses,
       beard: custom.beard ?? base.beard,
       lipstick: custom.lipstick ?? base.lipstick,
+      framing: custom.framing ?? base.framing,
+      pose: custom.pose ?? base.pose,
+      expression: custom.expression ?? base.expression,
+      tattoos: custom.tattoos ?? base.tattoos,
+      headphones: custom.headphones ?? base.headphones,
+      chain: custom.chain ?? base.chain,
+      watch: custom.watch ?? base.watch,
     };
   }
   const [baseId, scene] = id.split('@');

@@ -1,5 +1,14 @@
 'use client';
-import { AVATARS, SCENES, avatarById, withScene } from '@/lib/catalog/avatars';
+import {
+  AVATARS,
+  EXPRESSIONS,
+  FRAMINGS,
+  POSES,
+  SCENES,
+  avatarById,
+  encodeAvatar,
+  withScene,
+} from '@/lib/catalog/avatars';
 import { useMemo, useState } from 'react';
 import {
   AudioLines,
@@ -229,6 +238,32 @@ export function Inspector() {
 
   const shadow = clip.shadow ?? { blur: 0, color: 'rgba(0,0,0,0.65)', offsetY: 0, offsetX: 0 };
   const patchShadow = (p: Partial<typeof shadow>) => patch({ shadow: { ...shadow, ...p } });
+
+  /** Ajusta um campo do avatar mantendo tudo o que já foi escolhido. */
+  function patchAvatar(extra: Partial<ReturnType<typeof avatarById>>) {
+    const cur = avatarById(clip?.avatar?.preset);
+    const preset = encodeAvatar({
+      base: cur.id,
+      name: cur.name !== avatarById(cur.id).name ? cur.name : undefined,
+      scene: cur.scene,
+      skin: cur.skin,
+      hairColor: cur.hairColor,
+      shirt: cur.shirt,
+      hair: cur.hair,
+      glasses: cur.glasses,
+      beard: cur.beard,
+      lipstick: cur.lipstick,
+      framing: cur.framing,
+      pose: cur.pose,
+      expression: cur.expression,
+      tattoos: cur.tattoos,
+      headphones: cur.headphones,
+      chain: cur.chain,
+      watch: cur.watch,
+      ...extra,
+    });
+    patch({ avatar: { preset, mouth: clip?.avatar?.mouth ?? [], intensity: clip?.avatar?.intensity ?? 1 } });
+  }
 
   /** Gira 360° com dois keyframes (0 → 360). */
   function spin360(prop: 'rotation' | 'rotationX' | 'rotationY') {
@@ -601,6 +636,62 @@ export function Inspector() {
                   <option key={scene.id} value={scene.id}>{scene.label}</option>
                 ))}
               </select>
+            </div>
+            <div className="mt-2 grid grid-cols-3 gap-1.5">
+              <div>
+                <label className="text-[9px] font-semibold uppercase tracking-wider text-slate-500">Plano</label>
+                <select
+                  value={avatarById(clip.avatar?.preset).framing ?? 'rosto'}
+                  onChange={(e) => patchAvatar({ framing: e.target.value as (typeof FRAMINGS)[number]['id'] })}
+                  className="mt-1 w-full rounded-lg border border-white/10 bg-ink-900 px-1.5 py-1.5 text-[10px] text-white outline-none focus:border-brand-400/60"
+                >
+                  {FRAMINGS.map((f) => (
+                    <option key={f.id} value={f.id}>{f.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-[9px] font-semibold uppercase tracking-wider text-slate-500">Pose</label>
+                <select
+                  value={avatarById(clip.avatar?.preset).pose ?? 'neutro'}
+                  onChange={(e) => patchAvatar({ pose: e.target.value as (typeof POSES)[number]['id'] })}
+                  className="mt-1 w-full rounded-lg border border-white/10 bg-ink-900 px-1.5 py-1.5 text-[10px] text-white outline-none focus:border-brand-400/60"
+                >
+                  {POSES.map((p) => (
+                    <option key={p.id} value={p.id}>{p.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-[9px] font-semibold uppercase tracking-wider text-slate-500">Expressão</label>
+                <select
+                  value={avatarById(clip.avatar?.preset).expression ?? 'sorriso'}
+                  onChange={(e) => patchAvatar({ expression: e.target.value as (typeof EXPRESSIONS)[number]['id'] })}
+                  className="mt-1 w-full rounded-lg border border-white/10 bg-ink-900 px-1.5 py-1.5 text-[10px] text-white outline-none focus:border-brand-400/60"
+                >
+                  {EXPRESSIONS.map((x) => (
+                    <option key={x.id} value={x.id}>{x.label}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className="mt-2 flex flex-wrap gap-2 text-[10px] text-slate-300">
+              {([
+                ['Tatuagens', 'tattoos'],
+                ['Headset', 'headphones'],
+                ['Corrente', 'chain'],
+                ['Relógio', 'watch'],
+              ] as const).map(([label, key]) => (
+                <label key={key} className="flex items-center gap-1">
+                  <input
+                    type="checkbox"
+                    checked={Boolean(avatarById(clip.avatar?.preset)[key])}
+                    onChange={(e) => patchAvatar({ [key]: e.target.checked })}
+                    className="accent-brand-500"
+                  />
+                  {label}
+                </label>
+              ))}
             </div>
             <Slider
               label="Abertura da boca"

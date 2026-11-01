@@ -4,8 +4,16 @@ import { useRouter } from 'next/navigation';
 import { Bot, Clapperboard, Loader2, Play, RotateCcw, Sparkles, Wand2 } from 'lucide-react';
 import { Button, Card } from '@/components/ui';
 import { AvatarThumb } from '@/components/media/AvatarThumb';
-import { AVATARS, SCENES, encodeAvatar, withScene } from '@/lib/catalog/avatars';
-import type { HairStyle, SceneId } from '@/lib/catalog/avatars';
+import {
+  AVATARS,
+  EXPRESSIONS,
+  FRAMINGS,
+  POSES,
+  SCENES,
+  encodeAvatar,
+  withScene,
+} from '@/lib/catalog/avatars';
+import type { ExpressionId, FramingId, HairStyle, PoseId, SceneId } from '@/lib/catalog/avatars';
 import { VOICES, DEFAULT_VOICE } from '@/lib/catalog/voices';
 import { computeEnvelope } from '@/components/studio/envelope';
 import { cn } from '@/lib/utils';
@@ -44,7 +52,23 @@ export function AvatarStudio({
   const router = useRouter();
   const [baseId, setBaseId] = useState(AVATARS[0].id);
   const [scene, setScene] = useState<SceneId>('estudio');
-  const [edit, setEdit] = useState<{ skin?: string; hairColor?: string; shirt?: string; hair?: HairStyle; glasses?: boolean; beard?: boolean; lipstick?: string; name?: string }>({});
+  const [edit, setEdit] = useState<{
+    skin?: string;
+    hairColor?: string;
+    shirt?: string;
+    hair?: HairStyle;
+    glasses?: boolean;
+    beard?: boolean;
+    lipstick?: string;
+    name?: string;
+    framing?: FramingId;
+    pose?: PoseId;
+    expression?: ExpressionId;
+    tattoos?: boolean;
+    headphones?: boolean;
+    chain?: boolean;
+    watch?: boolean;
+  }>({});
   const [editing, setEditing] = useState(false);
   const [voiceId, setVoiceId] = useState(DEFAULT_VOICE);
   const [rate, setRate] = useState<'normal' | 'lenta'>('normal');
@@ -142,7 +166,7 @@ export function AvatarStudio({
             </button>
           </div>
           <p className="mt-1 text-[11px] text-slate-500">
-            {AVATARS.length} personagens · boca animada pelo áudio em prévia e exportação.
+            {AVATARS.length} personagens · rosto, meio corpo e corpo inteiro · boca animada pelo áudio em prévia e exportação.
           </p>
 
           <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-4">
@@ -184,6 +208,55 @@ export function AvatarStudio({
                   placeholder={avatar.name}
                   className="mt-1 w-full rounded-lg border border-white/10 bg-ink-900 px-2 py-1.5 text-[11px] text-white outline-none focus:border-brand-400/60"
                 />
+              </div>
+
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Enquadramento</p>
+              <div className="flex flex-wrap gap-1">
+                {FRAMINGS.map((f) => (
+                  <button
+                    key={f.id}
+                    onClick={() => setField('framing', f.id)}
+                    title={f.hint}
+                    className={cn(
+                      'rounded-full border px-2 py-0.5 text-[10px]',
+                      (edit.framing ?? avatar.framing ?? 'rosto') === f.id ? 'border-brand-400 bg-brand-500/20 text-white' : 'border-white/12 text-slate-300',
+                    )}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Pose</p>
+              <div className="flex flex-wrap gap-1">
+                {POSES.map((p) => (
+                  <button
+                    key={p.id}
+                    onClick={() => setField('pose', p.id)}
+                    className={cn(
+                      'rounded-full border px-2 py-0.5 text-[10px]',
+                      (edit.pose ?? avatar.pose ?? 'neutro') === p.id ? 'border-brand-400 bg-brand-500/20 text-white' : 'border-white/12 text-slate-300',
+                    )}
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Expressão</p>
+              <div className="flex flex-wrap gap-1">
+                {EXPRESSIONS.map((e) => (
+                  <button
+                    key={e.id}
+                    onClick={() => setField('expression', e.id)}
+                    className={cn(
+                      'rounded-full border px-2 py-0.5 text-[10px]',
+                      (edit.expression ?? avatar.expression ?? 'sorriso') === e.id ? 'border-brand-400 bg-brand-500/20 text-white' : 'border-white/12 text-slate-300',
+                    )}
+                  >
+                    {e.label}
+                  </button>
+                ))}
               </div>
 
               <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Tom de pele</p>
@@ -270,6 +343,33 @@ export function AvatarStudio({
                     className="accent-brand-500"
                   />
                   Barba
+                </label>
+                <label className="flex items-center gap-1.5 text-[11px] text-slate-300">
+                  <input
+                    type="checkbox"
+                    checked={edit.tattoos ?? avatar.tattoos ?? false}
+                    onChange={(e) => setField('tattoos', e.target.checked)}
+                    className="accent-brand-500"
+                  />
+                  Tatuagens
+                </label>
+                <label className="flex items-center gap-1.5 text-[11px] text-slate-300">
+                  <input
+                    type="checkbox"
+                    checked={edit.headphones ?? avatar.headphones ?? false}
+                    onChange={(e) => setField('headphones', e.target.checked)}
+                    className="accent-brand-500"
+                  />
+                  Headset
+                </label>
+                <label className="flex items-center gap-1.5 text-[11px] text-slate-300">
+                  <input
+                    type="checkbox"
+                    checked={edit.chain ?? avatar.chain ?? false}
+                    onChange={(e) => setField('chain', e.target.checked)}
+                    className="accent-brand-500"
+                  />
+                  Corrente
                 </label>
                 <button
                   onClick={() => setEdit({})}
