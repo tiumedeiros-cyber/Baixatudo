@@ -1,5 +1,18 @@
 import { avatarById } from '@/lib/catalog/avatars';
 import { buildVisemeTrack } from '@/lib/visemes';
+
+/** Imagem de fundo de cada cenário (as mesmas usadas pelo desenho do avatar). */
+const SCENE_IMAGE: Record<string, string> = {
+  estudio: '/scenes/estudio.jpg',
+  escritorio: '/scenes/escritorio.jpg',
+  praia: '/scenes/praia.jpg',
+  cidade: '/scenes/cidade.jpg',
+  neon: '/scenes/neon.jpg',
+  sala: '/scenes/sala.jpg',
+  podcast: '/scenes/podcast.jpg',
+  floresta: '/scenes/floresta.jpg',
+  setup: '/scenes/setup.jpg',
+};
 import type { Clip, TimelineData, Track } from '@/lib/types';
 
 type Segment = { url: string; text: string; duration: number };
@@ -9,6 +22,13 @@ export function buildAvatarTimeline(opts: {
   avatarId?: string | null;
   segments: Segment[];
   envelope?: number[];
+  /**
+   * Vídeo do avatar já sincronizado por IA (SadTalker). Quando vem preenchido,
+   * a timeline ganha duas trilhas novas: cenário (fundo) + vídeo com chroma key.
+   * Sem esse parâmetro, o comportamento é exatamente o de antes.
+   */
+  videoUrl?: string;
+  chroma?: boolean;
 }) {
   const avatar = avatarById(opts.avatarId);
   // preserva o id original (com cenário/edições), não só o preset base
@@ -24,7 +44,16 @@ export function buildAvatarTimeline(opts: {
     segments.map((s) => ({ text: s.text, duration: Number(s.duration) })),
   );
 
+  const videoMode = Boolean(opts.videoUrl);
+  const sceneImage = videoMode ? SCENE_IMAGE[avatar.scene ?? 'estudio'] : undefined;
+
   const tracks: Track[] = [
+    ...(videoMode
+      ? [
+          { id: 'bg', name: 'Cenário', kind: 'visual' as const, muted: false, hidden: false },
+          { id: 'avv', name: 'Avatar (IA)', kind: 'visual' as const, muted: false, hidden: false },
+        ]
+      : []),
     { id: 'av', name: 'Avatar', kind: 'visual', muted: false, hidden: false },
     { id: 'leg', name: 'Legendas', kind: 'visual', muted: false, hidden: false },
     { id: 'nar', name: 'Narração', kind: 'audio', muted: false, hidden: false },
@@ -55,17 +84,44 @@ export function buildAvatarTimeline(opts: {
       ...over,
     }) as Clip;
 
-  const clips: Clip[] = [
-    base({
-      kind: 'avatar',
-      name: `Avatar ${avatar.name}`,
-      src: 'avatar',
-      trackId: 'av',
-      start: 0,
-      duration: total,
-      avatar: { preset: presetId, mouth: envelope, intensity: 1, visemes },
-    }),
-  ];
+  const clips: Clip[] = videoMode
+    ? [
+        // 1) cenário escolhido como fundo
+        ...(sceneImage
+          ? [
+              base({
+                kind: 'image' as const,
+                name: `Cenário ${avatar.scene ?? 'estudio'}`,
+                src: sceneImage,
+                trackId: 'bg',
+                start: 0,
+                duration: total,
+              }),
+            ]
+          : []),
+        // 2) vídeo do avatar gerado por IA com o fundo verde removido
+        base({
+          kind: 'video' as const,
+          name: `Avatar IA ${avatar.name}`,
+          src: opts.videoUrl,
+          trackId: 'avv',
+          start: 0,
+          duration: total,
+          volume: 0,
+          chroma: { enabled: opts.chroma !== false, color: 'verde' as const, tolerance: 0.42, softness: 0.18, spill: 0.62 },
+        }),
+      ]
+    : [
+        base({
+          kind: 'avatar',
+          name: `Avatar ${avatar.name}`,
+          src: 'avatar',
+          trackId: 'av',
+          start: 0,
+          duration: total,
+          avatar: { preset: presetId, mouth: envelope, intensity: 1, visemes },
+        }),
+      ];
 
   let cursor = 0;
   segments.forEach((segment, index) => {

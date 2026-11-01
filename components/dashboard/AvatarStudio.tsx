@@ -1,7 +1,7 @@
 'use client';
 import { useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Bot, Clapperboard, Loader2, Play, RotateCcw, Sparkles, Wand2 } from 'lucide-react';
+import { Bot, Clapperboard, HelpCircle, Loader2, Play, RotateCcw, Sparkles, Wand2, X } from 'lucide-react';
 import { Button, Card } from '@/components/ui';
 import { AvatarThumb } from '@/components/media/AvatarThumb';
 import {
@@ -82,6 +82,9 @@ export function AvatarStudio({
   const [error, setError] = useState<string | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [photoBusy, setPhotoBusy] = useState(false);
+  const [help, setHelp] = useState(false);
+  const [useAiSync, setUseAiSync] = useState(false);
+  const [aiElapsed, setAiElapsed] = useState(0);
   const [photoError, setPhotoError] = useState('');
   const photoRef = useRef<HTMLInputElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -170,7 +173,40 @@ export function AvatarStudio({
       if (!res.ok || !data.segments?.length) throw new Error(data.error || 'Não foi possível gerar a voz.');
       setPreview(data.segments[0].url);
 
-      setStage('Sincronizando a boca do avatar com o áudio…');
+      // --- Sincronização por IA (opcional) -------------------------------------
+      // Usa o serviço isolado lib/avatar-sync.ts (SadTalker em Space público).
+      // Se falhar (Space dormindo/sem GPU), seguimos no motor interno de visemas.
+      let aiVideoUrl: string | undefined;
+      let aiWarning = '';
+      if (useAiSync) {
+        const photo = avatar.photo?.base ?? '';
+        setStage('Gerando sincronização labial (isso pode levar alguns minutos)…');
+        const ticker = setInterval(() => setAiElapsed((v) => v + 1), 1000);
+        setAiElapsed(0);
+        try {
+          const sync = await fetch('/api/avatar/lipsync', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ imageUrl: photo, audioUrl: data.segments[0].url }),
+          });
+          const syncData = (await sync.json()) as { ok?: boolean; videoUrl?: string; error?: string };
+          if (sync.ok && syncData.videoUrl) {
+            aiVideoUrl = syncData.videoUrl;
+            setStage('Sincronização pronta! Montando o projeto com o cenário…');
+          } else {
+            aiWarning = syncData.error || 'A sincronização por IA não respondeu.';
+          }
+        } catch (err) {
+          aiWarning = err instanceof Error ? err.message : 'Falha ao falar com o serviço de sincronização.';
+        } finally {
+          clearInterval(ticker);
+        }
+        if (aiWarning && !aiVideoUrl) {
+          setError(`${aiWarning} Gerando com o motor interno (instantâneo)…`);
+        }
+      }
+
+      setStage(aiVideoUrl ? 'Montando o projeto no editor…' : 'Sincronizando a boca do avatar com o áudio…');
       const envelope = await computeEnvelope(data.segments.map((s) => s.url), ENVELOPE_STEP);
 
       setStage('Montando o projeto no editor…');
@@ -186,6 +222,8 @@ export function AvatarStudio({
           segments: data.segments,
           envelope,
           scene,
+          videoUrl: aiVideoUrl,
+          chroma: true,
         }),
       });
       const created = (await project.json()) as { url?: string; error?: string };
@@ -610,11 +648,30 @@ export function AvatarStudio({
             </select>
           </div>
 
+          <label className="mt-3 flex items-start gap-2 rounded-xl border border-white/10 bg-white/[0.03] p-2.5">
+            <input
+              type="checkbox"
+              checked={useAiSync}
+              onChange={(e) => setUseAiSync(e.target.checked)}
+              className="mt-0.5 h-3.5 w-3.5 accent-brand-500"
+            />
+            <span className="text-[10px] leading-relaxed text-slate-300">
+              <strong className="text-white">Sincronização real por IA (SadTalker)</strong> — boca e cabeça geradas por
+              rede neural. Demora alguns minutos e depende de um serviço público gratuito; se estiver ocupado, o sistema
+              usa o motor interno automaticamente.
+            </span>
+          </label>
+
           <Button onClick={generate} disabled={loading || text.trim().length < 4} className="mt-3 w-full" size="lg">
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
-            {loading ? 'Criando…' : 'Criar vídeo do avatar'}
+            {loading ? (useAiSync ? `Gerando sincronização… ${aiElapsed}s` : 'Criando…') : 'Criar vídeo do avatar'}
           </Button>
           {loading ? <p className="mt-2 text-[10px] text-brand-200">{stage}</p> : null}
+          {loading && useAiSync ? (
+            <p className="mt-1 text-[10px] text-slate-500">
+              Você pode deixar esta aba aberta — o vídeo aparece na timeline assim que ficar pronto.
+            </p>
+          ) : null}
           {error ? <p className="mt-2 rounded-lg border border-rose-400/25 bg-rose-500/10 px-2 py-1.5 text-[10px] text-rose-200">{error}</p> : null}
         </Card>
 

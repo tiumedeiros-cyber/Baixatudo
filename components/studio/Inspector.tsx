@@ -637,6 +637,78 @@ export function Inspector() {
                 Extrair áudio para uma trilha nova
               </button>
             ) : null}
+
+            {clip.kind === 'video' ? (
+              <div className="space-y-1.5 rounded-lg border border-white/10 bg-white/[0.03] p-2">
+                <label className="flex items-center justify-between text-[10px] font-semibold text-slate-300">
+                  Remover fundo verde (chroma key)
+                  <input
+                    type="checkbox"
+                    checked={Boolean(clip.chroma?.enabled)}
+                    onChange={(e) =>
+                      patch({
+                        chroma: {
+                          enabled: e.target.checked,
+                          color: clip.chroma?.color ?? 'verde',
+                          tolerance: clip.chroma?.tolerance ?? 0.42,
+                          softness: clip.chroma?.softness ?? 0.18,
+                          spill: clip.chroma?.spill ?? 0.6,
+                        },
+                      })
+                    }
+                    className="h-3.5 w-3.5 accent-brand-500"
+                  />
+                </label>
+                {clip.chroma?.enabled ? (
+                  <>
+                    <p className="text-[9px] leading-relaxed text-slate-500">
+                      Deixe um clipe de cenário embaixo na timeline: o fundo do vídeo fica transparente em tempo
+                      real, no navegador.
+                    </p>
+                    <div className="flex gap-1">
+                      {(['verde', 'azul'] as const).map((cor) => (
+                        <button
+                          key={cor}
+                          onClick={() => patch({ chroma: { ...clip.chroma!, color: cor } })}
+                          className={cn(
+                            'flex-1 rounded-md border px-1.5 py-0.5 text-[9px] capitalize',
+                            (clip.chroma?.color ?? 'verde') === cor
+                              ? 'border-brand-400 bg-brand-500/20 text-white'
+                              : 'border-white/12 text-slate-300',
+                          )}
+                        >
+                          {cor}
+                        </button>
+                      ))}
+                    </div>
+                    <Slider
+                      label="Tolerância"
+                      value={Math.round((clip.chroma?.tolerance ?? 0.42) * 100)}
+                      min={10}
+                      max={90}
+                      suffix="%"
+                      onChange={(v) => patch({ chroma: { ...clip.chroma!, enabled: true, tolerance: v / 100 } })}
+                    />
+                    <Slider
+                      label="Suavizar borda"
+                      value={Math.round((clip.chroma?.softness ?? 0.18) * 100)}
+                      min={1}
+                      max={60}
+                      suffix="%"
+                      onChange={(v) => patch({ chroma: { ...clip.chroma!, enabled: true, softness: v / 100 } })}
+                    />
+                    <Slider
+                      label="Tirar reflexo"
+                      value={Math.round((clip.chroma?.spill ?? 0.6) * 100)}
+                      min={0}
+                      max={100}
+                      suffix="%"
+                      onChange={(v) => patch({ chroma: { ...clip.chroma!, enabled: true, spill: v / 100 } })}
+                    />
+                  </>
+                ) : null}
+              </div>
+            ) : null}
           </Card>
         ) : null}
 

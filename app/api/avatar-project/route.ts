@@ -35,6 +35,9 @@ export async function POST(request: Request) {
     ratio?: string;
     segments?: Segment[];
     envelope?: number[];
+    /** vídeo do avatar já sincronizado por IA (opcional) */
+    videoUrl?: string;
+    chroma?: boolean;
   };
   try {
     body = await request.json();
@@ -49,7 +52,17 @@ export async function POST(request: Request) {
   const ratio = body.ratio && SIZES[body.ratio] ? body.ratio : '9:16';
   const [width, height] = SIZES[ratio];
 
-  const built = buildAvatarTimeline({ avatarId: body.avatarId, segments, envelope: body.envelope });
+  // vídeo de IA: só entra se for um endereço nosso (storage do sistema)
+  const videoUrl =
+    typeof body.videoUrl === 'string' && /^(https?:\/\/|\/)/.test(body.videoUrl) ? body.videoUrl : undefined;
+
+  const built = buildAvatarTimeline({
+    avatarId: body.avatarId,
+    segments,
+    envelope: body.envelope,
+    videoUrl,
+    chroma: body.chroma !== false,
+  });
   const { timeline, total } = built;
   const name = (body.name || `Avatar falante · ${built.avatarId}`).slice(0, 80);
 

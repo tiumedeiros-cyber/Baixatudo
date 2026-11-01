@@ -4,6 +4,7 @@ import { clamp } from '@/lib/utils';
 import type { MediaRegistry } from './media';
 import type { ThreePool } from './three';
 import { drawAvatar, mouthFromEnvelope } from './avatar';
+import { keyFrame } from './chroma';
 import { blendWithAmplitude, shapeAt, shapeFromAmplitude } from '@/lib/visemes';
 
 export type FrameOptions = {
@@ -444,6 +445,23 @@ function drawClipVideo(
   if (el.readyState >= 2 && el.videoWidth) {
     media.cachePoster(clip.id, el);
     const cover = Math.max(width / el.videoWidth, height / el.videoHeight);
+
+    // Fundo verde (avatar de IA) recortado no próprio navegador
+    if (clip.chroma?.enabled) {
+      const keyed = keyFrame(el, {
+        color: clip.chroma.color ?? 'verde',
+        tolerance: clip.chroma.tolerance,
+        softness: clip.chroma.softness,
+        spill: clip.chroma.spill,
+      });
+      if (keyed) {
+        // o canvas do recorte tem o mesmo enquadramento do vídeo: cobrimos a tela
+        const kCover = Math.max(width / keyed.width, height / keyed.height);
+        ctx.drawImage(keyed, (-keyed.width * kCover) / 2, (-keyed.height * kCover) / 2, keyed.width * kCover, keyed.height * kCover);
+        return;
+      }
+    }
+
     ctx.drawImage(el, (-el.videoWidth * cover) / 2, (-el.videoHeight * cover) / 2, el.videoWidth * cover, el.videoHeight * cover);
     return;
   }

@@ -157,6 +157,11 @@ export type Clip = {
   overlay?: { preset: string };
   sticker?: { preset: string; color: string };
   generator?: GeneratorProps;
+  /**
+   * Chroma key opcional (vídeo do avatar gerado por IA com fundo verde).
+   * Ausente = comportamento antigo, sem filtro.
+   */
+  chroma?: { enabled: boolean; color?: 'verde' | 'azul'; tolerance?: number; softness?: number; spill?: number };
   avatar?: {
     preset: string;
     /** envelope de volume (0..1 a cada 20 ms) — intensidade da fala */
