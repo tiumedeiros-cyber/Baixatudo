@@ -47,7 +47,9 @@ export type LipSyncOptions = {
   /** imagem estática do avatar (URL pública ou data URL) */
   imageUrl: string;
   /** áudio da narração (URL pública) */
-  audioUrl: string;
+  audioUrl?: string;
+  /** narração em vários trechos (o TTS quebra roteiros longos) — juntamos num arquivo */
+  audioUrls?: string[];
   /** força um Space específico */
   space?: string;
   /** coloca a foto sobre fundo #00FF00 (padrão: true) para o chroma key do editor */
@@ -93,7 +95,38 @@ function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promi
  * Sempre devolvemos um `File` com nome/extensão corretos — foi o que fez o
  * SadTalker aceitar a foto em vez de reclamar de caminho inválido.
  */
-async function toUploadable(url: string, baseName: string): Promise<File | Blob> {
+async function toUploadable(url: string, baseName: string, extraUrls: string[] = []): Promise<File | Blob> {
+  if (extraUrls.length) {
+    // vários trechos: junta os bytes em ordem (MP3/MP4 concatenam por quadros)
+    const parts: { bytes: ArrayBuffer; mime: string }[] = [];
+    for (const item of [url, ...extraUrls]) parts.push(await fetchParts(item, baseName));
+    const mime = parts[0].mime;
+    if (parts.every((part) => part.mime === mime)) {
+      const total = parts.reduce((acc, part) => acc + part.bytes.byteLength, 0);
+      if (total > MAX_ASSET_BYTES) throw new Error(`${baseName} é grande demais para o Space gratuito`);
+      const joined = new Uint8Array(total);
+      let offset = 0;
+      for (const part of parts) {
+        joined.set(new Uint8Array(part.bytes), offset);
+        offset += part.bytes.byteLength;
+      }
+      return makeFile(joined.buffer as ArrayBuffer, mime, baseName);
+    }
+    // formatos misturados: não arrisca juntar — usa o primeiro trecho
+    return makeFile(parts[0].bytes, parts[0].mime, baseName);
+  }
+  return fetchParts(url, baseName).then((part) => makeFile(part.bytes, part.mime, baseName));
+}
+
+/** Monta o arquivo com nome/extensão que o Gradio aceita (Blob puro não tem nome). */
+function makeFile(bytes: ArrayBuffer, mime: string, baseName: string): File | Blob {
+  const ext = EXT_BY_MIME[mime] ?? (mime.startsWith('audio/') ? 'mp3' : 'png');
+  if (typeof File === 'undefined') return new Blob([bytes], { type: mime });
+  return new File([bytes], `${baseName}.${ext}`, { type: mime });
+}
+
+/** Baixa/decodifica uma mídia e devolve bytes + mime. */
+async function fetchParts(url: string, baseName: string): Promise<{ bytes: ArrayBuffer; mime: string }> {
   const dataMatch = /^data:([^;,]+)?(;base64)?,([\s\S]*)$/.exec(url);
   let mime = '';
   let bytes: ArrayBuffer | null = null;
@@ -114,11 +147,7 @@ async function toUploadable(url: string, baseName: string): Promise<File | Blob>
 
   if (!bytes.byteLength) throw new Error(`${baseName} está vazio`);
   if (bytes.byteLength > MAX_ASSET_BYTES) throw new Error(`${baseName} é grande demais para o Space gratuito`);
-
-  const ext = EXT_BY_MIME[mime] ?? (mime.startsWith('audio/') ? 'mp3' : 'png');
-  const name = `${baseName}.${ext}`;
-  if (typeof File === 'undefined') return new Blob([bytes], { type: mime });
-  return new File([bytes], name, { type: mime });
+  return { bytes, mime };
 }
 
 /**
@@ -137,9 +166,7 @@ async function imageForSpace(imageUrl: string, greenScreen: boolean): Promise<Fi
     // fundo praticamente não separável (foto de ambiente): mantém a original
     if (removedPercent < 6) return original;
     const bytes = png.buffer.slice(png.byteOffset, png.byteOffset + png.byteLength) as ArrayBuffer;
-    return typeof File === 'undefined'
-      ? new Blob([bytes], { type: 'image/png' })
-      : new File([bytes], 'avatar.png', { type: 'image/png' });
+    return makeFile(bytes, 'image/png', 'avatar');
   } catch {
     // qualquer falha no recorte não impede a geração: vai a foto original
     return original;
@@ -182,7 +209,10 @@ export async function generateLipSyncVideo(options: LipSyncOptions): Promise<Lip
   if (process.env.AVATAR_LIPSYNC_ENABLED === 'false') {
     return { ok: false, error: 'Sincronização por IA desligada nas configurações.', tried: [] };
   }
-  if (!options.imageUrl || !options.audioUrl) {
+  const audioList = [options.audioUrl, ...(options.audioUrls ?? [])].filter(
+    (url): url is string => Boolean(url && url.trim()),
+  );
+  if (!options.imageUrl || !audioList.length) {
     return { ok: false, error: 'Envie a imagem do avatar e o áudio da narração.', tried: [] };
   }
 
@@ -199,7 +229,7 @@ export async function generateLipSyncVideo(options: LipSyncOptions): Promise<Lip
     status('Preparando a imagem do avatar e a narração…');
     media = await Promise.all([
       imageForSpace(options.imageUrl, options.greenScreen !== false),
-      toUploadable(options.audioUrl, 'narracao'),
+      toUploadable(audioList[0], 'narracao', audioList.slice(1)),
     ]);
   } catch (error) {
     return {

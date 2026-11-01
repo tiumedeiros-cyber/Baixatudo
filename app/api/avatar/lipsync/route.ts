@@ -66,7 +66,7 @@ export async function POST(request: Request) {
   const limit = rateLimit(`lipsync:${user.id}:${clientIp(request.headers)}`, 4, 60_000);
   if (!limit.ok) return NextResponse.json({ error: 'Aguarde um minuto antes de gerar outro vídeo.' }, { status: 429 });
 
-  let body: { imageUrl?: string; audioUrl?: string; space?: string; green?: boolean };
+  let body: { imageUrl?: string; audioUrl?: string; audioUrls?: string[]; space?: string; green?: boolean };
   try {
     body = (await request.json()) as typeof body;
   } catch {
@@ -83,15 +83,26 @@ export async function POST(request: Request) {
   } catch {
     /* noop */
   }
-  const imageUrl = resolveMediaUrl(body.imageUrl ?? '', s3Host ? [s3Host] : []);
-  const audioUrl = resolveMediaUrl(body.audioUrl ?? '', s3Host ? [s3Host] : []);
+  const extraHosts = s3Host ? [s3Host] : [];
+  const imageUrl = resolveMediaUrl(body.imageUrl ?? '', extraHosts);
+
+  // o TTS quebra roteiros longos em vários trechos: juntamos todos na ordem
+  const rawAudio = [
+    ...(Array.isArray(body.audioUrls) ? body.audioUrls : []),
+    ...(body.audioUrl ? [body.audioUrl] : []),
+  ]
+    .map((item) => resolveMediaUrl(item, extraHosts))
+    .filter((item): item is string => Boolean(item));
+  const audioUrls = [...new Set(rawAudio)];
+
   if (!imageUrl) return NextResponse.json({ error: 'Imagem do avatar inválida (use a foto do próprio sistema).' }, { status: 400 });
-  if (!audioUrl) return NextResponse.json({ error: 'Áudio da narração inválido.' }, { status: 400 });
+  if (!audioUrls.length) return NextResponse.json({ error: 'Áudio da narração inválido.' }, { status: 400 });
 
   const started = Date.now();
   const result = await generateLipSyncVideo({
     imageUrl,
-    audioUrl,
+    audioUrl: audioUrls[0],
+    audioUrls: audioUrls.slice(1),
     space: body.space,
     // fundo verde automático: é o que deixa o avatar "dentro" do cenário
     greenScreen: body.green !== false,

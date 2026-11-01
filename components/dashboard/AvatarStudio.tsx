@@ -187,7 +187,11 @@ export function AvatarStudio({
           const sync = await fetch('/api/avatar/lipsync', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ imageUrl: photo, audioUrl: data.segments[0].url }),
+            body: JSON.stringify({
+              imageUrl: photo,
+              // todos os trechos: roteiro longo vira vários áudios no TTS
+              audioUrls: data.segments.map((segment) => segment.url),
+            }),
           });
           const syncData = (await sync.json()) as { ok?: boolean; videoUrl?: string; error?: string };
           if (sync.ok && syncData.videoUrl) {
