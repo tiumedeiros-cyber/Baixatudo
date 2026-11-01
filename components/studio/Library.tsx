@@ -39,6 +39,8 @@ const TEXT_PRESETS: { name: string; text: Partial<Clip['text']> }[] = [
   { name: 'CTA', text: { content: 'SIGA PARA MAIS', fontSize: 64, weight: 800, gradient: '#a5b4fc,#22d3ee', animation: 'pop' } },
   { name: 'Neon', text: { content: 'NEON', fontSize: 110, weight: 900, color: '#22d3ee', shadow: true, stroke: 0, animation: 'pop' } },
   { name: 'Data', text: { content: '2026', fontSize: 160, weight: 900, fontFamily: 'Anton', color: '#ffffff', letterSpacing: 6 } },
+  { name: 'Legenda forte', text: { content: 'ELE JOGA DEMAIS', fontSize: 84, weight: 900, fontFamily: 'Anton', color: '#22c55e', stroke: 6, strokeColor: '#0b0f0a', letterSpacing: 1, animation: 'pop' } },
+  { name: 'Legenda branca', text: { content: 'ASSISTA ATÉ O FIM', fontSize: 76, weight: 900, fontFamily: 'Anton', color: '#ffffff', stroke: 7, strokeColor: '#111827', animation: 'fade' } },
 ];
 
 /** Copy de propaganda pronta — sem marcas registradas, no estilo de vitrine/oferta. */
