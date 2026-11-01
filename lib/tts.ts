@@ -117,34 +117,16 @@ async function edgeTts(text: string, lang: string, voice?: string) {
 export const CATALOG = VOICES;
 
 export const TTS_VOICES: { id: string; label: string; lang: string }[] = [
-  // Português (Brasil) — timbres realmente diferentes
-  { id: 'pt-BR-FranciscaNeural', label: 'Francisca · feminina adulta (Brasil)', lang: 'pt-BR' },
+  // Lista de reserva (usada só se a busca do catálogo real falhar).
+  { id: 'pt-BR-FranciscaNeural', label: 'Francisca · feminina (Brasil)', lang: 'pt-BR' },
+  { id: 'pt-BR-AntonioNeural', label: 'Antônio · masculina (Brasil)', lang: 'pt-BR' },
   { id: 'pt-BR-ThalitaMultilingualNeural', label: 'Thalita · jovem (Brasil)', lang: 'pt-BR' },
-  { id: 'pt-BR-BrendaNeural', label: 'Brenda · feminina suave (Brasil)', lang: 'pt-BR' },
-  { id: 'pt-BR-ElzaNeural', label: 'Elza · feminina madura (Brasil)', lang: 'pt-BR' },
-  { id: 'pt-BR-GiovannaNeural', label: 'Giovanna · feminina expressiva (Brasil)', lang: 'pt-BR' },
-  { id: 'pt-BR-ManuelaNeural', label: 'Manuela · feminina calorosa (Brasil)', lang: 'pt-BR' },
-  { id: 'pt-BR-AntonioNeural', label: 'Antônio · masculina adulta (Brasil)', lang: 'pt-BR' },
-  { id: 'pt-BR-DonatoNeural', label: 'Donato · masculina grave (Brasil)', lang: 'pt-BR' },
-  { id: 'pt-BR-FabioNeural', label: 'Fábio · masculina jovem (Brasil)', lang: 'pt-BR' },
-  { id: 'pt-BR-HumbertoNeural', label: 'Humberto · masculina madura (Brasil)', lang: 'pt-BR' },
-  { id: 'pt-BR-JulioNeural', label: 'Júlio · masculina firme (Brasil)', lang: 'pt-BR' },
-  { id: 'pt-BR-NicolauNeural', label: 'Nicolau · masculina séria (Brasil)', lang: 'pt-BR' },
-  { id: 'pt-BR-ValerioNeural', label: 'Valério · masculina profunda (Brasil)', lang: 'pt-BR' },
-  // Português (Portugal)
   { id: 'pt-PT-RaquelNeural', label: 'Raquel · feminina (Portugal)', lang: 'pt-PT' },
-  { id: 'pt-PT-DuarteNeural', label: 'Duarte · masculina (Portugal)', lang: 'pt-PT' },
-  // Inglês
   { id: 'en-US-AvaMultilingualNeural', label: 'Ava · feminina (inglês EUA)', lang: 'en-US' },
-  { id: 'en-US-EmmaMultilingualNeural', label: 'Emma · feminina jovem (inglês EUA)', lang: 'en-US' },
-  { id: 'en-US-AriaNeural', label: 'Aria · feminina expressiva (inglês EUA)', lang: 'en-US' },
-  { id: 'en-US-JennyNeural', label: 'Jenny · feminina neutra (inglês EUA)', lang: 'en-US' },
+  { id: 'en-US-EmmaMultilingualNeural', label: 'Emma · jovem (inglês EUA)', lang: 'en-US' },
   { id: 'en-US-AndrewMultilingualNeural', label: 'Andrew · masculina (inglês EUA)', lang: 'en-US' },
-  { id: 'en-US-BrianMultilingualNeural', label: 'Brian · masculina profunda (inglês EUA)', lang: 'en-US' },
-  { id: 'en-US-GuyNeural', label: 'Guy · masculina animada (inglês EUA)', lang: 'en-US' },
+  { id: 'en-US-BrianMultilingualNeural', label: 'Brian · profunda (inglês EUA)', lang: 'en-US' },
   { id: 'en-GB-SoniaNeural', label: 'Sonia · feminina (inglês UK)', lang: 'en-GB' },
-  { id: 'en-GB-RyanNeural', label: 'Ryan · masculina (inglês UK)', lang: 'en-GB' },
-  // Outros idiomas
   { id: 'es-ES-ElviraNeural', label: 'Elvira · feminina (espanhol)', lang: 'es-ES' },
   { id: 'es-MX-DaliaNeural', label: 'Dalia · feminina (espanhol MX)', lang: 'es-MX' },
   { id: 'fr-FR-DeniseNeural', label: 'Denise · feminina (francês)', lang: 'fr-FR' },

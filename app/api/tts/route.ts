@@ -3,6 +3,7 @@ import { getSessionUser } from '@/lib/auth';
 import { rateLimit } from '@/lib/rate-limit';
 import { synthesizeToStorage, TTS_VOICES, CATALOG } from '@/lib/tts';
 import { createHash } from 'node:crypto';
+import { edgeVoiceList } from '@/lib/edge-voices';
 import { VOICES } from '@/lib/catalog/voices';
 
 export const runtime = 'nodejs';
@@ -197,11 +198,21 @@ export async function GET(request: Request) {
     return NextResponse.json({ engine, results, voices }, { headers: { 'cache-control': 'no-store' } });
   }
 
+  // Catálogo real de vozes neurais (busca no serviço; cai na lista fixa se falhar).
+  let neuralVoices: { id: string; label: string; lang: string }[] = TTS_VOICES;
+  if (engine === 'edge') {
+    try {
+      neuralVoices = await edgeVoiceList();
+    } catch {
+      neuralVoices = TTS_VOICES;
+    }
+  }
+
   return NextResponse.json(
     {
       engine,
-      serverVoices: engine === 'edge' ? TTS_VOICES.filter((v) => v.lang === 'pt-BR').map((v) => v.id) : voices,
-      voices: engine === 'edge' ? TTS_VOICES : [],
+      serverVoices: engine === 'edge' ? neuralVoices.filter((v) => v.lang === 'pt-BR').map((v) => v.id) : voices,
+      voices: engine === 'edge' ? neuralVoices : [],
       catalog: CATALOG,
       languages: Array.from(new Set(VOICES.map((v) => v.lang))),
     },

@@ -230,13 +230,15 @@ export function TtsPanel({ projectId, onAdded }: { projectId: string; onAdded?: 
             }}
             className="w-full rounded-lg border border-white/10 bg-ink-900 px-1.5 py-1 text-[10px] text-white outline-none"
           >
-            {neuralVoices.length ? (
-              <optgroup label="Vozes neurais (timbres diferentes)">
-                {neuralVoices.map((v) => (
-                  <option key={v.id} value={v.id}>{v.label}</option>
-                ))}
+            {Array.from(new Set(neuralVoices.map((v) => v.lang))).map((locale) => (
+              <optgroup key={`neural-${locale}`} label={`Vozes neurais · ${locale}`}>
+                {neuralVoices
+                  .filter((v) => v.lang === locale)
+                  .map((v) => (
+                    <option key={v.id} value={v.id}>{v.label}</option>
+                  ))}
               </optgroup>
-            ) : null}
+            ))}
             {LOCALES.map((locale) => (
               <optgroup key={locale} label={locale}>
                 {VOICES.filter((v) => v.locale === locale).map((v) => (
