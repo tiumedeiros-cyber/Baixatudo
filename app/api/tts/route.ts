@@ -98,6 +98,25 @@ export async function GET(request: Request) {
     return NextResponse.json({ ok: out.every((r) => r.ok), results: out }, { headers: { 'cache-control': 'no-store' } });
   }
 
+  // Testa uma voz específica: /api/tts?probe=voice&id=pt-BR-BrendaNeural
+  if (url.searchParams.get('probe') === 'voice') {
+    const { edgeSynthesize } = await import('@/lib/edge-tts');
+    const id = url.searchParams.get('id') ?? 'pt-BR-FranciscaNeural';
+    const t0 = Date.now();
+    try {
+      const audio = await edgeSynthesize({ text: 'Olá, esta é a minha voz.', voice: id, timeoutMs: 12_000 });
+      return NextResponse.json(
+        { id, ok: true, ms: Date.now() - t0, bytes: audio.length, hash: createHash('sha1').update(audio).digest('hex').slice(0, 10) },
+        { headers: { 'cache-control': 'no-store' } },
+      );
+    } catch (err) {
+      return NextResponse.json(
+        { id, ok: false, ms: Date.now() - t0, detail: (err instanceof Error ? err.message : 'erro').slice(0, 160) },
+        { headers: { 'cache-control': 'no-store' } },
+      );
+    }
+  }
+
   // Testa várias vozes neurais e mostra que cada uma devolve um áudio diferente.
   if (url.searchParams.get('probe') === 'voices') {
     const { edgeSynthesize } = await import('@/lib/edge-tts');

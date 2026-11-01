@@ -50,6 +50,21 @@ export type EdgeSynthesisOptions = {
 
 /** Sintetiza o texto com uma voz neural do Edge e devolve o MP3. */
 export async function edgeSynthesize(opts: EdgeSynthesisOptions): Promise<Buffer> {
+  // O serviço às vezes derruba a conexão quando recebe várias seguidas:
+  // uma nova tentativa resolve sem aparecer erro para o usuário.
+  try {
+    return await synthesizeOnce(opts);
+  } catch (error) {
+    await new Promise((resolve) => setTimeout(resolve, 400));
+    try {
+      return await synthesizeOnce(opts);
+    } catch {
+      throw error;
+    }
+  }
+}
+
+async function synthesizeOnce(opts: EdgeSynthesisOptions): Promise<Buffer> {
   const voice = opts.voice;
   const text = opts.text.trim();
   if (!text) throw new Error('texto vazio');
