@@ -1,7 +1,7 @@
 'use client';
 import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Camera, Check, CloudUpload, Images, Link2, Loader2, Trash2 } from 'lucide-react';
+import { Camera, Check, CloudUpload, Download, Images, Link2, Loader2, Trash2 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { Button, Card } from '@/components/ui';
 import { deleteUserAsset, uploadUserAssetFallback } from '@/app/dashboard/actions';
@@ -333,13 +333,15 @@ export function Uploader({
           <h3 className="text-sm font-semibold text-white">Importar por link</h3>
         </div>
         <p className="mt-1 text-[11px] text-slate-400">
-          Cole o link de um arquivo ou de uma <strong className="text-white">pasta pública do Google Drive</strong>, do Dropbox ou um link direto. O download é feito no servidor e o arquivo entra na sua biblioteca.
+          Cole o link de um arquivo ou de uma <strong className="text-white">pasta pública do Google Drive</strong>, do Dropbox ou um link direto.
+            O download é feito no servidor e o arquivo entra na sua biblioteca. Aceita vídeo, imagem, áudio e
+            <strong className="text-white"> documentos (PDF, DOCX, XLSX, ZIP)</strong> — o tipo é detectado pelo conteúdo, não pela URL.
         </p>
         <div className="mt-3 flex flex-col gap-2 sm:flex-row">
           <input
             value={link}
             onChange={(e) => setLink(e.target.value)}
-            placeholder="https://drive.google.com/drive/folders/…"
+            placeholder="https://drive.google.com/file/d/… (arquivo) ou /drive/folders/… (pasta)"
             inputMode="url"
             className="min-w-0 flex-1 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-white placeholder:text-slate-500 focus:border-brand-400/50 focus:outline-none"
           />
@@ -371,6 +373,16 @@ export function Uploader({
               <p className="truncate text-xs font-semibold text-white">{a.name}</p>
               <p className="text-[11px] text-slate-500">{bytes(Number(a.size_bytes))} · {formatDate(a.created_at)}</p>
             </div>
+            <a
+              href={a.url}
+              download={a.name}
+              target="_blank"
+              rel="noreferrer"
+              title={a.type === 'document' ? 'Abrir/baixar documento' : 'Baixar arquivo'}
+              className="rounded-lg p-1.5 text-slate-500 hover:bg-brand-500/10 hover:text-brand-200"
+            >
+              <Download className="h-3.5 w-3.5" />
+            </a>
             <button onClick={() => remove(a)} className="rounded-lg p-1.5 text-slate-500 hover:bg-rose-500/10 hover:text-rose-300">
               <Trash2 className="h-3.5 w-3.5" />
             </button>

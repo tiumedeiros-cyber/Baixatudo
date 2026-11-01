@@ -5,12 +5,16 @@
  * Dropbox, OneDrive e pastas públicas do Drive (lista best-effort).
  * O download acontece no servidor — nada de CORS no celular do cliente.
  */
+export type MediaKind = 'video' | 'image' | 'audio' | 'document';
+
 export type FetchedMedia = {
   ok: true;
   buffer: Buffer;
   contentType: string;
   filename: string;
   finalUrl: string;
+  /** tipo detectado pelo conteúdo (não pela URL) */
+  mediaType: MediaKind;
 };
 
 export type FetchFailure = { ok: false; error: string; status?: number };
@@ -93,7 +97,7 @@ function guessName(kind: string, contentType: string) {
   return `importado-${Date.now()}.${ext}`;
 }
 
-export function mediaTypeOf(contentType: string, name = ''): 'video' | 'image' | 'audio' | null {
+export function mediaTypeOf(contentType: string, name = ''): 'video' | 'image' | 'audio' | 'document' | null {
   if (contentType.startsWith('video/')) return 'video';
   if (contentType.startsWith('image/')) return 'image';
   if (contentType.startsWith('audio/')) return 'audio';
@@ -101,7 +105,56 @@ export function mediaTypeOf(contentType: string, name = ''): 'video' | 'image' |
   if (['mp4', 'mov', 'webm', 'mkv', 'm4v'].includes(ext)) return 'video';
   if (['mp3', 'wav', 'm4a', 'ogg', 'aac', 'flac'].includes(ext)) return 'audio';
   if (['jpg', 'jpeg', 'png', 'webp', 'gif', 'avif', 'heic'].includes(ext)) return 'image';
+  // documentos: o Drive do cliente costuma ter PDF, planilha, roteiro…
+  if (
+    contentType === 'application/pdf' ||
+    contentType.startsWith('text/') ||
+    /word|excel|powerpoint|zip|rar|7z|octet-stream/.test(contentType) ||
+    ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'csv', 'zip', 'rar', '7z', 'srt', 'vtt'].includes(ext)
+  ) {
+    return 'document';
+  }
   return null;
+}
+
+/** Descobre o tipo real pelo conteúdo (o Drive manda application/octet-stream). */
+export function sniffType(buffer: Buffer): 'image' | 'audio' | 'video' | 'document' | null {
+  const b = buffer;
+  if (b.length < 4) return null;
+  if (b[0] === 0x25 && b[1] === 0x50 && b[2] === 0x44 && b[3] === 0x46) return 'document'; // %PDF
+  if (b[0] === 0x50 && b[1] === 0x4b) {
+    // zip/docx/xlsx/pptx
+    return 'document';
+  }
+  if (b[0] === 0xff && b[1] === 0xd8) return 'image';
+  if (b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47) return 'image';
+  if (b.subarray(0, 4).toString('ascii') === 'RIFF') {
+    const kind = b.subarray(8, 12).toString('ascii');
+    if (kind === 'WEBP' && b.length > 12) return 'image';
+    if (kind === 'WAVE') return 'audio';
+  }
+  if (b.subarray(0, 4).toString('ascii') === 'OggS') return 'audio';
+  if (b.subarray(0, 3).toString('ascii') === 'ID3') return 'audio';
+  if (b[0] === 0xff && (b[1] & 0xe0) === 0xe0) return 'audio';
+  if (b.subarray(4, 8).toString('ascii') === 'ftyp') {
+    const brand = b.subarray(8, 12).toString('ascii');
+    if (/M4A|M4B/.test(brand)) return 'audio';
+    if (/avif|avis/.test(brand)) return 'image';
+    return 'video';
+  }
+  if (b[0] === 0x1a && b[1] === 0x45 && b[2] === 0xdf && b[3] === 0xa3) return 'video'; // matroska/webm
+  if (b.subarray(0, 4).toString('ascii') === 'GIF8') return 'image';
+  return null;
+}
+
+/** Extensão coerente com o tipo detectado. */
+export function extensionFor(type: string, contentType: string, name: string) {
+  const fromName = name.split('.').pop()?.toLowerCase() ?? '';
+  if (fromName && fromName.length <= 5) return fromName;
+  if (type === 'document') return contentType.includes('pdf') ? 'pdf' : 'bin';
+  if (type === 'audio') return 'mp3';
+  if (type === 'image') return 'jpg';
+  return 'mp4';
 }
 
 
@@ -229,6 +282,7 @@ export async function diagnoseDrive(rawUrl: string) {
             const chunk = await reader.read();
             entry.firstBytes = chunk.value?.length ?? 0;
             entry.magic = chunk.value ? Buffer.from(chunk.value.slice(0, 12)).toString('hex') : '';
+            entry.detected = chunk.value ? sniffType(Buffer.from(chunk.value)) : null;
             await reader.cancel().catch(() => undefined);
           }
         } catch {
@@ -254,9 +308,9 @@ async function fetchDirect(url: string, maxBytes: number): Promise<FetchedMedia 
     const buffer = Buffer.from(await res.arrayBuffer());
     if (!buffer.length || buffer.length > maxBytes) return null;
     const filename = filenameFrom(res, guessName('direct', contentType));
-    const type = mediaTypeOf(contentType, filename);
+    const type = sniffType(buffer) ?? mediaTypeOf(contentType, filename);
     if (!type) return null;
-    return { ok: true, buffer, contentType, filename, finalUrl: res.url || url };
+    return { ok: true, buffer, contentType, filename, finalUrl: res.url || url, mediaType: type };
   } catch {
     return null;
   }
@@ -314,16 +368,35 @@ export async function fetchMedia(rawUrl: string, maxBytes = 500 * 1024 * 1024): 
     }
     if (buffer.length < 512) return { ok: false, error: 'O arquivo veio vazio.' };
 
+    const first = buffer.subarray(0, 512).toString('latin1');
+    if (/<html|<!doctype html/i.test(first) && kind !== 'direct') {
+      return { ok: false, error: 'O link devolveu uma página, não um arquivo. Confira se o arquivo está público.' };
+    }
+
     const filename = filenameFrom(res, guessName(kind, contentType));
-    const type = mediaTypeOf(contentType, filename);
-    if (!type) return { ok: false, error: 'O arquivo não é vídeo, imagem ou áudio reconhecido.' };
+    // o tipo real manda: o Drive entrega tudo como application/octet-stream
+    const sniffed = sniffType(buffer);
+    const type = sniffed ?? mediaTypeOf(contentType, filename);
+    if (!type) return { ok: false, error: 'Formato não reconhecido. Aceitamos vídeo, imagem, áudio e documentos (PDF, DOCX, XLSX, ZIP).' };
+
+    const finalType =
+      contentType && contentType !== 'application/octet-stream' && !contentType.includes('text/html')
+        ? contentType
+        : type === 'video'
+          ? 'video/mp4'
+          : type === 'audio'
+            ? 'audio/mpeg'
+            : type === 'image'
+              ? 'image/jpeg'
+              : contentType || 'application/octet-stream';
 
     return {
       ok: true,
       buffer,
-      contentType: contentType || (type === 'video' ? 'video/mp4' : type === 'audio' ? 'audio/mpeg' : 'image/jpeg'),
+      contentType: finalType,
       filename,
       finalUrl: res.url || target,
+      mediaType: type,
     };
   }
 

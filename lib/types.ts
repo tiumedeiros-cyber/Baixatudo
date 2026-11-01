@@ -234,7 +234,7 @@ export type UserAsset = {
   id: string;
   user_id: string;
   name: string;
-  type: 'video' | 'image' | 'audio';
+  type: 'video' | 'image' | 'audio' | 'document';
   url: string;
   storage_path: string | null;
   size_bytes: number;

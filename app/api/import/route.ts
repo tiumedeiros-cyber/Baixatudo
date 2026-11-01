@@ -3,7 +3,7 @@ import { getSessionUser } from '@/lib/auth';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { clientIp, rateLimit } from '@/lib/rate-limit';
 import { getSettings } from '@/lib/settings';
-import { driveFileId, fetchMedia, listDriveFolder, mediaTypeOf, safeFileName } from '@/lib/import-url';
+import { driveFileId, extensionFor, fetchMedia, listDriveFolder, mediaTypeOf, safeFileName } from '@/lib/import-url';
 import { getActiveSubscription } from '@/lib/auth';
 import { formatBytes, getQuota } from '@/lib/quota';
 import { providerRoom, effectiveFileLimitBytes } from '@/lib/storage-capacity';
@@ -63,7 +63,8 @@ export async function POST(request: Request) {
   const fetched = await fetchMedia(url, maxBytes);
   if (!fetched.ok) return NextResponse.json({ error: fetched.error }, { status: 422 });
 
-  const type = mediaTypeOf(fetched.contentType, fetched.filename);
+  // tipo detectado pelo conteúdo (PDF/DOCX do Drive vêm como octet-stream)
+  const type = fetched.mediaType ?? mediaTypeOf(fetched.contentType, fetched.filename);
   if (!type) return NextResponse.json({ error: 'Formato não suportado.' }, { status: 422 });
   if (fetched.buffer.length > quota.freeBytes) {
     return NextResponse.json(
@@ -73,7 +74,7 @@ export async function POST(request: Request) {
   }
 
   const base = safeFileName(body.name || fetched.filename).replace(/\.[a-z0-9]{2,5}$/i, '') || 'importado';
-  const ext = fetched.filename.match(/\.([a-z0-9]{2,5})$/i)?.[1]?.toLowerCase() || (type === 'video' ? 'mp4' : type === 'audio' ? 'mp3' : 'jpg');
+  const ext = extensionFor(type, fetched.contentType, fetched.filename);
   const path = `${user.id}/imports/${Date.now()}-${base.slice(0, 50)}.${ext}`;
 
   const stored = await storeFile(admin, settings, path, fetched.buffer, fetched.contentType || 'application/octet-stream');

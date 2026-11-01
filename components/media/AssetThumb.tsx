@@ -22,10 +22,15 @@ export function AssetThumb({
 }) {
   const isImage = type === 'image';
   const isVideo = type === 'video';
+  const isDocument = type === 'document';
 
   return (
     <div className={`relative overflow-hidden bg-ink-950 ${className}`}>
-      {isImage ? (
+      {isDocument ? (
+        <div className="flex h-full w-full items-center justify-center bg-white/5 text-[9px] font-bold uppercase text-slate-400">
+          {url.toLowerCase().includes('.pdf') ? 'PDF' : 'DOC'}
+        </div>
+      ) : isImage ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={url} alt="" className="h-full w-full object-cover" loading="lazy" />
       ) : isVideo ? (
