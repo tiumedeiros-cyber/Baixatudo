@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { SCENES } from '@/lib/catalog/avatars';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -13,11 +14,11 @@ const LIBRARY = [
 ];
 
 /** Fundos fotorrealistas dos avatares (usados no desenho e na exportação). */
-const SCENES = ['estudio', 'escritorio', 'praia', 'cidade', 'neon', 'sala', 'podcast', 'floresta'];
+const SCENE_FILES = SCENES.map((s) => s.id).filter((id) => id !== 'chroma' && id !== 'transparente');
 
 const FILES = [
   ...LIBRARY.map((f) => ({ path: `/library/${f}`, key: f, min: 1000 })),
-  ...SCENES.map((s) => ({ path: `/scenes/${s}.jpg`, key: `scenes/${s}.jpg`, min: 5000 })),
+  ...SCENE_FILES.map((s) => ({ path: `/scenes/${s}.jpg`, key: `scenes/${s}.jpg`, min: 5000 })),
 ];
 
 /** Confere, em produção, se os fundos da biblioteca estão sendo servidos pelo site. */
