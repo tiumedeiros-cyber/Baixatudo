@@ -236,8 +236,9 @@ export async function searchArtic(query: string, limit = 24): Promise<FreeItem[]
  * objeto precisa de uma consulta, então limitamos para não pesar a resposta.
  */
 export async function searchMet(query: string, limit = 12): Promise<FreeItem[]> {
+  // a rota /v1/search foi aposentada em 01/10/2026: agora é /v1.1 (paginada)
   const search = await getJson(
-    `https://collectionapi.metmuseum.org/public/collection/v1/search?hasImages=true&q=${encodeURIComponent(query)}`,
+    `https://collectionapi.metmuseum.org/public/collection/v1.1/search?hasImages=true&q=${encodeURIComponent(query)}&offset=0&limit=20`,
     12_000,
   );
   const ids = ((search?.objectIDs as number[]) ?? []).slice(0, Math.min(Math.max(limit, 1), 16));

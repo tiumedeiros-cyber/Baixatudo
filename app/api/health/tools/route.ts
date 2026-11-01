@@ -139,7 +139,19 @@ export async function GET(request: Request) {
   t0 = Date.now();
   try {
     const artic = await searchArtic('sunset', 3);
-    results.artic = { ok: artic.length > 0, ms: Date.now() - t0, detail: `${artic.length} obras` };
+    // baixa a primeira imagem de verdade: garante que a URL IIIF responde
+    let bytes = 0;
+    let type = '';
+    if (artic[0]?.url) {
+      const img = await fetch(artic[0].url, { signal: AbortSignal.timeout(12_000) });
+      type = img.headers.get('content-type') ?? '';
+      bytes = (await img.arrayBuffer()).byteLength;
+    }
+    results.artic = {
+      ok: artic.length > 0 && bytes > 5000 && type.startsWith('image/'),
+      ms: Date.now() - t0,
+      detail: `${artic.length} obras · ${bytes} bytes · ${type}`,
+    };
   } catch (err) {
     results.artic = { ok: false, ms: Date.now() - t0, detail: (err instanceof Error ? err.message : String(err)).slice(0, 200) };
   }
@@ -147,7 +159,12 @@ export async function GET(request: Request) {
   t0 = Date.now();
   try {
     const met = await searchMet('flower', 3);
-    results.met = { ok: met.length > 0, ms: Date.now() - t0, detail: `${met.length} obras` };
+    let metBytes = 0;
+    if (met[0]?.url) {
+      const img = await fetch(met[0].url, { signal: AbortSignal.timeout(12_000) });
+      metBytes = (await img.arrayBuffer()).byteLength;
+    }
+    results.met = { ok: met.length > 0 && metBytes > 5000, ms: Date.now() - t0, detail: `${met.length} obras · ${metBytes} bytes` };
   } catch (err) {
     results.met = { ok: false, ms: Date.now() - t0, detail: (err instanceof Error ? err.message : String(err)).slice(0, 200) };
   }
