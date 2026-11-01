@@ -3,6 +3,7 @@ import { useRef, useState } from 'react';
 import { AudioLines, Download, Eraser, FileText, Loader2, Play, Scissors, Sparkles } from 'lucide-react';
 import { Button, Card } from '@/components/ui';
 import { cn } from '@/lib/utils';
+import { loadWhisper } from '@/components/studio/whisper';
 
 /* ------------------------------- utilitários ------------------------------- */
 
@@ -407,6 +408,26 @@ async function renderSfx(recipe: SfxRecipe, seconds: number) {
 
 type Tab = 'sfx' | 'bg' | 'transcribe';
 
+/** Nenhuma etapa pode ficar "carregando para sempre". */
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(
+      () => reject(new Error(`${label} passou de ${Math.round(ms / 1000)}s. Tente um áudio mais curto ou verifique a internet.`)),
+      ms,
+    );
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (error) => {
+        clearTimeout(timer);
+        reject(error);
+      },
+    );
+  });
+}
+
 export function AiTools() {
   const [tab, setTab] = useState<Tab>('sfx');
   const [busy, setBusy] = useState('');
@@ -489,12 +510,16 @@ export function AiTools() {
   async function transcribe(file: File) {
     reset();
     setBusy('transcribe');
-    setProgress('Carregando o modelo de transcrição (só na primeira vez)…');
+    setProgress('Lendo o áudio…');
     try {
       const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
       const arrayBuffer = await file.arrayBuffer();
       const decodeCtx = new AudioCtx();
       const decoded = await decodeCtx.decodeAudioData(arrayBuffer);
+      if (decoded.duration > 900) {
+        throw new Error('Áudio muito longo (mais de 15 minutos). Divida em partes menores.');
+      }
+      // Whisper trabalha em 16 kHz mono: converter aqui deixa a transcrição rápida.
       const targetRate = 16000;
       const frames = Math.ceil(decoded.duration * targetRate);
       const offline = new OfflineAudioContext(1, frames, targetRate);
@@ -503,73 +528,44 @@ export function AiTools() {
       source.connect(offline.destination);
       source.start(0);
       const rendered = await offline.startRendering();
+      void decodeCtx.close().catch(() => undefined);
+
+      setProgress('Carregando o modelo de transcrição…');
+      const transcriber = await withTimeout(loadWhisper(setProgress), 180_000, 'Carregar o modelo de transcrição');
+
       setProgress('Transcrevendo no seu dispositivo…');
-
-      const cdn = 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.7.5/+esm';
-      const mod = (await (new Function('u', 'return import(u)') as (u: string) => Promise<Record<string, unknown>>)(cdn)) as {
-        pipeline: (task: string, model: string, options?: Record<string, unknown>) => Promise<unknown>;
-      };
-      const loadModel = mod.pipeline as unknown as (
-        task: string,
-        model: string,
-        options?: Record<string, unknown>,
-      ) => Promise<(audio: Float32Array, options?: Record<string, unknown>) => Promise<{ text: string; chunks?: Array<{ timestamp: [number, number]; text: string }> }>>;
-      const withTimeout = async <T,>(promise: Promise<T>, ms: number, label: string): Promise<T> => {
-        let timer: ReturnType<typeof setTimeout> | undefined;
-        try {
-          return await Promise.race([
-            promise,
-            new Promise<T>((_, reject) => {
-              timer = setTimeout(() => reject(new Error(`${label} demorou mais de ${Math.round(ms / 1000)}s. Verifique a internet e tente um áudio mais curto.`)), ms);
-            }),
-          ]);
-        } finally {
-          if (timer) clearTimeout(timer);
-        }
-      };
-      const transcriber = await withTimeout(
-        loadModel('automatic-speech-recognition', 'Xenova/whisper-tiny', {
-          dtype: 'q8',
-          progress_callback: (info: { status?: string; progress?: number; file?: string }) => {
-            if (info?.status === 'progress' && typeof info.progress === 'number') {
-              setProgress(`Baixando o modelo… ${Math.round(info.progress)}%`);
-            } else if (info?.status === 'ready') {
-              setProgress('Modelo pronto, transcrevendo…');
-            }
-          },
-        }),
-        120_000,
-        'Baixar o modelo de transcrição',
-      );
-
       const result = await withTimeout(
         transcriber(rendered.getChannelData(0), {
-        language: 'portuguese',
-        task: 'transcribe',
-        chunk_length_s: 30,
-        stride_length_s: 5,
-        return_timestamps: true,
+          language: 'portuguese',
+          task: 'transcribe',
+          chunk_length_s: 30,
+          stride_length_s: 5,
+          return_timestamps: true,
         }),
-        180_000,
+        300_000,
         'A transcrição',
       );
 
-      setTranscript(result.text?.trim() ?? '');
-      const chunks = result.chunks ?? [];
+      const text = result.text?.trim() ?? '';
+      if (!text) throw new Error('Não encontrei fala neste áudio. Verifique se o arquivo tem voz.');
+      setTranscript(text);
+      const chunks = (result.chunks ?? []).filter((chunk) => chunk.text.trim().length > 0);
       const toTime = (value: number) => {
         const total = Math.max(0, value);
         const h = String(Math.floor(total / 3600)).padStart(2, '0');
         const m = String(Math.floor((total % 3600) / 60)).padStart(2, '0');
-        const s = String(Math.floor(total % 60)).padStart(2, '0');
+        const sec = String(Math.floor(total % 60)).padStart(2, '0');
         const ms = String(Math.round((total % 1) * 1000)).padStart(3, '0');
-        return `${h}:${m}:${s},${ms}`;
+        return `${h}:${m}:${sec},${ms}`;
       };
       setSrt(
         chunks
-          .map((chunk, index) => `${index + 1}\n${toTime(chunk.timestamp[0])} --> ${toTime(chunk.timestamp[1])}\n${chunk.text.trim()}\n`)
+          .map((chunk, index) => `${index + 1}\n${toTime(chunk.timestamp[0])} --> ${toTime(chunk.timestamp[1] ?? chunk.timestamp[0] + 3)}\n${chunk.text.trim()}\n`)
           .join('\n'),
       );
-      setMessage('Transcrição pronta — baixe o .srt e importe no editor.');
+      setMessage(
+        `Transcrição pronta: ${text.split(/\s+/).length} palavras e ${chunks.length} trechos com tempo. Baixe o .srt ou copie o texto.`,
+      );
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Falha na transcrição. Tente um áudio mais curto.');
     } finally {

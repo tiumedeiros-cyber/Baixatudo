@@ -5,7 +5,7 @@ import type { Clip } from '@/lib/types';
 import { useStudio } from './store';
 import { drawFrame } from './render';
 import { media } from './media';
-import { threePool } from './three';
+import { primeThree, threePool } from './three';
 import { audioEngine } from './audio';
 import { cn } from '@/lib/utils';
 import { buildProjectJson, buildXmeml, downloadText } from '@/lib/timeline-io';
@@ -110,6 +110,17 @@ function ExportDialog({ maxQuality, onClose }: { maxQuality: number; onClose: ()
     audioEngine.stopExportCapture();
   }, []);
 
+  /** Garante o Three.js carregado antes de exportar cena com objeto 3D. */
+  async function ensureThree(clips: Clip[]) {
+    if (clips.some((clip) => clip.kind === 'object3d')) {
+      try {
+        await primeThree();
+      } catch {
+        /* sem WebGL: o frame desenha o placeholder */
+      }
+    }
+  }
+
   async function startVideoExport() {
     if (format === 'gif') {
       await startGifExport();
@@ -122,6 +133,7 @@ function ExportDialog({ maxQuality, onClose }: { maxQuality: number; onClose: ()
       setError('Adicione ao menos um clipe na timeline antes de exportar.');
       return;
     }
+    await ensureThree(s.clips);
     const targetHeight = Math.min(quality, maxQuality);
     const scale = targetHeight / s.height;
     const width = Math.round((s.width * scale) / 2) * 2;
@@ -219,6 +231,7 @@ function ExportDialog({ maxQuality, onClose }: { maxQuality: number; onClose: ()
       setError('Adicione ao menos um clipe na timeline antes de exportar.');
       return;
     }
+    await ensureThree(s.clips);
     cancelRef.current = false;
     setPhase('processing');
     setProgress(0);

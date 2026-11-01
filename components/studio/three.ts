@@ -1,18 +1,46 @@
 'use client';
-import * as THREE from 'three';
+
+/**
+ * Three.js só é baixado quando existe algum objeto 3D na cena.
+ * Antes ele entrava no pacote inicial do editor (~600 kB) e atrasava a abertura.
+ */
+type ThreeModule = typeof import('three');
+let THREE: ThreeModule | null = null;
+let pending: Promise<ThreeModule> | null = null;
+
+/** Começa a carregar o Three.js em segundo plano. */
+export function primeThree(): Promise<ThreeModule> {
+  if (THREE) return Promise.resolve(THREE);
+  if (!pending) {
+    pending = import('three').then((mod) => {
+      THREE = mod;
+      pending = null;
+      return mod;
+    });
+  }
+  return pending;
+}
+
+export function threeReady() {
+  return THREE !== null;
+}
 
 type Entry = {
-  renderer: THREE.WebGLRenderer;
-  scene: THREE.Scene;
-  camera: THREE.PerspectiveCamera;
-  mesh: THREE.Mesh;
+  renderer: import('three').WebGLRenderer;
+  scene: import('three').Scene;
+  camera: import('three').PerspectiveCamera;
+  mesh: import('three').Mesh;
   canvas: HTMLCanvasElement;
 };
 
 export class ThreePool {
   private entries = new Map<string, Entry>();
 
-  get(shape: string, color: string): Entry {
+  get(shape: string, color: string): Entry | null {
+    if (!THREE) {
+      void primeThree();
+      return null;
+    }
     const key = `${shape}:${color}`;
     const existing = this.entries.get(key);
     if (existing) return existing;
@@ -28,7 +56,7 @@ export class ThreePool {
     const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
     camera.position.set(0, 0, 4.2);
 
-    let geometry: THREE.BufferGeometry;
+    let geometry: import('three').BufferGeometry;
     switch (shape) {
       case 'sphere':
         geometry = new THREE.SphereGeometry(1.2, 48, 48);
@@ -71,8 +99,9 @@ export class ThreePool {
     return entry;
   }
 
-  render(shape: string, color: string, time: number, spin: number, rx: number, ry: number) {
+  render(shape: string, color: string, time: number, spin: number, rx: number, ry: number): HTMLCanvasElement | null {
     const entry = this.get(shape, color);
+    if (!entry) return null;
     entry.mesh.rotation.x = rx + time * spin * 0.6;
     entry.mesh.rotation.y = ry + time * spin;
     entry.renderer.render(entry.scene, entry.camera);
@@ -80,12 +109,13 @@ export class ThreePool {
   }
 
   dispose() {
+    const module = THREE;
     this.entries.forEach((e) => {
       e.renderer.dispose();
       e.scene.traverse((o) => {
-        if (o instanceof THREE.Mesh) {
+        if (module && o instanceof module.Mesh) {
           o.geometry.dispose();
-          (o.material as THREE.Material).dispose();
+          (o.material as import('three').Material).dispose();
         }
       });
     });

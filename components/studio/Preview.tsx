@@ -5,7 +5,7 @@ import { useStudio } from './store';
 import { drawFrame } from './render';
 import { media, seekVideo } from './media';
 import { audioEngine } from './audio';
-import { threePool } from './three';
+import { primeThree, threePool } from './three';
 import { timecode, cn } from '@/lib/utils';
 import type { Clip } from '@/lib/types';
 
@@ -86,6 +86,7 @@ export function Preview() {
   const wrapRef = useRef<HTMLDivElement>(null);
   const holdingRef = useRef(false);
   const warnedRef = useRef(false);
+  const primedRef = useRef(false);
   const dragRef = useRef<{ startX: number; startY: number; x: number; y: number; id: string } | null>(null);
   const [muted, setMuted] = useState(false);
   const width = useStudio((s) => s.width);
@@ -131,6 +132,12 @@ export function Preview() {
 
       const time = useStudio.getState().playhead;
       syncMedia(time, useStudio.getState().playing);
+
+      // se a cena tem objeto 3D, garante o Three.js carregado (sem travar a abertura)
+      if (!primedRef.current && useStudio.getState().clips.some((c) => c.kind === 'object3d')) {
+        primedRef.current = true;
+        void primeThree();
+      }
 
       // limpa elementos de clipes apagados/cortados (a cada ~2 s)
       if (now - lastPrune > 2000) {

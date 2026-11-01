@@ -35,6 +35,7 @@ export async function POST(request: Request) {
 
   try {
     const sharp = (await import('sharp')).default;
+    const { removeBackground } = await import('@/lib/cutout');
     const { data, info } = await sharp(input)
       .rotate()
       .resize({ width: 1800, height: 1800, fit: 'inside', withoutEnlargement: true })
@@ -43,52 +44,8 @@ export async function POST(request: Request) {
       .toBuffer({ resolveWithObject: true });
 
     const { width, height, channels } = info;
-    const total = width * height;
-    const visited = new Uint8Array(total);
-    const queue = new Int32Array(total);
-    let head = 0;
-    let tail = 0;
-
-    const isBackground = (index: number) => {
-      const offset = index * channels;
-      const r = data[offset];
-      const g = data[offset + 1];
-      const b = data[offset + 2];
-      const min = Math.min(r, g, b);
-      const max = Math.max(r, g, b);
-      return min >= 255 - tolerance && max - min <= Math.max(26, tolerance / 2);
-    };
-
-    const push = (index: number) => {
-      if (index < 0 || index >= total || visited[index]) return;
-      visited[index] = 1;
-      if (!isBackground(index)) return;
-      queue[tail++] = index;
-    };
-
-    for (let x = 0; x < width; x += 1) {
-      push(x);
-      push((height - 1) * width + x);
-    }
-    for (let y = 0; y < height; y += 1) {
-      push(y * width);
-      push(y * width + (width - 1));
-    }
-
-    while (head < tail) {
-      const index = queue[head++];
-      const offset = index * channels;
-      data[offset + 3] = 0; // transparente
-      const x = index % width;
-      const y = (index - x) / width;
-      if (x > 0) push(index - 1);
-      if (x < width - 1) push(index + 1);
-      if (y > 0) push(index - width);
-      if (y < height - 1) push(index + width);
-    }
-
-    const transparent = tail;
-    const png = await sharp(data, { raw: { width, height, channels } }).png({ compressionLevel: 9 }).toBuffer();
+    const cut = removeBackground(Buffer.from(data), width, height, channels, tolerance);
+    const png = await sharp(cut.data, { raw: { width, height, channels } }).png({ compressionLevel: 9 }).toBuffer();
 
     return NextResponse.json({
       ok: true,
@@ -96,7 +53,8 @@ export async function POST(request: Request) {
       bytes: png.length,
       width,
       height,
-      removedPercent: Math.round((transparent / total) * 100),
+      removedPercent: cut.removedPercent,
+      background: `rgb(${cut.medianColor.join(',')})`,
     });
   } catch (err) {
     return NextResponse.json(

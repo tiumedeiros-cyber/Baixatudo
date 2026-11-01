@@ -716,8 +716,10 @@ export function drawFrame(opts: FrameOptions) {
       const obj = clip.object3d ?? { shape: 'box', color: '#818cf8', metalness: 0.4, spin: 0.6 };
       try {
         const canvas = three.render(obj.shape, obj.color, local, obj.spin, rotX, rotY);
-        const size = height * 0.7;
-        ctx.drawImage(canvas, -size / 2, -size / 2, size, size);
+        if (canvas) {
+          const size = height * 0.7;
+          ctx.drawImage(canvas, -size / 2, -size / 2, size, size);
+        }
       } catch {
         // WebGL indisponível (alguns navegadores/dispositivos antigos): desenha um placeholder.
         const size = height * 0.5;
