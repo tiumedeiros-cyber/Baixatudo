@@ -7,7 +7,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
  * no banco (migration 0007). Assim a checagem é uma leitura de uma linha —
  * não um `sum()` na tabela de arquivos — e escala com muitos usuários.
  *
- * O conteúdo do sistema (catalogo de assets, avatares, cenas, vozes, fontes)
+ * O conteúdo do sistema (catálogo de assets, cenas, vozes e fontes)
  * NÃO fica no Supabase: está no código do app. Só o que o usuário envia ocupa
  * storage, e quando ele apaga o arquivo o contador volta sozinho.
  */

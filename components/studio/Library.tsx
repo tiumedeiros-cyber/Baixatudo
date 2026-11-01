@@ -17,7 +17,6 @@ import {
   Search,
   Sparkles,
   Type,
-  UserRound,
   Upload,
   Wand2,
   Zap,
@@ -29,8 +28,6 @@ import { presetDuration } from './audio';
 import { TtsPanel } from './TtsPanel';
 import { parseTimelineFile } from '@/lib/timeline-io';
 import { AssetThumb } from '@/components/media/AssetThumb';
-import { AvatarThumb } from '@/components/media/AvatarThumb';
-import { AVATARS } from '@/lib/catalog/avatars';
 import type { Asset, Clip, UserAsset } from '@/lib/types';
 
 const TEXT_PRESETS: { name: string; text: Partial<Clip['text']> }[] = [
@@ -60,7 +57,6 @@ const AD_TEXT: { name: string; text: Partial<Clip['text']> }[] = [
 
 const TABS = [
   { id: 'elements', label: 'Elementos', icon: Sparkles },
-  { id: 'avatars', label: 'Avatares', icon: UserRound },
   { id: 'files', label: 'Arquivos', icon: ImageIcon },
   { id: 'text', label: 'Texto', icon: Type },
   { id: 'object3d', label: '3D', icon: Boxes },
@@ -234,21 +230,7 @@ export function Library({
     });
   }
 
-  function addAvatar(presetId: string) {
-    const preset = AVATARS.find((a) => a.id === presetId) ?? AVATARS[0];
-    const s = useStudio.getState();
-    const trackId = targetTrack('avatar');
-    const id = s.addClip({
-      kind: 'avatar',
-      src: 'avatar',
-      name: `Avatar ${preset.name}`,
-      trackId,
-      start: s.playhead,
-      duration: 6,
-      avatar: { preset: preset.id, mouth: [], intensity: 1 },
-    } as never);
-    useStudio.getState().select(id);
-  }
+
 
   function dragPayload(e: React.DragEvent, asset: Asset) {
     const kind = assetKind(asset);
@@ -503,32 +485,6 @@ export function Library({
           )
         ) : null}
 
-        {/* AVATARES */}
-        {tab === 'avatars' ? (
-          <div className="space-y-2">
-            <p className="text-[10px] leading-relaxed text-slate-500">
-              {AVATARS.length} avatares falantes. A boca acompanha o áudio da narração no preview e na exportação.
-            </p>
-            <div className="grid grid-cols-2 gap-2">
-              {AVATARS.map((a) => (
-                <button
-                  key={a.id}
-                  onClick={() => addAvatar(a.id)}
-                  className="group overflow-hidden rounded-lg border border-white/8 bg-white/[0.03] text-left transition hover:border-brand-400/50"
-                >
-                  <AvatarThumb preset={a.id} className="w-full" rounded="rounded-none" />
-                  <span className="block truncate px-1.5 py-1 text-[10px] font-semibold text-white">{a.name}</span>
-                  <span className="block truncate px-1.5 pb-1 text-[8px] text-slate-500">{a.role}</span>
-                </button>
-              ))}
-            </div>
-            <p className="rounded-lg border border-brand-400/20 bg-brand-500/10 p-2 text-[9px] leading-relaxed text-brand-100">
-              Para um vídeo completo com narração e legendas automáticas, use <strong>Avatares falantes</strong> no menu do painel.
-            </p>
-          </div>
-        ) : null}
-
-        {/* TEXTO */}
         {tab === 'text' ? (
           <div className="space-y-3">
             <p className="text-[10px] uppercase tracking-wider text-slate-500">Copy de propaganda</p>

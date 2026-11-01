@@ -400,7 +400,7 @@ function ExportDialog({ maxQuality, onClose }: { maxQuality: number; onClose: ()
           <label className="mt-3 flex cursor-pointer items-start gap-2 rounded-xl border border-white/10 bg-ink-950 px-3 py-2">
             <input type="checkbox" checked={alpha} onChange={(e) => setAlpha(e.target.checked)} className="mt-0.5 accent-brand-500" />
             <span className="text-[10px] leading-relaxed text-slate-400">
-              <strong className="text-slate-200">Fundo transparente (alpha)</strong> — WebM VP9 com canal alfa, ideal para avatar
+              <strong className="text-slate-200">Fundo transparente (alpha)</strong> — WebM VP9 com canal alfa, ideal para recortes
               “sem fundo” sobre outro vídeo. MP4 e GIF não guardam transparência.
             </span>
           </label>

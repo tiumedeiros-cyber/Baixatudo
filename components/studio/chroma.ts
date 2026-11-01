@@ -1,7 +1,7 @@
 /**
  * Chroma key em tempo real no navegador (custo zero de servidor).
  *
- * Usado quando o vídeo do avatar chega de um serviço de IA com fundo verde:
+ * Usado quando um vídeo importado chega com fundo verde:
  * o quadro é recortado num canvas fora de tela e o fundo do "Cenário" que já
  * existe no editor aparece por baixo. Se o filtro estiver desligado, o render
  * desenha o vídeo como sempre — nada muda para quem não usa.

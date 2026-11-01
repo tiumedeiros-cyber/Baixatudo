@@ -1,14 +1,4 @@
 'use client';
-import {
-  AVATARS,
-  EXPRESSIONS,
-  FRAMINGS,
-  POSES,
-  SCENES,
-  avatarById,
-  encodeAvatar,
-  withScene,
-} from '@/lib/catalog/avatars';
 import { useMemo, useState } from 'react';
 import {
   AudioLines,
@@ -21,7 +11,6 @@ import {
   Palette as PaletteIcon,
   RotateCw,
   Sliders,
-  UserRound,
   Sparkles,
   Trash2,
   Type,
@@ -62,10 +51,9 @@ const STICKERS = [
   ['frame', 'Moldura'],
 ] as const;
 
-type SectionId = 'transform' | 'style' | 'text' | 'object3d' | 'generator' | 'sticker' | 'avatar' | 'audio' | 'time' | 'transitions' | 'keyframes';
+type SectionId = 'transform' | 'style' | 'text' | 'object3d' | 'generator' | 'sticker' | 'audio' | 'time' | 'transitions' | 'keyframes';
 
 const SECTIONS: { id: SectionId; label: string; icon: typeof RotateCw }[] = [
-  { id: 'avatar', label: 'Avatar', icon: UserRound },
   { id: 'transform', label: 'Transformar', icon: RotateCw },
   { id: 'style', label: 'Cor & sombra', icon: Palette },
   { id: 'text', label: 'Texto', icon: Type },
@@ -230,7 +218,6 @@ export function Inspector() {
     if (s.id === 'generator') return isGenerator;
     if (s.id === 'object3d') return is3d && Boolean(clip.object3d);
     if (s.id === 'sticker') return isSticker;
-    if (s.id === 'avatar') return clip.kind === 'avatar';
     if (s.id === 'style') return !isAudio && !isText;
     if (s.id === 'transform') return !isAudio;
     return true;
@@ -239,37 +226,6 @@ export function Inspector() {
 
   const shadow = clip.shadow ?? { blur: 0, color: 'rgba(0,0,0,0.65)', offsetY: 0, offsetX: 0 };
   const patchShadow = (p: Partial<typeof shadow>) => patch({ shadow: { ...shadow, ...p } });
-
-  /** Ajusta um campo do avatar mantendo tudo o que já foi escolhido. */
-  function patchAvatar(extra: Partial<ReturnType<typeof avatarById>>) {
-    const cur = avatarById(clip?.avatar?.preset);
-    const preset = encodeAvatar({
-      base: cur.id,
-      photo: (() => {
-        const url = typeof cur.photo === 'object' ? cur.photo?.base : undefined;
-        return url && !url.startsWith('/avatars3d/') ? url : undefined;
-      })(),
-      photoMouth: cur.photoMouth,
-      name: cur.name !== avatarById(cur.id).name ? cur.name : undefined,
-      scene: cur.scene,
-      skin: cur.skin,
-      hairColor: cur.hairColor,
-      shirt: cur.shirt,
-      hair: cur.hair,
-      glasses: cur.glasses,
-      beard: cur.beard,
-      lipstick: cur.lipstick,
-      framing: cur.framing,
-      pose: cur.pose,
-      expression: cur.expression,
-      tattoos: cur.tattoos,
-      headphones: cur.headphones,
-      chain: cur.chain,
-      watch: cur.watch,
-      ...(extra as Record<string, never>),
-    } as Parameters<typeof encodeAvatar>[0]);
-    patch({ avatar: { preset, mouth: clip?.avatar?.mouth ?? [], visemes: clip?.avatar?.visemes, intensity: clip?.avatar?.intensity ?? 1 } });
-  }
 
   /** Gira 360° com dois keyframes (0 → 360). */
   function spin360(prop: 'rotation' | 'rotationX' | 'rotationY') {
@@ -729,126 +685,6 @@ export function Inspector() {
             </div>
             <Slider label="Fade in" value={clip.fadeIn} min={0} max={3} step={0.05} suffix="s" onChange={(v) => patch({ fadeIn: v })} />
             <Slider label="Fade out" value={clip.fadeOut} min={0} max={3} step={0.05} suffix="s" onChange={(v) => patch({ fadeOut: v })} />
-          </Card>
-        ) : null}
-
-        {current === 'avatar' && clip.kind === 'avatar' ? (
-          <Card title="Avatar falante" icon={<UserRound className="h-3 w-3" />}>
-            <div className="grid grid-cols-3 gap-1.5">
-              {AVATARS.map((a) => (
-                <button
-                  key={a.id}
-                  onClick={() =>
-                    patch({
-                      avatar: { preset: withScene(a.id, avatarById(clip.avatar?.preset).scene ?? 'estudio'), mouth: clip.avatar?.mouth ?? [],
-                      visemes: clip.avatar?.visemes, intensity: clip.avatar?.intensity ?? 1 },
-                      name: `Avatar ${a.name}`,
-                    })
-                  }
-                  className={cn(
-                    'rounded-lg border px-1 py-1 text-[9px] font-semibold transition',
-                    avatarById(clip.avatar?.preset).id === a.id
-                      ? 'border-brand-400 bg-brand-500/20 text-white'
-                      : 'border-white/10 text-slate-300 hover:border-brand-400/40',
-                  )}
-                >
-                  {a.name}
-                </button>
-              ))}
-            </div>
-            <div className="mt-2">
-              <label className="text-[9px] font-semibold uppercase tracking-wider text-slate-500">Cenário do avatar</label>
-              <select
-                value={avatarById(clip.avatar?.preset).scene ?? 'estudio'}
-                onChange={(e) =>
-                  patch({
-                    avatar: {
-                      preset: withScene(clip.avatar?.preset ?? 'theo', e.target.value as (typeof SCENES)[number]['id']),
-                      mouth: clip.avatar?.mouth ?? [],
-                      visemes: clip.avatar?.visemes,
-                      intensity: clip.avatar?.intensity ?? 1,
-                    },
-                  })
-                }
-                className="mt-1 w-full rounded-lg border border-white/10 bg-ink-900 px-2 py-1.5 text-[11px] text-white outline-none focus:border-brand-400/60"
-              >
-                {SCENES.map((scene) => (
-                  <option key={scene.id} value={scene.id}>{scene.label}</option>
-                ))}
-              </select>
-            </div>
-            <div className="mt-2 grid grid-cols-3 gap-1.5">
-              <div>
-                <label className="text-[9px] font-semibold uppercase tracking-wider text-slate-500">Plano</label>
-                <select
-                  value={avatarById(clip.avatar?.preset).framing ?? 'rosto'}
-                  onChange={(e) => patchAvatar({ framing: e.target.value as (typeof FRAMINGS)[number]['id'] })}
-                  className="mt-1 w-full rounded-lg border border-white/10 bg-ink-900 px-1.5 py-1.5 text-[10px] text-white outline-none focus:border-brand-400/60"
-                >
-                  {FRAMINGS.map((f) => (
-                    <option key={f.id} value={f.id}>{f.label}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="text-[9px] font-semibold uppercase tracking-wider text-slate-500">Pose</label>
-                <select
-                  value={avatarById(clip.avatar?.preset).pose ?? 'neutro'}
-                  onChange={(e) => patchAvatar({ pose: e.target.value as (typeof POSES)[number]['id'] })}
-                  className="mt-1 w-full rounded-lg border border-white/10 bg-ink-900 px-1.5 py-1.5 text-[10px] text-white outline-none focus:border-brand-400/60"
-                >
-                  {POSES.map((p) => (
-                    <option key={p.id} value={p.id}>{p.label}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="text-[9px] font-semibold uppercase tracking-wider text-slate-500">Expressão</label>
-                <select
-                  value={avatarById(clip.avatar?.preset).expression ?? 'sorriso'}
-                  onChange={(e) => patchAvatar({ expression: e.target.value as (typeof EXPRESSIONS)[number]['id'] })}
-                  className="mt-1 w-full rounded-lg border border-white/10 bg-ink-900 px-1.5 py-1.5 text-[10px] text-white outline-none focus:border-brand-400/60"
-                >
-                  {EXPRESSIONS.map((x) => (
-                    <option key={x.id} value={x.id}>{x.label}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-            <div className="mt-2 flex flex-wrap gap-2 text-[10px] text-slate-300">
-              {([
-                ['Tatuagens', 'tattoos'],
-                ['Headset', 'headphones'],
-                ['Corrente', 'chain'],
-                ['Relógio', 'watch'],
-              ] as const).map(([label, key]) => (
-                <label key={key} className="flex items-center gap-1">
-                  <input
-                    type="checkbox"
-                    checked={Boolean(avatarById(clip.avatar?.preset)[key])}
-                    onChange={(e) => patchAvatar({ [key]: e.target.checked })}
-                    className="accent-brand-500"
-                  />
-                  {label}
-                </label>
-              ))}
-            </div>
-            <Slider
-              label="Abertura da boca"
-              value={Math.round((clip.avatar?.intensity ?? 1) * 100)}
-              min={20}
-              max={180}
-              suffix="%"
-              onChange={(v) => patch({ avatar: { preset: clip.avatar?.preset ?? 'theo', mouth: clip.avatar?.mouth ?? [],
-                      visemes: clip.avatar?.visemes, intensity: v / 100 } })}
-            />
-            <p className="text-[9px] leading-relaxed text-slate-500">
-              {clip.avatar?.visemes?.length
-                ? `Boca sincronizada letra por letra com a narração (${clip.avatar.visemes.length} visemas).`
-                : clip.avatar?.mouth?.length
-                ? 'Boca sincronizada com a narração deste projeto.'
-                : 'Sem áudio vinculado: a boca anima sozinha. Use “Avatares falantes” no painel para gerar com narração sincronizada.'}
-            </p>
           </Card>
         ) : null}
 

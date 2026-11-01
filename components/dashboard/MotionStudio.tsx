@@ -2,7 +2,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Bot, Film, Loader2, Play, Save, Send, Sparkles, TriangleAlert } from 'lucide-react';
 import { Button, Card } from '@/components/ui';
-import { AVATARS } from '@/lib/catalog/avatars';
 import { cn } from '@/lib/utils';
 
 type Job = { id: string; status: string; resultUrl?: string; error?: string };
@@ -20,7 +19,6 @@ export function MotionStudio({
 }: {
   configured: { kie: boolean; postiz: boolean; kieSource: 'user' | 'shared' | 'off'; postizSource: 'user' | 'shared' | 'off' };
 }) {
-  const [preset, setPreset] = useState(AVATARS[0]?.id ?? 'theo');
   const [imageUrl, setImageUrl] = useState('');
   const [videoUrl, setVideoUrl] = useState('');
   const [prompt, setPrompt] = useState('');
@@ -32,11 +30,9 @@ export function MotionStudio({
   const [caption, setCaption] = useState('Feito com IA no Editor Studio 🤖✨');
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const chosen = AVATARS.find((a) => a.id === preset);
   function resolveImage() {
-    if (imageUrl.trim()) return imageUrl.trim();
-    if (!chosen?.photo) return '';
-    return `${window.location.origin}${chosen.photo.base}`;
+    // Só imagem enviada pelo usuário: o catálogo de avatares foi removido.
+    return imageUrl.trim();
   }
 
   useEffect(() => () => {
@@ -132,29 +128,9 @@ export function MotionStudio({
           Control). Use uma imagem com o personagem de frente, de preferência de meio corpo.
         </p>
 
-        <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-6">
-          {AVATARS.map((a) => (
-            <button
-              key={a.id}
-              onClick={() => {
-                setPreset(a.id);
-                setImageUrl('');
-              }}
-              className={cn(
-                'overflow-hidden rounded-lg border text-[10px] transition',
-                preset === a.id && !imageUrl ? 'border-brand-400 ring-2 ring-brand-500/30' : 'border-white/10 hover:border-brand-400/50',
-              )}
-              title={a.name}
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={a.photo?.base} alt={a.name} className="aspect-square w-full object-cover" />
-              <span className="block truncate px-1 py-0.5 text-slate-300">{a.name}</span>
-            </button>
-          ))}
-        </div>
 
         <label className="mt-3 block">
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Ou uma imagem sua (URL pública)</span>
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Imagem do personagem (URL pública)</span>
           <input
             value={imageUrl}
             onChange={(e) => setImageUrl(e.target.value)}

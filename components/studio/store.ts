@@ -108,7 +108,6 @@ function normalizeClip(clip: Clip, fallbackTrackId: string): Clip {
     filters: { ...DEFAULT_FILTERS, ...(c.filters ?? {}) },
     shadow: { ...DEFAULT_SHADOW, ...(c.shadow ?? {}) },
     generator: c.kind === 'generator' ? { ...DEFAULT_GENERATOR, ...(c.generator ?? {}) } : c.generator,
-    avatar: c.kind === 'avatar' ? { preset: c.avatar?.preset ?? 'theo', mouth: c.avatar?.mouth ?? [], visemes: c.avatar?.visemes, intensity: c.avatar?.intensity ?? 1 } : c.avatar,
     transitionIn: c.transitionIn ?? { type: 'none', duration: 0.5 },
     transitionOut: c.transitionOut ?? { type: 'none', duration: 0.5 },
     keyframes: Array.isArray(c.keyframes) ? c.keyframes : [],

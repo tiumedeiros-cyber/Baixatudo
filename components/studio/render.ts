@@ -3,9 +3,7 @@ import type { Clip, Filters, Keyframe, Track } from '@/lib/types';
 import { clamp } from '@/lib/utils';
 import type { MediaRegistry } from './media';
 import type { ThreePool } from './three';
-import { drawAvatar, mouthFromEnvelope } from './avatar';
 import { keyFrame } from './chroma';
-import { blendWithAmplitude, shapeAt, shapeFromAmplitude } from '@/lib/visemes';
 
 export type FrameOptions = {
   ctx: CanvasRenderingContext2D;
@@ -446,7 +444,7 @@ function drawClipVideo(
     media.cachePoster(clip.id, el);
     const cover = Math.max(width / el.videoWidth, height / el.videoHeight);
 
-    // Fundo verde (avatar de IA) recortado no próprio navegador
+    // Fundo verde recortado no próprio navegador
     if (clip.chroma?.enabled) {
       const keyed = keyFrame(el, {
         color: clip.chroma.color ?? 'verde',
@@ -590,7 +588,7 @@ export function drawFrame(opts: FrameOptions) {
   for (const clip of active) {
     // Um clipe com dado inválido (arquivo antigo, WebGL off, mídia que não
     // carregou) não pode apagar o resto da timeline: cada clipe é desenhado
-    // em isolamento. Era isso que fazia "o avatar não aparecer".
+    // em isolamento (um clipe com erro não derruba o frame inteiro).
     try {
     const track = tracks.find((t) => t.id === clip.trackId);
     if (track?.hidden) continue;
@@ -754,27 +752,6 @@ export function drawFrame(opts: FrameOptions) {
       }
     } else if (clip.kind === 'sticker') {
       drawSticker(ctx, clip, height * 0.4);
-    } else if (clip.kind === 'avatar') {
-      const avatar = clip.avatar ?? { preset: 'theo', mouth: [] };
-      const intensity = avatar.intensity ?? 1;
-      const at = (local + clip.trimStart) * (clip.speed && clip.speed > 0 ? clip.speed : 1);
-      const amp = avatar.mouth?.length ? mouthFromEnvelope(avatar.mouth, at) : null;
-      // formato vem dos visemas (a letra); a intensidade vem do volume real
-      const base = avatar.visemes?.length
-        ? blendWithAmplitude(shapeAt(avatar.visemes, at), amp)
-        : shapeFromAmplitude(amp ?? 0.45 + 0.25 * Math.abs(Math.sin(at * 6.5)));
-      const shape = {
-        ...base,
-        jaw: Math.min(1, base.jaw * (0.55 + 0.45 * intensity)),
-        teeth: Math.min(1, base.teeth * intensity),
-        smile: Math.min(1, base.smile * intensity),
-      };
-      ctx.save();
-      ctx.beginPath();
-      ctx.roundRect(-width / 2, -height / 2, width, height, Math.min(width, height) * 0.03);
-      ctx.clip();
-      drawAvatar(ctx, avatar.preset, -width / 2, -height / 2, width, height, shape.jaw, local + clip.trimStart, shape);
-      ctx.restore();
     }
 
     if (glitch > 0.01) {

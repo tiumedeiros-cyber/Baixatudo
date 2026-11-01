@@ -2,7 +2,6 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  Bot,
   Download,
   Film,
   FolderKanban,
@@ -22,7 +21,6 @@ const LINKS = [
   { href: '/dashboard', label: 'Visão geral', icon: Gauge },
   { href: '/dashboard/projetos', label: 'Meus projetos', icon: FolderKanban },
   { href: '/dashboard/arquivos', label: 'Meus arquivos', icon: ImageIcon },
-  { href: '/dashboard/avatares', label: 'Avatares falantes', icon: Bot, badge: 'novo' },
   { href: '/dashboard/animacao', label: 'Animação IA', icon: Film, badge: 'novo' },
   { href: '/dashboard/recursos', label: 'Recursos grátis', icon: Library, badge: 'novo' },
   { href: '/dashboard/ferramentas', label: 'Ferramentas de IA', icon: Wand2, badge: 'novo' },

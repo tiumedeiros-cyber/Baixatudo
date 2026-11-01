@@ -81,7 +81,6 @@ export type ClipKind =
   | 'object3d'
   | 'overlay'
   | 'sticker'
-  | 'avatar'
   | 'generator';
 
 export type TransitionType = 'none' | 'fade' | 'slide' | 'zoom' | 'wipe' | 'glitch' | 'flash';
@@ -158,18 +157,10 @@ export type Clip = {
   sticker?: { preset: string; color: string };
   generator?: GeneratorProps;
   /**
-   * Chroma key opcional (vídeo do avatar gerado por IA com fundo verde).
+   * Chroma key opcional (vídeo importado com fundo verde).
    * Ausente = comportamento antigo, sem filtro.
    */
   chroma?: { enabled: boolean; color?: 'verde' | 'azul'; tolerance?: number; softness?: number; spill?: number };
-  avatar?: {
-    preset: string;
-    /** envelope de volume (0..1 a cada 20 ms) — intensidade da fala */
-    mouth: number[];
-    intensity?: number;
-    /** trilha de visemas (formato da boca letra por letra) */
-    visemes?: VisemeEvent[];
-  };
   shadow?: ShadowProps;
   transitionIn: { type: TransitionType; duration: number };
   transitionOut: { type: TransitionType; duration: number };

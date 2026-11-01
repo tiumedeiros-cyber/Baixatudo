@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { effectivePayments, getSettings } from '@/lib/settings';
 import { VOICES } from '@/lib/catalog/voices';
-import { AVATARS, SCENES } from '@/lib/catalog/avatars';
 
 export const runtime = 'nodejs';
 
@@ -18,8 +17,7 @@ export async function GET() {
       payments: effectivePayments(settings).mode,
       support: settings.general.support_mode,
       voices: VOICES.length,
-      avatars: AVATARS.length,
-      scenes: SCENES.length,
+      scenes: 9,
       engine: process.env.DOWNLOAD_ENGINE_URL ?? 'https://baixartudo.me',
       time: new Date().toISOString(),
     });

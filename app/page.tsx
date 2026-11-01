@@ -54,7 +54,7 @@ const FALLBACK_PLANS: Plan[] = [
   {
     id: '4', name: 'Geral', slug: 'geral', price_monthly: 297.9, price_yearly: 2899,
     description: 'Uso livre: sem limite de exportação e armazenamento em massa.',
-    features: ['Tudo do Studio', 'Exportação 4K ilimitada', '5 TB de armazenamento', 'Avatares falantes sem limite', 'Vozes em 68 idiomas', 'Baixa Tudo ilimitado'],
+    features: ['Tudo do Studio', 'Exportação 4K ilimitada', '5 TB de armazenamento', 'Narração com voz clonada', 'Vozes em 68 idiomas', 'Baixa Tudo ilimitado'],
     limits: { projects: 9999, storage_gb: 5000, max_quality: 2160, export_4k: true, premium_library: true, tts_minutes: 9999, downloads_per_day: 9999, unlimited: true },
     trial_days: 7, is_active: true, sort_order: 4,
   },
@@ -90,7 +90,6 @@ const FAQ = [
   { q: 'Os arquivos ficam salvos?', a: 'Sim. Seus uploads vão para o armazenamento da sua conta conforme o plano, e os projetos têm autosave a cada 2 segundos.' },
   { q: 'Posso exportar em 4K?', a: 'Nos planos Pro, Studio e Geral a exportação chega a 4K. No Básico, até 1080p.' },
   { q: 'Como funciona o pagamento?', a: 'No PIX: você copia a chave, paga o valor do plano e envia o comprovante no WhatsApp com o número do pedido — a liberação é feita em minutos. Cartão e assinatura automática ficam disponíveis quando o gateway (Stripe ou Mercado Pago) está configurado.' },
-  { q: 'Consigo criar avatar falante com fundo transparente?', a: 'Sim. Escolha o cenário “Sem fundo” e exporte em WebM com canal alfa: o avatar sai recortado para você sobrepor em qualquer vídeo.' },
   { q: 'Posso cancelar quando quiser?', a: 'Sim. O cancelamento fica agendado para o fim do período e você mantém o acesso até lá.' },
 ];
 

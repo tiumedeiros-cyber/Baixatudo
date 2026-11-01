@@ -17,8 +17,8 @@ funciona sem chave paga e sem servidor extra para o cliente**.
 | **Iconify** (`api.iconify.design`) | +200 mil ícones vetoriais (MIT/Apache/CC), SVG transparente | não | Painel → Recursos grátis → Ícones |
 | **Pollinations** (`image.pollinations.ai`) | Geração de imagem por IA (fundo, cenário, produto) sem custo e sem marca d'água | não | Painel → Recursos grátis → Gerar com IA |
 | **QR Server** (`api.qrserver.com`) | QR Code para anúncios e vitrines | não | Painel → Recursos grátis → QR Code |
-| **Pollinations texto** | Roteiros e legendas dentro do editor | não | já integrado (avatares/roteiro) |
-| **Vozes públicas (Edge)** | 84 vozes para narração dos avatares | não | já integrado |
+| **Pollinations texto** | Roteiros e legendas dentro do editor | não | já integrado (roteiro/legendas) |
+| **Vozes públicas (Edge)** | 84 vozes para narração | não | já integrado |
 
 Todos salvam em **Meus arquivos** (storage do usuário) e caem automaticamente na biblioteca do editor.
 Cada item mostra licença e autor, e a rota `/api/free` só baixa de hosts conhecidos (não vira proxy aberto).
@@ -64,7 +64,7 @@ Filtro aplicado: **sem chave, sem cota, rodando no navegador do cliente ou em se
 | **Músicas/áudios** (Internet Archive) | trilha | zero | Recursos grátis → Músicas |
 | **Ícones** (Iconify, +200 mil) | SVG com tradução pt→en | zero | Recursos grátis → Ícones |
 | **QR Code** (QR Server) | anúncios e vitrines | zero | Recursos grátis → QR Code |
-| **Narração** (Edge TTS, 84 vozes) | avatares falantes | zero | Avatares falantes |
+| **Narração** (Edge TTS, 84 vozes) | narração de qualquer projeto | zero | painel Narração |
 | **Baixa Tudo** (motor cobalt próprio) | vídeo/áudio de redes sociais | zero | Baixa Tudo |
 
 ## Armazenamento: como escalar sem pagar

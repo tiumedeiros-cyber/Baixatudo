@@ -62,8 +62,6 @@ export type IntegrationSettings = {
   freesound_key: string;
   /** o cliente pode usar a própria chave gratuita? */
   allow_user_stock: boolean;
-  /** URL de um servidor Voicebox próprio (voz clonada grátis) — ex.: https://voz.seudominio.com */
-  voicebox_url: string;
 };
 
 /** Storage externo S3-compatível (R2/B2/MinIO) — tira os arquivos do Supabase. */
@@ -115,7 +113,7 @@ export const DEFAULT_SETTINGS: PlatformSettings = {
   landing: {
     headline: 'Edição profissional de vídeo e imagem direto no navegador',
     subheadline:
-      'Timeline com régua, corte por frame, objetos 3D, avatares falantes, biblioteca de assets, narração por IA e o Baixa Tudo integrado.',
+      'Timeline com régua, corte por frame, objetos 3D, biblioteca de assets, narração por IA e o Baixa Tudo integrado.',
     cta_label: 'Criar minha conta',
     announcement: '',
     show_pricing: true,
@@ -143,7 +141,6 @@ export const DEFAULT_SETTINGS: PlatformSettings = {
     pixabay_key: '',
     freesound_key: '',
     allow_user_stock: true,
-    voicebox_url: '',
   },
 };
 

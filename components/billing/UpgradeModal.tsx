@@ -17,7 +17,7 @@ import { cn } from '@/lib/utils';
 const BENEFITS = [
   'Biblioteca Pro: transições, sons, objetos 3D e overlays exclusivos',
   'Exportação em 4K e sem limite de qualidade',
-  'Projetos e armazenamento ampliados (avatares e vídeos de IA inclusos)',
+  'Projetos e armazenamento ampliados (4K e voz clonada inclusos)',
   'Todos os recursos novos liberados sem custo extra',
 ];
 
