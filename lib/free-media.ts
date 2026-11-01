@@ -123,9 +123,44 @@ export async function archiveAudioFile(identifier: string) {
   return `https://archive.org/download/${encodeURIComponent(identifier)}/${encodeURIComponent(String(pick.name))}`;
 }
 
-/** Iconify: +200 mil ícones vetoriais (MIT/Apache/CC) num único endpoint. */
+/** Os nomes de ícone do Iconify são em inglês — traduzimos os termos mais usados. */
+const ICON_HINTS: Record<string, string> = {
+  carrinho: 'cart',
+  compra: 'shopping',
+  compras: 'shopping',
+  entrega: 'delivery',
+  caminhao: 'truck',
+  desconto: 'discount',
+  promocao: 'sale',
+  estrela: 'star',
+  dinheiro: 'money',
+  pagamento: 'payment',
+  cartao: 'credit-card',
+  presente: 'gift',
+  telefone: 'phone',
+  whatsapp: 'whatsapp',
+  comida: 'food',
+  cafe: 'coffee',
+  musica: 'music',
+  video: 'video',
+  camera: 'camera',
+  microfone: 'microphone',
+  loja: 'store',
+  casa: 'home',
+  seta: 'arrow',
+  check: 'check',
+  coracao: 'heart',
+  foguete: 'rocket',
+  fogo: 'fire',
+  relogio: 'clock',
+  calendario: 'calendar',
+  seguranca: 'shield',
+  grafico: 'chart',
+};
+
 export async function searchIcons(query: string, limit = 36): Promise<FreeItem[]> {
-  const data = await getJson(`https://api.iconify.design/search?query=${encodeURIComponent(query)}&limit=${Math.min(Math.max(limit, 1), 64)}`);
+  const term = ICON_HINTS[query.trim().toLowerCase()] ?? query;
+  const data = await getJson(`https://api.iconify.design/search?query=${encodeURIComponent(term)}&limit=${Math.min(Math.max(limit, 1), 64)}`);
   const icons = (data?.icons as string[]) ?? [];
   return icons.map((name) => {
     const [prefix, icon] = name.split(':');

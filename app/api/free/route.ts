@@ -9,6 +9,7 @@ import {
   archiveAudioFile,
   isAllowedFreeUrl,
   qrUrl,
+  pollinationsUrl,
   searchArchive,
   searchCommons,
   searchIcons,
@@ -27,6 +28,18 @@ export async function GET(request: Request) {
     searchArchive(q, 3),
     searchIcons(q, 3),
   ]);
+  let pollinations = { ok: false, bytes: 0, type: '' };
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 20_000);
+    const res = await fetch(pollinationsUrl('abstract gradient background', 384, 384), { signal: ctrl.signal, cache: 'no-store' });
+    const buffer = Buffer.from(await res.arrayBuffer());
+    clearTimeout(timer);
+    pollinations = { ok: res.ok && buffer.length > 1000, bytes: buffer.length, type: res.headers.get('content-type') ?? '' };
+  } catch {
+    pollinations = { ok: false, bytes: 0, type: '' };
+  }
+
   return NextResponse.json({
     ok: true,
     query: q,
@@ -34,6 +47,7 @@ export async function GET(request: Request) {
       wikimedia: { ok: images.length > 0, itens: images.length, exemplo: images[0]?.url ?? '' },
       archive: { ok: audio.length > 0, itens: audio.length, exemplo: audio[0]?.thumb ?? '' },
       iconify: { ok: icons.length > 0, itens: icons.length, exemplo: icons[0]?.url ?? '' },
+      pollinations,
     },
   });
 }

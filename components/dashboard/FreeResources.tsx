@@ -18,7 +18,7 @@ const TABS: Array<{ id: Tab; label: string; icon: typeof ImageIcon }> = [
 const SUGGESTIONS: Record<Tab, string[]> = {
   images: ['fundo abstrato', 'praia', 'escritório', 'produto', 'neon', 'comida'],
   audio: ['lofi', 'upbeat', 'piano', 'jazz', 'corporate'],
-  icons: ['carrinho', 'entrega', 'desconto', 'estrela', 'play'],
+  icons: ['cart', 'truck', 'discount', 'star', 'play'],
   ai: ['fundo de estúdio com luz neon', 'produto de beleza em pedestal', 'cenário tropical'],
   qr: [],
 };
@@ -146,7 +146,7 @@ export function FreeResources({ storageLabel }: { storageLabel: string }) {
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder={
-                  tab === 'images' ? 'Ex.: fundo de praia, escritório, produto…' : tab === 'audio' ? 'Ex.: lofi, piano, jazz…' : 'Ex.: carrinho, entrega, estrela…'
+                  tab === 'images' ? 'Ex.: fundo de praia, escritório, produto…' : tab === 'audio' ? 'Ex.: lofi, piano, jazz…' : 'Ex.: cart, truck, star… (nomes em inglês)'
                 }
                 className="w-full rounded-lg border border-white/10 bg-ink-900 py-2 pl-9 pr-3 text-xs text-white outline-none focus:border-brand-400/60"
               />
