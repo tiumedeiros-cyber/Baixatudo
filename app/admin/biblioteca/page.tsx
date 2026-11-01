@@ -3,6 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { Badge, Card, Input, Select } from '@/components/ui';
 import { saveAsset, uploadCatalogMedia, importCatalogUrl } from '@/app/admin/actions';
 import { AssetDelete } from '@/components/admin/ActionButtons';
+import { StorageCleanup } from '@/components/admin/StorageCleanup';
 import type { Asset } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
@@ -14,6 +15,14 @@ export default async function AdminLibrary() {
   const db = createAdminClient();
   const { data } = await db.from('es_assets').select('*').order('created_at', { ascending: false }).limit(300);
   const assets = (data ?? []) as unknown as Asset[];
+
+  // uso real de storage (contador mantido por trigger) e nº de arquivos dos clientes
+  const [{ data: usage }, { count: files }] = await Promise.all([
+    db.from('es_profiles').select('storage_used_bytes').limit(5000),
+    db.from('es_user_assets').select('id', { count: 'exact', head: true }),
+  ]);
+  const usedBytes = (usage ?? []).reduce((acc, row) => acc + Number((row as { storage_used_bytes: number }).storage_used_bytes || 0), 0);
+  const usersWithFiles = (usage ?? []).filter((row) => Number((row as { storage_used_bytes: number }).storage_used_bytes || 0) > 0).length;
 
   return (
     <div className="space-y-5">
@@ -53,6 +62,16 @@ export default async function AdminLibrary() {
           </form>
         </Card>
       </div>
+
+      <Card className="p-4">
+        <h3 className="text-sm font-semibold text-white">Armazenamento</h3>
+        <p className="mt-1 text-[11px] text-slate-500">
+          O catálogo do sistema não ocupa storage (vive no código). Aqui aparece só o que os clientes enviaram.
+        </p>
+        <div className="mt-3">
+          <StorageCleanup usedBytes={usedBytes} files={files ?? 0} users={usersWithFiles} />
+        </div>
+      </Card>
 
       <Card className="p-4">
         <h3 className="text-sm font-semibold text-white">Adicionar item manualmente</h3>

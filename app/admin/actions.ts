@@ -386,3 +386,27 @@ export async function importCatalogUrl(formData: FormData) {
   const { revalidateTag } = await import('next/cache');
   revalidateTag('assets');
 }
+
+
+/* ------------------------- Manutenção do storage ------------------------- */
+
+/**
+ * Remove do bucket `media` os arquivos órfãos (não referenciados por nenhum
+ * asset, projeto ou TTS). A lista vem da função `es_storage_orphans`, que só
+ * devolve objetos com mais de 2 dias — nada é apagado em uso.
+ */
+export async function cleanOrphanStorage(): Promise<{ removed: number; bytes: number; error?: string }> {
+  const db = await admin();
+  try {
+    const { data, error } = await db.rpc('es_storage_orphans', { limit_rows: 200, min_age_days: 2 });
+    if (error) return { removed: 0, bytes: 0, error: error.message };
+    const rows = (data ?? []) as { name: string; size: number }[];
+    if (!rows.length) return { removed: 0, bytes: 0 };
+    const { error: delErr } = await db.storage.from('media').remove(rows.map((r) => r.name));
+    if (delErr) return { removed: 0, bytes: 0, error: delErr.message };
+    revalidatePath('/admin/biblioteca');
+    return { removed: rows.length, bytes: rows.reduce((acc, r) => acc + Number(r.size || 0), 0) };
+  } catch (err) {
+    return { removed: 0, bytes: 0, error: err instanceof Error ? err.message : 'erro' };
+  }
+}

@@ -39,13 +39,18 @@ export function drawAvatar(
   const headCy = y + h * 0.4;
   const shoulderY = y + h * 0.99;
 
+  // no modo recorte o avatar não escurece o vídeo que está embaixo
+  const cutout = (a.scene ?? 'estudio') === 'transparente';
+
   /* --------------------------------- corpo --------------------------------- */
-  // sombra do corpo sobre o fundo
-  const bodyShadow = ctx.createRadialGradient(cx, shoulderY, headW * 0.2, cx, shoulderY, headW * 2);
-  bodyShadow.addColorStop(0, 'rgba(0,0,0,0.32)');
-  bodyShadow.addColorStop(1, 'rgba(0,0,0,0)');
-  ctx.fillStyle = bodyShadow;
-  ctx.fillRect(x, y, w, h);
+  if (!cutout) {
+    // sombra do corpo sobre o fundo
+    const bodyShadow = ctx.createRadialGradient(cx, shoulderY, headW * 0.2, cx, shoulderY, headW * 2);
+    bodyShadow.addColorStop(0, 'rgba(0,0,0,0.32)');
+    bodyShadow.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = bodyShadow;
+    ctx.fillRect(x, y, w, h);
+  }
 
   const shirtLight = shade(a.shirt, 0.22);
   const shirtDark = shade(a.shirt, -0.3);
@@ -524,12 +529,14 @@ export function drawAvatar(
   ctx.ellipse(cx, headCy, headW * 0.52, headH * 0.52, 0, 0, Math.PI * 2);
   ctx.fill();
 
-  // vinheta do quadro
-  const vig = ctx.createRadialGradient(cx, y + h * 0.45, Math.min(w, h) * 0.25, cx, y + h * 0.45, Math.max(w, h) * 0.75);
-  vig.addColorStop(0, 'rgba(0,0,0,0)');
-  vig.addColorStop(1, 'rgba(0,0,0,0.42)');
-  ctx.fillStyle = vig;
-  ctx.fillRect(x, y, w, h);
+  // vinheta do quadro (não no modo recorte)
+  if (!cutout) {
+    const vig = ctx.createRadialGradient(cx, y + h * 0.45, Math.min(w, h) * 0.25, cx, y + h * 0.45, Math.max(w, h) * 0.75);
+    vig.addColorStop(0, 'rgba(0,0,0,0)');
+    vig.addColorStop(1, 'rgba(0,0,0,0.42)');
+    ctx.fillStyle = vig;
+    ctx.fillRect(x, y, w, h);
+  }
 
   ctx.restore();
 }
@@ -584,6 +591,9 @@ export function drawScene(
   avatar?: AvatarPreset,
 ) {
   const palette = avatar?.bg ?? ['#1e1b4b', '#4c1d95'];
+
+  // cenário transparente: nada é desenhado, o avatar entra por cima das outras trilhas
+  if (scene === 'transparente') return;
 
   const photo = scene === 'chroma' ? null : scenePhoto(scene);
   if (photo && photo.naturalWidth > 0) {

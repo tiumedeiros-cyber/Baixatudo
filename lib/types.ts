@@ -18,6 +18,8 @@ export type PlanLimits = {
   premium_library: boolean;
   tts_minutes: number;
   downloads_per_day: number;
+  /** plano de uso livre (sem contagem de tempo/downloads) */
+  unlimited?: boolean;
 };
 
 export type Plan = {

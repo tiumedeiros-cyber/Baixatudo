@@ -15,7 +15,17 @@
  */
 export type HairStyle = 'curto' | 'longo' | 'coque' | 'cacheado' | 'calvo' | 'franja' | 'rabo' | 'tranca';
 
-export type SceneId = 'estudio' | 'escritorio' | 'praia' | 'cidade' | 'neon' | 'sala' | 'podcast' | 'floresta' | 'chroma';
+export type SceneId =
+  | 'estudio'
+  | 'escritorio'
+  | 'praia'
+  | 'cidade'
+  | 'neon'
+  | 'sala'
+  | 'podcast'
+  | 'floresta'
+  | 'chroma'
+  | 'transparente';
 
 export type AvatarPreset = {
   id: string;
@@ -49,6 +59,7 @@ export const SCENES: { id: SceneId; label: string; hint: string }[] = [
   { id: 'podcast', label: 'Podcast', hint: 'painel acústico + microfone' },
   { id: 'floresta', label: 'Floresta', hint: 'bokeh verde, externa' },
   { id: 'chroma', label: 'Fundo verde', hint: 'chroma key para trocar depois' },
+  { id: 'transparente', label: 'Sem fundo', hint: 'overlay: aparece sobre o vídeo de baixo' },
 ];
 
 export const AVATARS: AvatarPreset[] = [

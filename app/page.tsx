@@ -33,23 +33,30 @@ const FALLBACK_PLANS: Plan[] = [
   {
     id: '1', name: 'Básico', slug: 'basico', price_monthly: 49.9, price_yearly: 479,
     description: 'Para quem está começando a criar conteúdo.',
-    features: ['Editor com timeline completa', 'Exportação até 1080p', '5 GB de armazenamento', 'Biblioteca gratuita', '5 projetos'],
-    limits: { projects: 5, storage_gb: 5, max_quality: 1080, export_4k: false, premium_library: false, tts_minutes: 30, downloads_per_day: 20 },
+    features: ['Editor com timeline completa', 'Exportação até 1080p', '10 GB de armazenamento', 'Biblioteca gratuita', '5 projetos'],
+    limits: { projects: 5, storage_gb: 10, max_quality: 1080, export_4k: false, premium_library: false, tts_minutes: 30, downloads_per_day: 20 },
     trial_days: 7, is_active: true, sort_order: 1,
   },
   {
     id: '2', name: 'Pro', slug: 'pro', price_monthly: 97.9, price_yearly: 939,
     description: 'O mais escolhido por editores profissionais.',
-    features: ['Tudo do Básico', 'Exportação 4K', '50 GB de armazenamento', 'Biblioteca premium', 'Objetos 3D + 360°', 'Baixa Tudo integrado'],
-    limits: { projects: 50, storage_gb: 50, max_quality: 2160, export_4k: true, premium_library: true, tts_minutes: 200, downloads_per_day: 200 },
+    features: ['Tudo do Básico', 'Exportação 4K', '150 GB de armazenamento', 'Biblioteca premium', 'Objetos 3D + 360°', 'Baixa Tudo integrado'],
+    limits: { projects: 50, storage_gb: 150, max_quality: 2160, export_4k: true, premium_library: true, tts_minutes: 200, downloads_per_day: 200 },
     trial_days: 7, is_active: true, sort_order: 2,
   },
   {
     id: '3', name: 'Studio', slug: 'studio', price_monthly: 197.9, price_yearly: 1899,
     description: 'Para estúdios e equipes que produzem em escala.',
-    features: ['Tudo do Pro', '500 GB de armazenamento', 'Fila prioritária', 'Keyframes avançados', 'Assets exclusivos', 'Suporte prioritário'],
-    limits: { projects: 500, storage_gb: 500, max_quality: 2160, export_4k: true, premium_library: true, tts_minutes: 1000, downloads_per_day: 1000 },
+    features: ['Tudo do Pro', '1 TB de armazenamento', 'Fila prioritária', 'Keyframes avançados', 'Assets exclusivos', 'Suporte prioritário'],
+    limits: { projects: 500, storage_gb: 1000, max_quality: 2160, export_4k: true, premium_library: true, tts_minutes: 1000, downloads_per_day: 1000 },
     trial_days: 7, is_active: true, sort_order: 3,
+  },
+  {
+    id: '4', name: 'Geral', slug: 'geral', price_monthly: 297.9, price_yearly: 2899,
+    description: 'Uso livre: sem limite de exportação e armazenamento em massa.',
+    features: ['Tudo do Studio', 'Exportação 4K ilimitada', '5 TB de armazenamento', 'Avatares falantes sem limite', 'Vozes em 68 idiomas', 'Baixa Tudo ilimitado'],
+    limits: { projects: 9999, storage_gb: 5000, max_quality: 2160, export_4k: true, premium_library: true, tts_minutes: 9999, downloads_per_day: 9999, unlimited: true },
+    trial_days: 7, is_active: true, sort_order: 4,
   },
 ];
 
@@ -334,7 +341,7 @@ export default async function LandingPage() {
             7 dias grátis em qualquer plano. Sem fidelidade, cancele quando quiser.
           </p>
         </div>
-        <div className="mt-10 grid gap-5 md:grid-cols-3">
+        <div className="mt-10 grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
           {plans.map((plan, i) => {
             const highlight = plans.length === 3 ? i === 1 : false;
             return (

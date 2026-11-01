@@ -89,6 +89,7 @@ export function ExportButton({ maxQuality = 2160 }: { maxQuality?: number }) {
 
 function ExportDialog({ maxQuality, onClose }: { maxQuality: number; onClose: () => void }) {
   const [format, setFormat] = useState<'mp4' | 'mov' | 'webm' | 'gif'>(() => (pickMime('mp4') ? 'mp4' : 'webm'));
+  const [alpha, setAlpha] = useState(false);
   const [quality, setQuality] = useState(() => {
     const s = useStudio.getState();
     const native = Math.min(maxQuality, s.height);
@@ -126,16 +127,22 @@ function ExportDialog({ maxQuality, onClose }: { maxQuality: number; onClose: ()
     const width = Math.round((s.width * scale) / 2) * 2;
     const height = Math.round((targetHeight * 1) / 2) * 2;
 
+    const wantAlpha = alpha && format === 'webm';
+
     const canvas = document.createElement('canvas');
     canvas.width = width;
     canvas.height = height;
-    const ctx = canvas.getContext('2d', { alpha: false });
+    const ctx = canvas.getContext('2d', { alpha: wantAlpha });
     if (!ctx) {
       setError('Canvas não suportado neste navegador.');
       return;
     }
 
-    const mime = pickMime(format === 'webm' ? 'webm' : 'mp4');
+    const mime = wantAlpha
+      ? (typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported('video/webm;codecs=vp9')
+          ? 'video/webm;codecs=vp9'
+          : pickMime('webm'))
+      : pickMime(format === 'webm' ? 'webm' : 'mp4');
     if (!mime) {
       setError('Seu navegador não suporta gravação de vídeo. Tente Chrome ou Edge.');
       return;
@@ -177,6 +184,7 @@ function ExportDialog({ maxQuality, onClose }: { maxQuality: number; onClose: ()
         time: st.playhead,
         media,
         three: threePool,
+        transparent: wantAlpha,
       });
       setProgress(Math.min(1, st.playhead / st.duration));
       if (cancelRef.current || (!st.playing && st.playhead > 0)) {
@@ -291,7 +299,7 @@ function ExportDialog({ maxQuality, onClose }: { maxQuality: number; onClose: ()
     canvas.height = s.height;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-    drawFrame({ ctx, width: s.width, height: s.height, background: s.background, clips: s.clips, tracks: s.tracks, time: s.playhead, media, three: threePool });
+    drawFrame({ ctx, width: s.width, height: s.height, background: s.background, clips: s.clips, tracks: s.tracks, time: s.playhead, media, three: threePool, transparent: alpha });
     canvas.toBlob((blob) => {
       if (!blob) return;
       setResult({ url: URL.createObjectURL(blob), size: blob.size, ext: 'png' });
@@ -352,6 +360,16 @@ function ExportDialog({ maxQuality, onClose }: { maxQuality: number; onClose: ()
             </select>
           </div>
         )}
+
+        {format === 'webm' && phase !== 'done' ? (
+          <label className="mt-3 flex cursor-pointer items-start gap-2 rounded-xl border border-white/10 bg-ink-950 px-3 py-2">
+            <input type="checkbox" checked={alpha} onChange={(e) => setAlpha(e.target.checked)} className="mt-0.5 accent-brand-500" />
+            <span className="text-[10px] leading-relaxed text-slate-400">
+              <strong className="text-slate-200">Fundo transparente (alpha)</strong> — WebM VP9 com canal alfa, ideal para avatar
+              “sem fundo” sobre outro vídeo. MP4 e GIF não guardam transparência.
+            </span>
+          </label>
+        ) : null}
 
         {phase === 'recording' || phase === 'processing' ? (
           <div className="mt-4">
