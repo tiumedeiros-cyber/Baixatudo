@@ -25,7 +25,7 @@ type SubscriptionContextValue = {
   cycle: BillingCycle;
   setCycle: (cycle: BillingCycle) => void;
   /** assina o plano recomendado/ativo e devolve o resultado */
-  startCheckout: (planSlug?: string) => Promise<{ activated?: boolean; url?: string; error?: string }>;
+  startCheckout: (planSlug?: string) => Promise<{ activated?: boolean; url?: string; pending?: boolean; manual?: import('@/lib/subscription-service').ManualPayment; error?: string }>;
 };
 
 const noop = () => undefined;

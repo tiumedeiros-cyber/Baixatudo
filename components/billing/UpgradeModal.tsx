@@ -11,7 +11,7 @@
 import { useEffect, useState } from 'react';
 import { Check, Crown, Loader2, Lock, Sparkles, TriangleAlert, X } from 'lucide-react';
 import { useSubscription } from './SubscriptionContext';
-import { subscriptionService, type BillingCycle } from '@/lib/subscription-service';
+import { subscriptionService, type BillingCycle, type ManualPayment } from '@/lib/subscription-service';
 import { cn } from '@/lib/utils';
 
 const BENEFITS = [
@@ -26,6 +26,8 @@ export function UpgradeModal() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [done, setDone] = useState(false);
+  /** pedido PIX registrado: o plano NÃO foi liberado, está aguardando pagamento */
+  const [pending, setPending] = useState<ManualPayment | null>(null);
 
   const open = upgrade !== null;
   const plan =
@@ -38,6 +40,7 @@ export function UpgradeModal() {
     if (!open) {
       setError('');
       setDone(false);
+      setPending(null);
       setBusy(false);
       return;
     }
@@ -74,9 +77,13 @@ export function UpgradeModal() {
       window.location.href = result.url;
       return;
     }
-    // modo manual/demo: já liberou — atualiza o contexto e mostra sucesso
-    await refresh(true);
-    setDone(true);
+    if (result.pending) {
+      // Nada de plano liberado: só o pedido de pagamento (PIX) para o usuário pagar.
+      setPending(result.manual ?? {});
+      setBusy(false);
+      return;
+    }
+    setError('O plano não pode ser liberado sem confirmação de pagamento.');
     setBusy(false);
   }
 
@@ -112,17 +119,37 @@ export function UpgradeModal() {
           </span>
 
           <h2 id="upgrade-title" className="mt-3 font-display text-xl font-bold text-white">
-            {done ? 'Pro liberado! 🎉' : 'Desbloqueie o Editor Studio Pro'}
+            {done ? 'Pro liberado! 🎉' : pending ? 'Falta só o pagamento' : 'Desbloqueie o Editor Studio Pro'}
           </h2>
           <p className="mt-1 text-xs leading-relaxed text-slate-400">
             {done
               ? 'Seu plano já está ativo. Pode fechar e usar o item com cadeado.'
-              : upgrade?.item
+              : pending
+                ? 'Seu pedido foi registrado. O Pro é liberado assim que o pagamento for confirmado (PIX aprovado pelo suporte ou webhook do gateway).'
+                : upgrade?.item
                 ? `“${upgrade.item}” faz parte da biblioteca Pro. Assine e ele entra na timeline na hora.`
                 : 'Todo o acervo profissional, 4K e recursos de IA liberados.'}
           </p>
 
-          {!done ? (
+          {pending ? (
+            <div className="mt-4 space-y-2 rounded-xl border border-amber-300/30 bg-amber-400/10 p-3 text-[11px] leading-relaxed text-amber-100">
+              <p className="font-semibold text-amber-200">Pedido #{pending.paymentId ? pending.paymentId.slice(0, 8).toUpperCase() : '—'} registrado</p>
+              {pending.label ? <p>{pending.label} · {pending.amount ? subscriptionService.price({ priceMonthly: pending.amount, priceYearly: 0 } as never, 'monthly') : ''}</p> : null}
+              {pending.pixKey ? (
+                <p>
+                  PIX: <strong className="select-all">{pending.pixKey}</strong>
+                  {pending.pixHolder ? ` — ${pending.pixHolder}` : ''}
+                </p>
+              ) : null}
+              {pending.instructions ? <p className="text-amber-100/80">{pending.instructions}</p> : null}
+              {pending.whatsapp ? (
+                <a href={pending.whatsapp} target="_blank" rel="noreferrer" className="inline-flex rounded-lg bg-emerald-500 px-3 py-1.5 text-[11px] font-bold text-white">
+                  Enviar comprovante no WhatsApp
+                </a>
+              ) : null}
+              <p className="text-[10px] text-amber-100/70">O item com cadeado continua bloqueado até a confirmação — nada é liberado sem pagamento.</p>
+            </div>
+          ) : !done ? (
             <>
               <ul className="mt-4 space-y-2">
                 {BENEFITS.map((benefit) => (

@@ -1,7 +1,8 @@
 'use client';
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { AlertCircle, CreditCard, Loader2, Lock, QrCode, ShieldCheck } from 'lucide-react';
+import Link from 'next/link';
+import { AlertCircle, Check, CreditCard, Loader2, Lock, QrCode, ShieldCheck } from 'lucide-react';
 import { Button, Card, Field, Input } from '@/components/ui';
 import { createCheckout } from '@/app/checkout/actions';
 import { brl } from '@/lib/utils';
@@ -27,6 +28,8 @@ export function CheckoutForm({
   const [method, setMethod] = useState<'card' | 'pix'>(stripeEnabled ? 'card' : mpEnabled ? 'pix' : 'card');
   const [card, setCard] = useState({ name: '', number: '', exp: '', cvc: '', cpf: '' });
   const [error, setError] = useState<string | null>(null);
+  /** pedido PIX registrado — o plano só é liberado após confirmação do pagamento */
+  const [manual, setManual] = useState<{ paymentId?: string; pixKey?: string; pixHolder?: string; instructions?: string; whatsapp?: string } | null>(null);
   const [pending, start] = useTransition();
   const router = useRouter();
   const amount = cycle === 'yearly' ? yearly : monthly;
@@ -41,7 +44,13 @@ export function CheckoutForm({
           window.location.href = result.url;
           return;
         }
+        // Sem gateway: NADA é ativado. Só existe um pedido pendente (PIX).
+        if (result?.pending) {
+          setManual(result.manual ?? {});
+          return;
+        }
         if (result?.ok) {
+          // reservado a gateway real (o webhook é quem ativa) — mantido por compatibilidade
           router.push('/dashboard/assinatura?pagamento=aprovado');
           router.refresh();
           return;
@@ -77,9 +86,10 @@ export function CheckoutForm({
 
       {demo ? (
         <Card className="border-amber-400/25 bg-amber-500/5 p-3 text-[11px] leading-relaxed text-amber-200">
-          <strong>Modo demonstração:</strong> nenhum gateway está configurado, então o pagamento é simulado com o mesmo
-          fluxo (registro de cobrança + ativação da assinatura). Configure <code>STRIPE_SECRET_KEY</code> ou{' '}
-          <code>MERCADOPAGO_ACCESS_TOKEN</code> para cobrar de verdade.
+          <strong>Pagamento manual (PIX):</strong> nenhum gateway está configurado. Ao confirmar, registramos o seu pedido
+          e mostramos a chave PIX. O plano é liberado <em>somente</em> depois que o pagamento for conferido/aprovado —
+          nada muda de plano sozinho. Configure <code>STRIPE_SECRET_KEY</code> ou{' '}
+          <code>MERCADOPAGO_ACCESS_TOKEN</code> para confirmação automática.
         </Card>
       ) : null}
 
@@ -135,13 +145,13 @@ export function CheckoutForm({
           </div>
         ) : method === 'card' && demo ? (
           <p className="mt-3 rounded-lg bg-white/5 px-3 py-2 text-[11px] text-slate-400">
-            No modo demonstração não pedimos cartão: a assinatura é ativada imediatamente após a confirmação simulada.
+            Sem gateway não pedimos cartão: confirmando, você recebe os dados do PIX e o pedido fica pendente de aprovação.
           </p>
         ) : (
           <p className="mt-3 rounded-lg bg-white/5 px-3 py-2 text-[11px] text-slate-400">
             {mpEnabled
               ? 'Você será levado ao checkout do Mercado Pago para gerar o QR Code PIX.'
-              : 'PIX disponível após configurar um gateway (Mercado Pago). No modo demonstração a assinatura é ativada na hora.'}
+              : 'PIX manual: confirmando, mostramos a chave e registramos o pedido. A liberação acontece só após a aprovação do pagamento.'}
           </p>
         )}
       </Card>
@@ -154,10 +164,36 @@ export function CheckoutForm({
 
       <Button type="submit" size="lg" className="w-full" disabled={pending}>
         {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
-        {demo ? 'Confirmar assinatura (demo)' : `Pagar ${brl(amount)}`}
+        {demo ? 'Gerar pedido de pagamento (PIX)' : `Pagar ${brl(amount)}`}
       </Button>
+      {manual ? (
+        <Card className="border-emerald-400/25 bg-emerald-500/5 p-3 text-[11px] leading-relaxed text-emerald-100">
+          <p className="flex items-center gap-1.5 font-semibold text-emerald-200">
+            <Check className="h-3.5 w-3.5" /> Pedido {manual.paymentId ? `#${manual.paymentId.slice(0, 8).toUpperCase()}` : ''} registrado
+          </p>
+          {manual.pixKey ? (
+            <p className="mt-1">
+              PIX: <strong className="select-all">{manual.pixKey}</strong>
+              {manual.pixHolder ? ` — ${manual.pixHolder}` : ''}
+            </p>
+          ) : null}
+          {manual.instructions ? <p className="mt-1 text-emerald-100/80">{manual.instructions}</p> : null}
+          {manual.whatsapp ? (
+            <a href={manual.whatsapp} target="_blank" rel="noreferrer" className="mt-2 inline-flex rounded-lg bg-emerald-500 px-3 py-1.5 text-[11px] font-bold text-white">
+              Enviar comprovante no WhatsApp
+            </a>
+          ) : null}
+          <p className="mt-1 text-[10px] text-emerald-100/70">
+            O plano continua o seu atual até o pagamento ser aprovado. Você acompanha tudo em Assinatura.
+          </p>
+          <Link href="/dashboard/assinatura" className="mt-2 inline-block text-[11px] font-semibold text-white underline">
+            Ver minha assinatura
+          </Link>
+        </Card>
+      ) : null}
+
       <p className="flex items-center justify-center gap-1.5 text-[10px] text-slate-500">
-        <ShieldCheck className="h-3 w-3" /> Ambiente criptografado · confirmação automática
+        <ShieldCheck className="h-3 w-3" /> Ambiente criptografado · liberação só após confirmação do pagamento
       </p>
     </form>
   );

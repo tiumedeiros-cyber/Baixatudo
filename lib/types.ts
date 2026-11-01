@@ -99,8 +99,20 @@ export type TextProps = {
   letterSpacing: number;
   lineHeight: number;
   gradient: string;
-  animation: 'none' | 'typewriter' | 'pop' | 'fade';
+  /**
+   * Animação do texto. `karaoke`, `popup` e `banner` são os templates de
+   * legenda animada (estilo CapCut/TikTok) — desenhados no canvas do render.
+   */
+  animation: 'none' | 'typewriter' | 'pop' | 'fade' | 'karaoke' | 'popup' | 'banner';
+  /** cor da palavra "acesa" no karaokê (padrão: amarelo) */
+  highlight?: string;
+  /** tempo palavra-a-palavra (segundos, relativo ao início do clipe) */
+  words?: WordTiming[];
+  /** fundo do balão/pílula atrás das palavras (templates popup/banner) */
+  wordBackground?: string;
 };
+
+export type WordTiming = { w: string; s: number; e: number };
 
 export type Transform = {
   x: number;

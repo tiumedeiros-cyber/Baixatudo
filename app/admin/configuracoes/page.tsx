@@ -148,7 +148,8 @@ export default async function AdminSettings() {
         </h3>
         <p className="mt-1 text-[11px] leading-relaxed text-slate-500">
           Escolha como o cliente paga. As chaves ficam criptografadas no banco (AES-256-GCM) e nunca aparecem no navegador do
-          cliente. Se você não configurar gateway nenhum, o checkout funciona no modo manual.
+          cliente. Sem gateway configurado, o checkout abre um pedido manual (PIX) — o plano nunca é liberado sem
+          confirmação do pagamento (webhook do gateway ou aprovação em Pagamentos).
         </p>
         <form action={savePaymentSettings} className="mt-3 space-y-4">
           <div className="grid gap-3 sm:grid-cols-3">
@@ -157,7 +158,6 @@ export default async function AdminSettings() {
                 <option value="manual">Manual — PIX + comprovante</option>
                 <option value="stripe">Stripe — cartão</option>
                 <option value="mercadopago">Mercado Pago — PIX/cartão</option>
-                <option value="demo">Demonstração — libera na hora</option>
               </select>
             </Field>
             <Field label="Moeda">

@@ -1,4 +1,4 @@
-'use client';
+import { probeMediaDuration } from '@/lib/media-probe';
 import { create } from 'zustand';
 import { uid, clamp } from '@/lib/utils';
 import type { Clip, ClipKind, Keyframe, TextProps, TimelineData, Track, Transform } from '@/lib/types';
@@ -200,6 +200,23 @@ export const useStudio = create<StudioState>((set, get) => ({
     } as unknown as Clip;
     const clips = [...s.clips, base];
     set({ past: [...s.past.slice(-49), memory(s)], future: [], clips, selectedId: id, duration: Math.max(s.duration, maxOf(clips)), dirty: true });
+
+    // REDE DE SEGURANÇA (bug "vídeo pela metade"): se quem inseriu não sabia a
+    // duração real (arquivo vindo do Baixa Tudo/Drive), lemos do próprio arquivo
+    // e corrigimos a barra. Só cresce a barra — nunca corta o clipe que o usuário
+    // já tenha aparado na mão.
+    if ((base.kind === 'video' || base.kind === 'audio') && !(base as { sourceDuration?: number }).sourceDuration) {
+      void probeMediaDuration(base.src, base.kind === 'audio' ? 'audio' : 'video').then((real) => {
+        if (!real || !Number.isFinite(real)) return;
+        const now = get().clips.find((c) => c.id === id);
+        if (!now) return;
+        if (now.duration >= real - 0.05) return; // já está certo (ou foi aparado assim)
+        get().updateClip(id, {
+          duration: Math.min(real, 600),
+          sourceDuration: real,
+        } as never);
+      });
+    }
     return id;
   },
 

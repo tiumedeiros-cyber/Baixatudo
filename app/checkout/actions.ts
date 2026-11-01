@@ -5,7 +5,6 @@ import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { SITE_URL } from '@/lib/env';
 import {
-  activateSubscription,
   createMercadoPagoHoursPreference,
   createMercadoPagoPreference,
   createStripeCheckout,
@@ -14,7 +13,7 @@ import {
   recordPayment,
   riskAssessment,
 } from '@/lib/payments';
-import { findHourPack, grantTime } from '@/lib/time';
+import { findHourPack } from '@/lib/time';
 import type { Plan } from '@/lib/types';
 import { brl } from '@/lib/utils';
 
@@ -22,7 +21,23 @@ export async function createCheckout(input: {
   planSlug: string;
   cycle: 'monthly' | 'yearly';
   method: 'card' | 'pix';
-}): Promise<{ ok?: boolean; url?: string; error?: string }> {
+}): Promise<{
+  ok?: boolean;
+  url?: string;
+  error?: string;
+  /** pedido registrado aguardando pagamento/aprovação — NÃO libera o plano */
+  pending?: boolean;
+  manual?: {
+    paymentId?: string;
+    amount?: number;
+    label?: string;
+    instructions?: string;
+    pixKey?: string;
+    pixHolder?: string;
+    whatsapp?: string;
+    email?: string;
+  };
+}> {
   const user = await getSessionUser();
   if (!user) return { error: 'Sessão expirada. Faça login novamente.' };
 
@@ -74,47 +89,33 @@ export async function createCheckout(input: {
       return { url: pref.init_point };
     }
 
-    // Modo demonstração: registra cobrança e ativa imediatamente.
+    // Sem gateway configurado: NADA é ativado. Registra um pedido manual (PIX)
+    // que só vira plano depois do comprovante aprovado pelo admin
+    // (Admin → Pagamentos → aprovar) ou por webhook assinado do gateway.
     if (risk.score >= 80) {
       await recordPayment({
         userId: user.id,
         planId: plan.id,
         amount,
         status: 'refused',
-        gateway: 'demo',
+        gateway: 'manual',
         riskScore: risk.score,
         riskFlags: risk.flags,
       });
       return { error: 'Pagamento bloqueado pela análise antifraude. Fale com o suporte.' };
     }
 
-    const subId = await activateSubscription({
-      userId: user.id,
-      planId: plan.id,
-      cycle: input.cycle,
-      gateway: 'demo',
-    });
-    await recordPayment({
-      userId: user.id,
-      planId: plan.id,
-      subscriptionId: subId,
-      amount,
-      status: 'approved',
-      gateway: 'demo',
-      gatewayPaymentId: `demo_${Date.now()}`,
-      riskScore: risk.score,
-      riskFlags: risk.flags,
-      metadata: { cycle: input.cycle, mode: 'demo' },
-    });
+    const manual = await startManualPayment({ kind: 'plan', slug: plan.slug, cycle: input.cycle });
+    if (manual.error) return { error: manual.error };
     await admin.from('es_audit_logs').insert({
       user_id: user.id,
       actor_email: user.email,
-      action: 'subscription_activated',
-      entity: 'subscription',
-      entity_id: subId,
-      meta: { plan: plan.slug, cycle: input.cycle, gateway: 'demo', site: SITE_URL },
+      action: 'checkout_requested',
+      entity: 'payment',
+      entity_id: manual.paymentId ?? null,
+      meta: { plan: plan.slug, cycle: input.cycle, gateway: 'manual', site: SITE_URL },
     });
-    return { ok: true };
+    return { pending: true, manual };
   } catch (err) {
     return { error: err instanceof Error ? err.message : 'Falha ao processar pagamento.' };
   }
@@ -132,7 +133,9 @@ export async function goToCheckout(slug: string) {
  * - Stripe/Mercado Pago: cria a cobrança e o tempo é liberado pelo webhook,
  *   sempre com referência idempotente para não duplicar horas.
  */
-export async function purchaseHours(packSlug: string): Promise<{ ok?: boolean; url?: string; error?: string; remaining?: number }> {
+export async function purchaseHours(
+  packSlug: string,
+): Promise<{ ok?: boolean; url?: string; error?: string; remaining?: number; pending?: boolean; manual?: Record<string, unknown> }> {
   const user = await getSessionUser();
   if (!user) return { error: 'Sessão expirada. Faça login novamente.' };
 
@@ -195,34 +198,10 @@ export async function purchaseHours(packSlug: string): Promise<{ ok?: boolean; u
       return { error: 'Pagamento bloqueado pela análise antifraude. Fale com o suporte.' };
     }
 
-    await recordPayment({
-      userId: user.id,
-      planId: null,
-      amount: pack.price,
-      status: 'approved',
-      gateway: 'demo',
-      gatewayPaymentId: `demo_horas_${Date.now()}`,
-      riskScore: risk.score,
-      riskFlags: risk.flags,
-      metadata: { kind: 'hours', pack: pack.slug, hours: pack.hours, mode: 'demo' },
-    });
-    const balance = await grantTime({
-      userId: user.id,
-      hours: pack.hours,
-      kind: 'purchase',
-      note: `Compra de ${pack.label} (modo demo)`,
-      grantedBy: user.id,
-      reference: `demo:${user.id}:${pack.slug}:${Date.now()}`,
-    });
-    await admin.from('es_audit_logs').insert({
-      user_id: user.id,
-      actor_email: user.email,
-      action: 'time_purchased',
-      entity: 'time_credit',
-      entity_id: user.id,
-      meta: { pack: pack.slug, hours: pack.hours, gateway: 'demo' },
-    });
-    return { ok: true, remaining: balance.remaining };
+    // Sem gateway: horas só entram depois da aprovação do comprovante (admin).
+    const manual = await startManualPayment({ kind: 'hours', slug: pack.slug });
+    if (manual.error) return { error: manual.error };
+    return { pending: true, manual: { ...manual } };
   } catch (err) {
     return { error: err instanceof Error ? err.message : 'Falha ao processar a compra de horas.' };
   }

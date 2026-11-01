@@ -18,7 +18,7 @@ import {
 import { useStudio, DEFAULT_GENERATOR } from './store';
 import { FontPicker } from './FontPicker';
 import { cn } from '@/lib/utils';
-import type { Clip, KeyframeProp, TransitionType } from '@/lib/types';
+import type { Clip, KeyframeProp, TextProps, TransitionType } from '@/lib/types';
 
 const TRANSITIONS: TransitionType[] = ['none', 'fade', 'slide', 'zoom', 'wipe', 'glitch', 'flash'];
 const FONTS = ['Inter', 'Poppins', 'Montserrat', 'Bebas Neue', 'Anton', 'Playfair Display'];
@@ -571,15 +571,39 @@ export function Inspector() {
             <Row label="Animação">
               <select
                 value={clip.text.animation}
-                onChange={(e) => useStudio.getState().patchText(clip.id, { animation: e.target.value as 'none' | 'typewriter' | 'pop' | 'fade' })}
+                onChange={(e) => useStudio.getState().patchText(clip.id, { animation: e.target.value as TextProps['animation'] })}
                 className="w-full rounded-lg border border-white/10 bg-ink-850 px-1.5 py-1 text-[11px] text-white outline-none"
               >
                 <option value="none">Nenhuma</option>
                 <option value="typewriter">Máquina de escrever</option>
                 <option value="pop">Pop</option>
                 <option value="fade">Fade</option>
+                <option value="karaoke">Karaokê (palavra acende)</option>
+                <option value="popup">Pop-up dinâmico</option>
+                <option value="banner">Impacto banner</option>
               </select>
             </Row>
+            {['karaoke', 'banner'].includes(clip.text.animation) ? (
+              <Row label="Cor do destaque">
+                <input
+                  type="color"
+                  value={clip.text.highlight || '#facc15'}
+                  onChange={(e) => useStudio.getState().patchText(clip.id, { highlight: e.target.value })}
+                  className="h-6 w-full rounded border border-white/10 bg-black/30"
+                />
+              </Row>
+            ) : null}
+            {clip.text.animation === 'popup' ? (
+              <label className="flex items-center justify-between rounded-lg bg-white/5 px-2 py-1.5 text-[10px] text-slate-300">
+                Caixa branca atrás da palavra
+                <input
+                  type="checkbox"
+                  checked={Boolean(clip.text.wordBackground)}
+                  onChange={(e) => useStudio.getState().patchText(clip.id, { wordBackground: e.target.checked ? '#111827' : '' })}
+                  className="h-3.5 w-3.5 accent-brand-500"
+                />
+              </label>
+            ) : null}
           </Card>
         ) : null}
 

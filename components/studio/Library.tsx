@@ -8,6 +8,7 @@ import {
   Download,
   FileCode2,
   FileUp,
+  Globe,
   Image as ImageIcon,
   Layers,
   Lock,
@@ -28,6 +29,10 @@ import { presetDuration } from './audio';
 import { TtsPanel } from './TtsPanel';
 import { parseTimelineFile } from '@/lib/timeline-io';
 import { AssetThumb } from '@/components/media/AssetThumb';
+import { probeMediaDuration, resolveInsertStart } from '@/lib/media-probe';
+import { LibraryStock } from './LibraryStock';
+import { CaptionTemplates } from './CaptionTemplates';
+import { CAPTION_TEMPLATES } from './caption-presets';
 import type { Asset, Clip, UserAsset } from '@/lib/types';
 
 const TEXT_PRESETS: { name: string; text: Partial<Clip['text']> }[] = [
@@ -63,6 +68,7 @@ const TABS = [
   { id: 'sounds', label: 'Sons', icon: Music4 },
   { id: 'transitions', label: 'Efeitos', icon: Wand2 },
   { id: 'voice', label: 'Voz IA', icon: Mic },
+  { id: 'stock', label: 'Bancos', icon: Globe },
   { id: 'import', label: 'Importar', icon: FileUp },
 ] as const;
 
@@ -143,21 +149,30 @@ export function Library({
   function addToTimeline(partial: Partial<Clip> & { kind: Clip['kind']; src: string; name: string; duration: number }) {
     const s = useStudio.getState();
     const trackId = targetTrack(partial.kind);
-    s.addClip({ ...partial, trackId, start: s.playhead, duration: partial.duration } as never);
+    // início absoluto (0) ou a agulha — nunca a área vazia do fim da régua
+    const start = resolveInsertStart(s);
+    s.addClip({ ...partial, trackId, start, duration: partial.duration } as never);
     useStudio.getState().select(useStudio.getState().clips[useStudio.getState().clips.length - 1]?.id ?? null);
   }
 
-  function addUserAsset(asset: UserAsset) {
+  async function addUserAsset(asset: UserAsset) {
+    const kind = asset.type === 'audio' ? 'audio' : asset.type === 'video' ? 'video' : 'image';
+    const known = Number(asset.metadata?.duration ?? 0) || null;
+    // vídeo/áudio baixado não guarda duração no storage: lemos do próprio arquivo
+    const real =
+      kind === 'image'
+        ? null
+        : known || (await probeMediaDuration(asset.url, kind === 'audio' ? 'audio' : 'video'));
     addToTimeline({
-      kind: asset.type === 'audio' ? 'audio' : asset.type === 'video' ? 'video' : 'image',
+      kind,
       src: asset.url,
       name: asset.name,
-      duration: asset.type === 'image' ? 5 : Math.min(asset.metadata?.duration || 6, 600),
-      sourceDuration: asset.metadata?.duration,
+      duration: kind === 'image' ? 5 : Math.min(real || 6, 600),
+      sourceDuration: real || known || undefined,
     });
   }
 
-  function addBuiltin(asset: Asset) {
+  async function addBuiltin(asset: Asset) {
     // Item com cadeado abre o modal de upgrade (checkout real) em vez de
     // simplesmente recusar — mesmo comportamento em desktop e mobile.
     if (!requirePro(asset, asset.premium ? proUnlocked : true)) return;
@@ -220,13 +235,19 @@ export function Library({
       addToTimeline({ kind: 'sticker', src: url, name: asset.name, duration: 4, sticker: { preset: url.replace('builtin:', ''), color: '#f97316' } });
       return;
     }
-    // imagens e vídeos da biblioteca
+    // imagens e vídeos da biblioteca (duração real quando for vídeo)
+    if (asset.type === 'image') {
+      addToTimeline({ kind: 'image', src: url, name: asset.name, duration: 5 });
+      return;
+    }
+    const known = Number(asset.metadata?.duration ?? 0) || null;
+    const real = known || (await probeMediaDuration(url, 'video'));
     addToTimeline({
-      kind: asset.type === 'image' ? 'image' : 'video',
+      kind: 'video',
       src: url,
       name: asset.name,
-      duration: asset.type === 'image' ? 5 : Number(asset.metadata?.duration ?? 8),
-      sourceDuration: Number(asset.metadata?.duration ?? 0) || undefined,
+      duration: Math.min(real ?? 8, 600),
+      sourceDuration: real ?? undefined,
     });
   }
 
@@ -362,7 +383,7 @@ export function Library({
                     key={a.id}
                     draggable
                     onDragStart={(e) => dragPayload(e, a)}
-                    onClick={() => addBuiltin(a)}
+                    onClick={() => void addBuiltin(a)}
                     className="group overflow-hidden rounded-lg border border-white/8 bg-white/[0.03] text-left transition hover:border-brand-400/50"
                   >
                     <div className="relative aspect-video overflow-hidden bg-ink-950">
@@ -401,7 +422,7 @@ export function Library({
                       key={a.id}
                       draggable
                       onDragStart={(e) => dragPayload(e, a)}
-                      onClick={() => addBuiltin(a)}
+                      onClick={() => void addBuiltin(a)}
                       className="rounded-lg border border-white/8 bg-white/[0.03] px-1 py-2 text-[9px] font-semibold text-slate-200 hover:border-brand-400/50"
                     >
                       {a.name}
@@ -418,7 +439,7 @@ export function Library({
                   {fontAssets.map((a) => (
                     <button
                       key={a.id}
-                      onClick={() => addBuiltin(a)}
+                      onClick={() => void addBuiltin(a)}
                       style={{ fontFamily: (a.url ?? '').replace('font:', '') }}
                       className="rounded-lg border border-white/8 bg-white/[0.03] px-2 py-2 text-left text-[12px] text-white hover:border-brand-400/50"
                     >
@@ -437,7 +458,7 @@ export function Library({
                   {overlayAssets.map((a) => (
                     <button
                       key={a.id}
-                      onClick={() => addBuiltin(a)}
+                      onClick={() => void addBuiltin(a)}
                       className="rounded-lg border border-white/8 bg-white/[0.03] px-2 py-2 text-[10px] text-slate-200 hover:border-brand-400/50"
                     >
                       {a.name}
@@ -469,7 +490,7 @@ export function Library({
                       JSON.stringify({ kind: f.type === 'audio' ? 'audio' : f.type === 'video' ? 'video' : 'image', src: f.url, name: f.name, duration: f.type === 'image' ? 5 : Math.min(f.metadata?.duration || 6, 600) }),
                     )
                   }
-                  onClick={() => addUserAsset(f)}
+                  onClick={() => void addUserAsset(f)}
                   className="group overflow-hidden rounded-lg border border-white/8 bg-white/[0.03] text-left transition hover:border-brand-400/40"
                 >
                   <AssetThumb
@@ -487,6 +508,34 @@ export function Library({
 
         {tab === 'text' ? (
           <div className="space-y-3">
+            {/* Legendas animadas (Karaokê / Pop-up / Impacto Banner) */}
+            <CaptionTemplates onApplied={(msg) => flash(msg)} />
+
+            <p className="text-[10px] uppercase tracking-wider text-slate-500">Modelos de legenda animada</p>
+            <div className="grid grid-cols-3 gap-1.5">
+              {CAPTION_TEMPLATES.map((template) => (
+                <button
+                  key={template.id}
+                  onClick={() =>
+                    addToTimeline({
+                      kind: 'text',
+                      src: 'text',
+                      name: template.name,
+                      duration: 4,
+                      text: {
+                        ...DEFAULT_TEXT,
+                        content: template.id === 'banner' ? 'IMPACTO BANNER' : 'ESSA LEGENDA ACENDE',
+                        ...template.text,
+                      } as Clip['text'],
+                    })
+                  }
+                  className="rounded-lg border border-white/8 bg-gradient-to-br from-brand-500/15 to-transparent p-2 text-left text-[10px] font-semibold text-white hover:border-brand-400/50"
+                >
+                  {template.name}
+                  <span className="mt-0.5 block text-[8px] font-normal leading-tight text-slate-400">{template.hint}</span>
+                </button>
+              ))}
+            </div>
             <p className="text-[10px] uppercase tracking-wider text-slate-500">Copy de propaganda</p>
             <div className="grid grid-cols-2 gap-2">
               {AD_TEXT.map((p) => (
@@ -540,7 +589,7 @@ export function Library({
               Objetos WebGL com giro em X, Y e Z (360°). Ajuste rotação, cor, metal e sombra no inspetor.
             </p>
             {filteredAssets(['object3d']).map((a) => (
-              <AssetRow key={a.id} asset={a} locked={a.premium && !proUnlocked} onClick={() => addBuiltin(a)} icon={<Boxes className="h-3.5 w-3.5" />} hint={String(a.metadata?.shape ?? '')} />
+              <AssetRow key={a.id} asset={a} locked={a.premium && !proUnlocked} onClick={() => void addBuiltin(a)} icon={<Boxes className="h-3.5 w-3.5" />} hint={String(a.metadata?.shape ?? '')} />
             ))}
           </div>
         ) : null}
@@ -550,11 +599,11 @@ export function Library({
           <div className="space-y-2">
             {(byType.get('sfx') ?? []).length ? <p className="text-[10px] uppercase tracking-wider text-slate-500">Efeitos</p> : null}
             {filteredAssets(['sfx']).map((a) => (
-              <AssetRow key={a.id} asset={a} locked={a.premium && !proUnlocked} onClick={() => addBuiltin(a)} icon={<Zap className="h-3.5 w-3.5" />} />
+              <AssetRow key={a.id} asset={a} locked={a.premium && !proUnlocked} onClick={() => void addBuiltin(a)} icon={<Zap className="h-3.5 w-3.5" />} />
             ))}
             {(byType.get('music') ?? []).length ? <p className="pt-2 text-[10px] uppercase tracking-wider text-slate-500">Trilhas</p> : null}
             {filteredAssets(['music']).map((a) => (
-              <AssetRow key={a.id} asset={a} locked={a.premium && !proUnlocked} onClick={() => addBuiltin(a)} icon={<Music4 className="h-3.5 w-3.5" />} />
+              <AssetRow key={a.id} asset={a} locked={a.premium && !proUnlocked} onClick={() => void addBuiltin(a)} icon={<Music4 className="h-3.5 w-3.5" />} />
             ))}
             <button
               onClick={() => {
@@ -582,7 +631,7 @@ export function Library({
           <div className="space-y-2">
             <p className="text-[10px] leading-relaxed text-slate-500">Selecione um clipe e toque para aplicar a transição.</p>
             {filteredAssets(['transition']).map((a) => (
-              <AssetRow key={a.id} asset={a} locked={a.premium && !proUnlocked} onClick={() => addBuiltin(a)} />
+              <AssetRow key={a.id} asset={a} locked={a.premium && !proUnlocked} onClick={() => void addBuiltin(a)} />
             ))}
           </div>
         ) : null}
@@ -591,6 +640,34 @@ export function Library({
         {tab === 'voice' ? <TtsPanel projectId={projectId} onAdded={() => router.refresh()} /> : null}
 
         {/* IMPORTAR */}
+        {tab === 'stock' ? (
+          <LibraryStock
+            onPick={async (item) => {
+              // salva no storage do usuário e entra na timeline com a duração real
+              const res = await fetch('/api/stock/save', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ url: item.url, name: item.title || item.kind, kind: item.kind }),
+              });
+              const data = (await res.json()) as { asset?: { url: string; name: string }; error?: string };
+              if (!res.ok || !data.asset) {
+                flash(data.error || 'Não foi possível salvar este arquivo.');
+                return;
+              }
+              const kind = item.kind === 'audio' ? 'audio' : item.kind === 'video' ? 'video' : 'image';
+              const real = kind === 'image' ? null : await probeMediaDuration(data.asset.url, kind === 'audio' ? 'audio' : 'video');
+              addToTimeline({
+                kind,
+                src: data.asset.url,
+                name: data.asset.name,
+                duration: kind === 'image' ? 5 : Math.min(real ?? 8, 600),
+                sourceDuration: real ?? undefined,
+                volume: kind === 'audio' ? 0.9 : 1,
+              });
+            }}
+          />
+        ) : null}
+
         {tab === 'import' ? (
           <div className="space-y-3">
             <div className="rounded-xl border border-white/10 bg-white/[0.02] p-3">

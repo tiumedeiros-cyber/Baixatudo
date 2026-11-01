@@ -233,14 +233,15 @@ export function effectivePayments(settings: PlatformSettings) {
   const stripeSecret = decryptSecret(settings.payments.stripe_secret) || process.env.STRIPE_SECRET_KEY || '';
   const mpToken = decryptSecret(settings.payments.mp_token) || process.env.MERCADOPAGO_ACCESS_TOKEN || '';
   const configured = settings.payments.mode;
+  // O modo "demo" (libera na hora) foi REMOVIDO: sem gateway de verdade o
+  // checkout abre um pedido manual (PIX) e o plano só muda por aprovação.
+  // O valor antigo 'demo' que ainda exista no banco cai em 'manual'.
   const mode: PaymentMode =
     configured === 'stripe' && stripeSecret
       ? 'stripe'
       : configured === 'mercadopago' && mpToken
         ? 'mercadopago'
-        : configured === 'demo'
-          ? 'demo'
-          : 'manual';
+        : 'manual';
   return {
     mode,
     stripeSecret,

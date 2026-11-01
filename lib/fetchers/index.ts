@@ -22,7 +22,7 @@ export const STOCK_LABEL: Record<StockProvider, string> = {
 export const STOCK_KINDS: Record<StockProvider, ('video' | 'photo' | 'audio')[]> = {
   pexels: ['video', 'photo'],
   unsplash: ['photo'],
-  pixabay: ['video', 'photo'],
+  pixabay: ['video', 'photo', 'audio'],
   freesound: ['audio'],
 };
 

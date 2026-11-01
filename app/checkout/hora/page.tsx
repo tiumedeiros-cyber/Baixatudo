@@ -24,7 +24,8 @@ export default async function HourCheckoutPage({ searchParams }: { searchParams:
   const balance = await getTimeBalance(user.id);
   const settings = await getSettings();
   const pay = effectivePayments(settings);
-  const demo = pay.mode === 'demo';
+  // modo demo removido: sem gateway = pedido manual pendente (nunca libera na hora)
+  const demo = false;
   const manual = pay.mode === 'manual';
 
   return (

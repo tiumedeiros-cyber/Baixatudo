@@ -9,7 +9,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { Loader2, Type } from 'lucide-react';
-import { ensureGoogleFont, searchFonts, type FontCategory } from '@/lib/fetchers/google-fonts';
+import { ensureGoogleFont, searchFonts, type FontCategory, type GoogleFont } from '@/lib/fetchers/google-fonts';
 import { cn } from '@/lib/utils';
 
 const CATEGORIES: { id: FontCategory | 'all'; label: string }[] = [
@@ -33,8 +33,37 @@ export function FontPicker({
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState<FontCategory | 'all'>('all');
+  /** catálogo ampliado vindo do servidor (Google Fonts ao vivo) */
+  const [catalog, setCatalog] = useState<GoogleFont[] | null>(null);
+  const [loadingCatalog, setLoadingCatalog] = useState(false);
 
-  const results = useMemo(() => searchFonts(query, category).slice(0, 60), [query, category]);
+  const local = useMemo(() => searchFonts(query, category).slice(0, 60), [query, category]);
+
+  /** Junta o catálogo curado (instantâneo) com o catálogo vivo, sem duplicar. */
+  const results = useMemo(() => {
+    if (!catalog) return local;
+    const q = query.trim().toLowerCase();
+    const seen = new Set(local.map((font) => font.family.toLowerCase()));
+    const extra = catalog.filter((font) => {
+      if (seen.has(font.family.toLowerCase())) return false;
+      if (category !== 'all' && font.category !== category) return false;
+      return !q || `${font.family} ${font.tags}`.toLowerCase().includes(q);
+    });
+    return [...local, ...extra].slice(0, 120);
+  }, [local, catalog, query, category]);
+
+  // busca o catálogo completo só quando o seletor abre (1x por sessão)
+  useEffect(() => {
+    if (!open || catalog || loadingCatalog) return;
+    setLoadingCatalog(true);
+    fetch('/api/fonts?limit=200', { cache: 'force-cache' })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: { items?: GoogleFont[] } | null) => {
+        if (data?.items?.length) setCatalog(data.items);
+      })
+      .catch(() => undefined)
+      .finally(() => setLoadingCatalog(false));
+  }, [open, catalog, loadingCatalog]);
 
   // pré-carrega as fontes visíveis para o preview sair na fonte certa
   useEffect(() => {
@@ -107,6 +136,9 @@ export function FontPicker({
               </button>
             ))}
             {!results.length ? <p className="px-2 py-3 text-[10px] text-slate-500">Nenhuma fonte com esse termo.</p> : null}
+            <p className="px-2 py-2 text-[9px] leading-relaxed text-slate-600">
+              {loadingCatalog ? 'Carregando catálogo completo do Google Fonts…' : `${results.length} fontes livres (licença OFL) — uso comercial sem marca d'água`}
+            </p>
           </div>
         </div>
       ) : null}

@@ -30,6 +30,8 @@ export function HourPacksForm({
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<number | null>(null);
+  /** pedido PIX pendente: horas NÃO liberadas ainda */
+  const [request, setRequest] = useState<{ paymentId?: string; pixKey?: string; pixHolder?: string; instructions?: string; whatsapp?: string } | null>(null);
   const router = useRouter();
 
   function buy() {
@@ -39,6 +41,11 @@ export function HourPacksForm({
         const result = await purchaseHours(selected);
         if (result?.url) {
           window.location.href = result.url;
+          return;
+        }
+        // Sem gateway: nenhuma hora é creditada — só abre o pedido para pagamento
+        if (result?.pending) {
+          setRequest((result.manual ?? {}) as typeof request);
           return;
         }
         if (result?.ok) {
@@ -115,6 +122,26 @@ export function HourPacksForm({
         })}
       </div>
 
+      {request ? (
+        <div className="rounded-xl border border-emerald-400/25 bg-emerald-500/5 px-4 py-3 text-[11px] leading-relaxed text-emerald-100">
+          <p className="flex items-center gap-1.5 font-semibold text-emerald-200">
+            <Check className="h-3.5 w-3.5" /> Pedido {request.paymentId ? `#${request.paymentId.slice(0, 8).toUpperCase()}` : ''} registrado
+          </p>
+          {request.pixKey ? (
+            <p className="mt-1">
+              PIX: <strong className="select-all">{request.pixKey}</strong>{request.pixHolder ? ` — ${request.pixHolder}` : ''}
+            </p>
+          ) : null}
+          {request.instructions ? <p className="mt-1 text-emerald-100/80">{request.instructions}</p> : null}
+          {request.whatsapp ? (
+            <a href={request.whatsapp} target="_blank" rel="noreferrer" className="mt-2 inline-flex rounded-lg bg-emerald-500 px-3 py-1.5 text-[11px] font-bold text-white">
+              Enviar comprovante no WhatsApp
+            </a>
+          ) : null}
+          <p className="mt-1 text-[10px] text-emerald-100/70">As horas entram na sua conta só depois que o pagamento for aprovado.</p>
+        </div>
+      ) : null}
+
       {error ? (
         <p className="flex items-center gap-2 rounded-xl border border-rose-400/25 bg-rose-500/10 px-3 py-2 text-xs text-rose-200">
           <TriangleAlert className="h-3.5 w-3.5" /> {error}
@@ -147,7 +174,7 @@ export function HourPacksForm({
         {manual
           ? 'Pagamento manual: o acesso é liberado após a conferência do comprovante.'
           : demo
-            ? 'Ambiente de demonstração: a liberação é imediata e registrada na auditoria.'
+            ? 'Sem gateway configurado: confirmando, abrimos o pedido PIX. As horas são creditadas só após a aprovação.'
             : 'Pagamento protegido por antifraude e liberação automática após confirmação.'}
       </p>
 

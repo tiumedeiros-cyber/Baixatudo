@@ -5,6 +5,7 @@ import { useStudio } from './store';
 import { uid } from '@/lib/utils';
 import { VOICES, DEFAULT_VOICE, RATES } from '@/lib/catalog/voices';
 import { VoiceClonePanel } from './VoiceClonePanel';
+import { CaptionTemplates } from './CaptionTemplates';
 
 type Segment = { url: string; text: string; duration: number };
 
@@ -306,6 +307,11 @@ export function TtsPanel({ projectId, onAdded }: { projectId: string; onAdded?: 
           </button>
         </div>
         {transcript ? <p className="mt-2 max-h-16 overflow-y-auto rounded bg-black/30 p-1.5 text-[9px] leading-relaxed text-slate-400">{transcript}</p> : null}
+
+        {/* Áudio → Texto: escolha do estilo da legenda logo depois de ditar/transcrever */}
+        <div className="mt-2">
+          <CaptionTemplates onApplied={(msg) => setInfo(msg)} />
+        </div>
       </div>
 
       {serverEngine ? (

@@ -1,5 +1,5 @@
 'use client';
-import type { Clip, Filters, Keyframe, Track } from '@/lib/types';
+import type { Clip, Filters, Keyframe, Track, WordTiming } from '@/lib/types';
 import { clamp } from '@/lib/utils';
 import type { MediaRegistry } from './media';
 import type { ThreePool } from './three';
@@ -494,9 +494,292 @@ function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number)
   return out;
 }
 
+
+/* ────────────────────────────────────────────────────────────────────────────
+ * LEGENDAS ANIMADAS (templates Karaokê / Pop-up / Impacto Banner)
+ *
+ * Tudo desenhado no mesmo canvas do render — funciona no preview E na
+ * exportação, sem dependência de CSS/framer-motion. Cada template recebe os
+ * tempos por palavra (quando o Whisper/ditado fornece) ou distribui as palavras
+ * proporcionalmente ao tamanho dentro da duração do clipe.
+ * ──────────────────────────────────────────────────────────────────────────── */
+
+type PlacedWord = { text: string; width: number; x: number; line: number };
+
+/** Quebra as palavras em linhas e devolve a posição X de cada uma. */
+function layoutWords(ctx: CanvasRenderingContext2D, words: string[], maxWidth: number) {
+  const space = Math.max(1, ctx.measureText(' ').width);
+  const lines: PlacedWord[][] = [[]];
+  let line = 0;
+  let cursor = 0;
+  for (const word of words) {
+    const width = ctx.measureText(word).width;
+    if (cursor > 0 && cursor + space + width > maxWidth) {
+      line += 1;
+      lines.push([]);
+      cursor = 0;
+    }
+    const x = cursor === 0 ? 0 : cursor + space;
+    lines[line].push({ text: word, width, x, line });
+    cursor = x + width;
+  }
+  const widest = lines.reduce(
+    (acc, l) => Math.max(acc, l.reduce((a, b) => Math.max(a, b.x + b.width), 0)),
+    1,
+  );
+  return { lines, widest };
+}
+
+/** Tempos por palavra: usa os reais (Whisper) ou distribui por nº de letras. */
+function timingsFor(clip: Clip, words: string[]): WordTiming[] {
+  const given = clip.text?.words;
+  if (Array.isArray(given) && given.length === words.length) return given;
+  const total = words.reduce((acc, w) => acc + Math.max(1, w.length), 0) || 1;
+  const duration = Math.max(0.4, clip.duration);
+  let cursor = 0;
+  return words.map((w) => {
+    const span = (Math.max(1, w.length) / total) * duration;
+    const item: WordTiming = { w, s: cursor, e: cursor + span };
+    cursor += span;
+    return item;
+  });
+}
+
+/**
+ * Karaokê: a palavra acende (cor de destaque + leve zoom + pílula) exatamente
+ * quando é falada; as seguintes ficam apagadas.
+ */
+function drawKaraoke(
+  ctx: CanvasRenderingContext2D,
+  clip: Clip,
+  local: number,
+  width: number,
+  height: number,
+  scaleFactor: number,
+) {
+  const t = clip.text!;
+  const fs = Math.max(8, t.fontSize * (height / 1080));
+  ctx.font = `${t.weight} ${fs}px "${t.fontFamily}", Inter, sans-serif`;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  ctx.letterSpacing = `${t.letterSpacing}px`;
+
+  const words = t.content.split(/\s+/).filter(Boolean);
+  if (!words.length) return;
+  const times = timingsFor(clip, words);
+  const { lines, widest } = layoutWords(ctx, words, (width * 0.9) / scaleFactor);
+  const lineHeight = fs * (t.lineHeight || 1.2);
+  const totalHeight = lines.length * lineHeight;
+
+  let index = 0;
+  const startY = -totalHeight / 2 + lineHeight / 2;
+
+  lines.forEach((lineWords, i) => {
+    const lineWidth = lineWords.reduce((a, b) => Math.max(a, b.x + b.width), 0);
+    const baseX = t.align === 'center' ? -lineWidth / 2 : t.align === 'left' ? -widest / 2 : widest / 2 - lineWidth;
+    const y = startY + i * lineHeight;
+
+    lineWords.forEach((placed) => {
+      const timing = times[index] ?? { w: placed.text, s: 0, e: 0 };
+      const spoken = local >= timing.s;
+      const active = spoken && local < timing.e + 0.12;
+      index += 1;
+
+      ctx.save();
+      // pílula atrás da palavra acesa
+      if (active && t.wordBackground) {
+        ctx.fillStyle = t.wordBackground;
+        const padX = fs * 0.16;
+        const padY = fs * 0.22;
+        ctx.beginPath();
+        ctx.roundRect(baseX + placed.x - padX, y - fs * 0.62 - padY, placed.width + padX * 2, fs * 0.94 + padY * 2, fs * 0.24);
+        ctx.fill();
+      }
+      const x = baseX + placed.x;
+      if (active) {
+        const bump = 1 + 0.09 * Math.max(0, 1 - (local - timing.s) / 0.18);
+        ctx.translate(x + placed.width / 2, y);
+        ctx.scale(bump, bump);
+        ctx.translate(-(x + placed.width / 2), -y);
+      }
+      if (t.stroke > 0) {
+        ctx.lineWidth = t.stroke * (height / 1080);
+        ctx.strokeStyle = t.strokeColor;
+        ctx.lineJoin = 'round';
+        ctx.strokeText(placed.text, x, y);
+      }
+      ctx.fillStyle = active ? t.highlight || '#facc15' : spoken ? t.color : withAlpha(t.color, 0.72);
+      ctx.fillText(placed.text, x, y);
+      ctx.restore();
+    });
+  });
+}
+
+/** Pop-up dinâmico (TikTok): cada palavra entra com "soco" e fica na tela. */
+function drawPopup(
+  ctx: CanvasRenderingContext2D,
+  clip: Clip,
+  local: number,
+  width: number,
+  height: number,
+  scaleFactor: number,
+) {
+  const t = clip.text!;
+  const fs = Math.max(8, t.fontSize * (height / 1080));
+  ctx.font = `${t.weight} ${fs}px "${t.fontFamily}", Inter, sans-serif`;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  ctx.letterSpacing = `${t.letterSpacing}px`;
+
+  const words = t.content.split(/\s+/).filter(Boolean);
+  if (!words.length) return;
+  const times = timingsFor(clip, words);
+  const { lines, widest } = layoutWords(ctx, words, (width * 0.85) / scaleFactor);
+  const lineHeight = fs * (t.lineHeight || 1.2);
+  const totalHeight = lines.length * lineHeight;
+  const startY = -totalHeight / 2 + lineHeight / 2;
+
+  let index = 0;
+  lines.forEach((lineWords, i) => {
+    const lineWidth = lineWords.reduce((a, b) => Math.max(a, b.x + b.width), 0);
+    const baseX = t.align === 'center' ? -lineWidth / 2 : t.align === 'left' ? -widest / 2 : widest / 2 - lineWidth;
+    const y = startY + i * lineHeight;
+
+    lineWords.forEach((placed) => {
+      const timing = times[index] ?? { w: placed.text, s: 0, e: 0 };
+      const age = local - timing.s;
+      index += 1;
+      if (age < 0) return; // ainda não foi falada
+      const k = clamp(age / 0.22, 0, 1);
+      // overshoot: 0.4 → 1.08 → 1
+      const scale = 0.4 + 0.6 * k + Math.sin(k * Math.PI) * 0.16;
+      const x = baseX + placed.x;
+
+      ctx.save();
+      ctx.globalAlpha *= clamp(k * 1.4, 0, 1);
+      ctx.translate(x + placed.width / 2, y);
+      ctx.scale(scale, scale);
+      ctx.translate(-(x + placed.width / 2), -y);
+
+      if (t.wordBackground) {
+        ctx.fillStyle = t.wordBackground;
+        const pad = fs * 0.14;
+        ctx.beginPath();
+        ctx.roundRect(x - pad, y - fs * 0.62, placed.width + pad * 2, fs * 0.94, fs * 0.18);
+        ctx.fill();
+      }
+      if (t.stroke > 0) {
+        ctx.lineWidth = t.stroke * (height / 1080);
+        ctx.strokeStyle = t.strokeColor;
+        ctx.lineJoin = 'round';
+        ctx.strokeText(placed.text, x, y);
+      }
+      ctx.fillStyle = t.color;
+      ctx.fillText(placed.text, x, y);
+      ctx.restore();
+    });
+  });
+}
+
+/** Impacto Banner: faixa deslizante atrás do texto, entrada com "slam". */
+function drawBanner(
+  ctx: CanvasRenderingContext2D,
+  clip: Clip,
+  local: number,
+  width: number,
+  height: number,
+  scaleFactor: number,
+) {
+  const t = clip.text!;
+  const fs = Math.max(10, t.fontSize * (height / 1080));
+  const boxAlpha = 0.18 * clamp(local / 0.12, 0, 1);
+  if (boxAlpha <= 0 && clip.fadeIn > 0) return;
+  const upper = t.content.toUpperCase();
+  ctx.save();
+  ctx.font = `${t.weight} ${fs}px "${t.fontFamily}", "Anton", Inter, sans-serif`;
+  ctx.textAlign = t.align;
+  ctx.textBaseline = 'middle';
+  ctx.letterSpacing = `${t.letterSpacing}px`;
+
+  const maxWidth = (width * 0.92) / scaleFactor;
+  const lines = wrapText(ctx, upper, maxWidth);
+  const lineHeight = fs * (t.lineHeight || 1.15);
+  const totalHeight = lines.length * lineHeight;
+  const maxLineWidth = lines.reduce((a, l) => Math.max(a, ctx.measureText(l).width), 1);
+  const startY = -totalHeight / 2 + lineHeight / 2;
+
+  // entrada: faixa cresce da esquerda (0.35 s) e o texto cai com escala
+  const grow = clamp(local / 0.35, 0, 1);
+  const ease = 1 - Math.pow(1 - grow, 3);
+  const bandH = totalHeight + fs * 0.75;
+  ctx.globalAlpha *= clamp(local / 0.16, 0, 1);
+
+  ctx.fillStyle = t.background && t.background !== 'transparent' ? t.background : 'rgba(0,0,0,0.78)';
+  const bandW = (maxLineWidth + fs * 1.2) * (0.25 + 0.75 * ease);
+  const bandX = -bandW / 2;
+  ctx.beginPath();
+  ctx.rect(bandX, -bandH / 2, bandW, bandH);
+  ctx.fill();
+
+  // barra de destaque (cor do texto) na borda inferior
+  ctx.fillStyle = t.highlight || t.color;
+  ctx.fillRect(bandX, bandH / 2 - fs * 0.1, bandW, fs * 0.1);
+
+  ctx.translate(0, (1 - ease) * fs * 0.6);
+  const pop = 1 + Math.sin(clamp(local / 0.3, 0, 1) * Math.PI) * 0.06;
+  ctx.scale(pop, pop);
+
+  lines.forEach((line, i) => {
+    const y = startY + i * lineHeight;
+    if (t.stroke > 0) {
+      ctx.lineWidth = t.stroke * (height / 1080);
+      ctx.strokeStyle = t.strokeColor;
+      ctx.lineJoin = 'round';
+      ctx.strokeText(line, 0, y);
+    }
+    if (t.gradient && t.gradient.includes(',')) {
+      const [c1, c2] = t.gradient.split(',');
+      const g = ctx.createLinearGradient(-maxLineWidth / 2, y, maxLineWidth / 2, y);
+      g.addColorStop(0, c1.trim());
+      g.addColorStop(1, c2.trim());
+      ctx.fillStyle = g;
+    } else {
+      ctx.fillStyle = t.color;
+    }
+    ctx.fillText(line, 0, y);
+  });
+  ctx.restore();
+}
+
+/** `#rrggbb` → `rgba(...)` com alfa (usado para apagar a palavra ainda não falada). */
+function withAlpha(color: string, alpha: number): string {
+  const hex = color.trim();
+  const short = /^#([0-9a-f]{3})$/i.exec(hex);
+  const long = /^#([0-9a-f]{6})$/i.exec(hex);
+  let r = 255;
+  let g = 255;
+  let b = 255;
+  if (long) {
+    r = parseInt(long[1].slice(0, 2), 16);
+    g = parseInt(long[1].slice(2, 4), 16);
+    b = parseInt(long[1].slice(4, 6), 16);
+  } else if (short) {
+    r = parseInt(short[1][0] + short[1][0], 16);
+    g = parseInt(short[1][1] + short[1][1], 16);
+    b = parseInt(short[1][2] + short[1][2], 16);
+  } else if (/^rgba?\(/.test(hex)) {
+    return hex;
+  }
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
 function drawText(ctx: CanvasRenderingContext2D, clip: Clip, local: number, width: number, height: number, scaleFactor: number) {
   const t = clip.text;
   if (!t) return;
+  // templates de legenda animada (Karaokê / Pop-up / Banner) — caminho próprio
+  if (t.animation === 'karaoke') return drawKaraoke(ctx, clip, local, width, height, scaleFactor);
+  if (t.animation === 'popup') return drawPopup(ctx, clip, local, width, height, scaleFactor);
+  if (t.animation === 'banner') return drawBanner(ctx, clip, local, width, height, scaleFactor);
   const fs = Math.max(8, t.fontSize * (height / 1080));
   ctx.font = `${t.weight} ${fs}px "${t.fontFamily}", Inter, sans-serif`;
   ctx.textAlign = t.align;

@@ -58,7 +58,8 @@ export default async function CheckoutPage({ params }: { params: Promise<{ slug:
               email={user.email ?? ''}
               stripeEnabled={stripeEnabled}
               mpEnabled={mpEnabled}
-              demo={pay.mode === 'demo'}
+              // modo demo (liberação sem pagamento) removido: sempre cobra de verdade
+              demo={false}
             />
           )}
         </div>

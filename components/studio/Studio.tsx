@@ -6,10 +6,12 @@ import {
   Check,
   CloudUpload,
   Loader2,
+  Menu,
   PanelLeft,
   PanelRight,
   Redo2,
   Save,
+  Settings2,
   Undo2,
 } from 'lucide-react';
 import { useStudio } from './store';
@@ -17,6 +19,7 @@ import { Preview } from './Preview';
 import { Timeline } from './Timeline';
 import { Inspector } from './Inspector';
 import { Library } from './Library';
+import { Drawer } from './Drawer';
 import { ExportButton } from './Exporter';
 // Módulo Premium (isolado): contexto global + modal de upgrade
 import { SubscriptionProvider } from '@/components/billing/SubscriptionContext';
@@ -211,6 +214,25 @@ export function Studio({
           <button onClick={() => useStudio.getState().redo()} className="grid h-8 w-8 place-items-center rounded-lg text-slate-400 hover:bg-white/10 hover:text-white" title="Refazer (Ctrl+Shift+Z)">
             <Redo2 className="h-4 w-4" />
           </button>
+          {/* celular: hambúrguer abre a biblioteca; engrenagem abre os ajustes */}
+          <button
+            onClick={() => setMobilePanel((v) => (v === 'library' ? null : 'library'))}
+            className="grid h-8 w-8 place-items-center rounded-lg text-slate-300 hover:bg-white/10 hover:text-white lg:hidden"
+            title="Elementos"
+            aria-label="Abrir biblioteca de elementos"
+            aria-expanded={mobilePanel === 'library'}
+          >
+            <Menu className="h-4 w-4" />
+          </button>
+          <button
+            onClick={() => setMobilePanel((v) => (v === 'inspector' ? null : 'inspector'))}
+            className="grid h-8 w-8 place-items-center rounded-lg text-slate-300 hover:bg-white/10 hover:text-white lg:hidden"
+            title="Ajustes"
+            aria-label="Abrir ajustes do elemento"
+            aria-expanded={mobilePanel === 'inspector'}
+          >
+            <Settings2 className="h-4 w-4" />
+          </button>
           <button onClick={() => setShowLeft((v) => !v)} className="hidden h-8 w-8 place-items-center rounded-lg text-slate-400 hover:bg-white/10 hover:text-white lg:grid" title="Biblioteca">
             <PanelLeft className="h-4 w-4" />
           </button>
@@ -267,31 +289,41 @@ export function Studio({
         </button>
       </div>
 
-      {/* gavetas deslizantes (celular / tablet) */}
-      {mobilePanel ? (
-        <div className="fixed inset-0 z-[70] lg:hidden" onClick={() => setMobilePanel(null)}>
-          <div className="absolute inset-0 bg-black/70" />
-          <div
-            className="absolute inset-x-0 bottom-0 flex h-[82dvh] flex-col rounded-t-2xl border-t border-white/10 bg-ink-950 p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="mx-auto mb-2 h-1 w-10 rounded-full bg-white/20" />
-            <div className="mb-2 flex items-center justify-between px-1">
-              <span className="text-xs font-semibold text-white">{mobilePanel === 'library' ? 'Elementos' : 'Ajustes do elemento'}</span>
-              <button onClick={() => setMobilePanel(null)} className="rounded-lg bg-white/10 px-2 py-1 text-[11px] text-white">
-                Fechar
-              </button>
-            </div>
-            <div className="min-h-0 flex-1">
-              {mobilePanel === 'library' ? (
-                <Library assets={assets} userAssets={userAssets} premiumAllowed={premiumAllowed} projectId={project.id} />
-              ) : (
-                <Inspector />
+      {/* gaveta offcanvas (celular / tablet) — animada, não espreme o editor */}
+      <Drawer
+        open={mobilePanel !== null}
+        onClose={() => setMobilePanel(null)}
+        title={mobilePanel === 'inspector' ? 'Ajustes do elemento' : 'Biblioteca de elementos'}
+        icon={mobilePanel === 'inspector' ? <Settings2 className="h-3.5 w-3.5" /> : <PanelLeft className="h-3.5 w-3.5" />}
+        footer={
+          <div className="flex gap-2">
+            <button
+              onClick={() => setMobilePanel('library')}
+              className={cn(
+                'flex flex-1 items-center justify-center gap-1.5 rounded-lg border py-2 text-[11px] font-semibold transition',
+                mobilePanel === 'library' ? 'border-brand-400/60 bg-brand-500/20 text-white' : 'border-white/10 bg-white/5 text-slate-300',
               )}
-            </div>
+            >
+              <PanelLeft className="h-3.5 w-3.5" /> Elementos
+            </button>
+            <button
+              onClick={() => setMobilePanel('inspector')}
+              className={cn(
+                'flex flex-1 items-center justify-center gap-1.5 rounded-lg border py-2 text-[11px] font-semibold transition',
+                mobilePanel === 'inspector' ? 'border-brand-400/60 bg-brand-500/20 text-white' : 'border-white/10 bg-white/5 text-slate-300',
+              )}
+            >
+              <PanelRight className="h-3.5 w-3.5" /> Ajustes
+            </button>
           </div>
-        </div>
-      ) : null}
+        }
+      >
+        {mobilePanel === 'inspector' ? (
+          <Inspector />
+        ) : (
+          <Library assets={assets} userAssets={userAssets} premiumAllowed={premiumAllowed} projectId={project.id} />
+        )}
+      </Drawer>
 
       <footer className="hidden shrink-0 items-center gap-3 border-t border-white/5 px-3 py-1 text-[9px] text-slate-600 sm:flex">
         <span className="flex items-center gap-1"><Save className="h-2.5 w-2.5" /> autosave 2s</span>

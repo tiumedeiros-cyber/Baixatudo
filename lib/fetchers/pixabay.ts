@@ -27,13 +27,53 @@ type PixabayImageHit = {
 
 export const pixabaySignup = 'https://pixabay.com/api/docs/';
 
+type PixabayAudioHit = {
+  id: number;
+  pageURL: string;
+  user: string;
+  duration: number;
+  audio: string;
+  tags?: string;
+};
+
 export async function searchPixabay(
   key: string,
   options: StockSearchOptions,
 ): Promise<StockSearchResult> {
   const page = Math.max(1, options.page ?? 1);
   const perPage = Math.min(30, Math.max(3, options.perPage ?? 18));
-  const kind = options.kind === 'audio' ? 'photo' : options.kind;
+  const kind = options.kind;
+
+  // Pixabay Audio (SFX e músicas) — mesma chave gratuita, endpoint /api/audio/
+  if (kind === 'audio') {
+    const audioUrl = `${BASE}/audio/?key=${key}&q=${encodeURIComponent(options.query)}&per_page=${perPage}&page=${page}`;
+    const audioRes = await fetch(audioUrl, { signal: AbortSignal.timeout(20_000), cache: 'no-store' });
+    if (!audioRes.ok) {
+      return {
+        ok: false,
+        error:
+          audioRes.status === 400 || audioRes.status === 401
+            ? 'A chave do Pixabay foi recusada (o áudio usa a mesma chave).'
+            : `Pixabay Audio respondeu ${audioRes.status}.`,
+      };
+    }
+    const audioData = (await audioRes.json()) as { hits?: PixabayAudioHit[]; totalHits?: number };
+    const audioItems = (audioData.hits ?? [])
+      .filter((hit) => Boolean(hit.audio))
+      .map<StockItem>((hit) => ({
+        id: `pixabay-a-${hit.id}`,
+        source: 'pixabay',
+        kind: 'audio',
+        title: (hit.tags ?? `Áudio Pixabay #${hit.id}`).split(',').slice(0, 3).join(', ').trim(),
+        thumb: '',
+        url: hit.audio,
+        duration: hit.duration,
+        author: hit.user,
+        page: hit.pageURL,
+        license: 'Pixabay · uso livre',
+      }));
+    return { ok: true, source: 'pixabay', items: audioItems, page, total: audioData.totalHits ?? audioItems.length };
+  }
 
   const url =
     kind === 'video'

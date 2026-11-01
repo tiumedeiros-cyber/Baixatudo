@@ -34,7 +34,7 @@ type SourceId = 'pexels' | 'unsplash' | 'pixabay' | 'freesound';
 const SOURCES: { id: SourceId; label: string; kinds: StockTab[] }[] = [
   { id: 'pexels', label: 'Pexels', kinds: ['video', 'photo'] },
   { id: 'unsplash', label: 'Unsplash', kinds: ['photo'] },
-  { id: 'pixabay', label: 'Pixabay', kinds: ['video', 'photo'] },
+  { id: 'pixabay', label: 'Pixabay', kinds: ['video', 'photo', 'audio'] },
   { id: 'freesound', label: 'Freesound', kinds: ['audio'] },
 ];
 

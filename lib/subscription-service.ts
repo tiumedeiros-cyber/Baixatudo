@@ -50,11 +50,25 @@ export type SubscriptionState = {
   gateway: 'stripe' | 'mercadopago' | 'manual' | 'off';
 };
 
+export type ManualPayment = {
+  paymentId?: string;
+  amount?: number;
+  label?: string;
+  instructions?: string;
+  pixKey?: string;
+  pixHolder?: string;
+  whatsapp?: string;
+  email?: string;
+};
+
 export type CheckoutResult = {
-  /** já ativado (modo demonstração / admin) */
+  /** @deprecated o plano NUNCA é ativado pela UI; mantido só por compatibilidade */
   activated?: boolean;
   /** para onde o navegador deve ir (Stripe / Mercado Pago) */
   url?: string;
+  /** pedido registrado e aguardando pagamento/aprovação (PIX manual) */
+  pending?: boolean;
+  manual?: ManualPayment;
   error?: string;
 };
 
@@ -114,8 +128,12 @@ export const subscriptionService = {
       });
       if (result?.error) return { error: result.error };
       if (result?.url) return { url: result.url };
-      cached = null;
-      return { activated: true };
+      if (result?.pending) {
+        // plano NÃO foi liberado: só existe um pedido esperando pagamento
+        return { pending: true, manual: (result.manual ?? {}) as ManualPayment };
+      }
+      // nada de ativar por conta própria: sem gateway e sem pedido, é erro real
+      return { error: 'Não foi possível iniciar o pagamento. Fale com o suporte.' };
     } catch (error) {
       return { error: error instanceof Error ? error.message : 'Não foi possível abrir o checkout.' };
     }
