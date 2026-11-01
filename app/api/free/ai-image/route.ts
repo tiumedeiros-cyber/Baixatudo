@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getSessionUser } from '@/lib/auth';
 import { clientIp, rateLimit } from '@/lib/rate-limit';
+import { craiyon } from '@/lib/craiyon';
 
 export const runtime = 'nodejs';
 export const maxDuration = 120;
@@ -31,6 +32,7 @@ export async function POST(request: Request) {
   const height = Math.min(1536, Math.max(256, Number(body.height) || 1024));
   const baseSeed = Number.isFinite(Number(body.seed)) ? Number(body.seed) : Math.floor(Math.random() * 1_000_000);
 
+  const pollinationsKey = process.env.POLLINATIONS_API_KEY ?? '';
   const attempts = [baseSeed, baseSeed + 17, baseSeed + 91];
   const problems: string[] = [];
 
@@ -40,7 +42,11 @@ export async function POST(request: Request) {
       `?width=${width}&height=${height}&model=sana&nologo=true&seed=${seed}&referrer=editorstudio`;
     try {
       const res = await fetch(url, {
-        headers: { 'User-Agent': 'EditorStudio/1.0 (+https://editor-studio-one.vercel.app)', Accept: 'image/*' },
+        headers: {
+          'User-Agent': 'EditorStudio/1.0 (+https://editor-studio-one.vercel.app)',
+          Accept: 'image/*',
+          ...(pollinationsKey ? { Authorization: `Bearer ${pollinationsKey}` } : {}),
+        },
         cache: 'no-store',
         signal: AbortSignal.timeout(45_000),
       });
@@ -62,12 +68,31 @@ export async function POST(request: Request) {
     }
   }
 
+  // Segunda tentativa: Craiyon (público, sem cadastro).
+  try {
+    const image = await craiyon(prompt);
+    if (image) {
+      return NextResponse.json({
+        ok: true,
+        dataUrl: `data:image/jpeg;base64,${image.toString('base64')}`,
+        bytes: image.length,
+        width,
+        height,
+        seed: baseSeed,
+        engine: 'craiyon',
+      });
+    }
+    problems.push('craiyon sem resposta');
+  } catch (error) {
+    problems.push(`craiyon: ${error instanceof Error ? error.message : 'erro'}`);
+  }
+
   return NextResponse.json(
     {
       error:
-        'O gerador de imagens por IA não respondeu agora (o serviço gratuito está instável). ' +
-        'Tente novamente em alguns minutos ou use a aba “Imagens livres”, que busca fotos prontas.',
-      detail: problems.join(' · ').slice(0, 300),
+        'Os geradores gratuitos de imagem não responderam agora (os dois serviços públicos estão fora do ar). ' +
+        'Tente novamente em alguns minutos ou use a aba “Imagens livres”, que busca fotos prontas — essa funciona sempre.',
+      detail: problems.join(' · ').slice(0, 400),
     },
     { status: 502 },
   );

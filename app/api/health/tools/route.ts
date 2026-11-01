@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import QRCode from 'qrcode';
 import { isAllowedFreeUrl } from '@/lib/free-media';
+import { craiyon } from '@/lib/craiyon';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -84,6 +85,14 @@ export async function GET() {
     results.internetArchive = { ok: Boolean(data.response?.numFound), ms: Date.now() - t0, detail: `${data.response?.numFound ?? 0} itens` };
   } catch (err) {
     results.internetArchive = { ok: false, ms: Date.now() - t0, detail: (err instanceof Error ? err.message : String(err)).slice(0, 200) };
+  }
+
+  t0 = Date.now();
+  try {
+    const image = await craiyon('red apple');
+    results.craiyon = { ok: Boolean(image), ms: Date.now() - t0, bytes: image?.length ?? 0 };
+  } catch (err) {
+    results.craiyon = { ok: false, ms: Date.now() - t0, detail: (err instanceof Error ? err.message : String(err)).slice(0, 200) };
   }
 
   return NextResponse.json(
