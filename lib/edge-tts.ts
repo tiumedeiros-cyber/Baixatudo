@@ -1,4 +1,5 @@
-import { createHash, randomUUID } from 'node:crypto';
+import { randomUUID } from 'node:crypto';
+import { secMsGec } from './ms-gec';
 
 /**
  * Cliente mínimo do Microsoft Edge “Read Aloud” (vozes neurais, sem chave de API).
@@ -10,20 +11,14 @@ import { createHash, randomUUID } from 'node:crypto';
  */
 
 const TRUSTED_CLIENT_TOKEN = '6A5AA1D4EAFF4E9FB37E23D68491D6F4';
-const SEC_MS_GEC_VERSION = '1-130.0.2849.68';
-const CHROMIUM_FULL_VERSION = '130.0.2849.68';
+const CHROMIUM_FULL_VERSION = '143.0.3650.75';
+const SEC_MS_GEC_VERSION = `2-${CHROMIUM_FULL_VERSION}`;
 const WSS_BASE = 'wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1';
 const OUTPUT_FORMAT = 'audio-24khz-48kbitrate-mono-mp3';
 
-/** Token exigido pelo serviço desde 2024 (SHA-256 de ticks + token fixo). */
-function secMsGec() {
-  const ticks = (Math.floor(Date.now() / 1000) + 11644473600) * 10_000_000;
-  const rounded = ticks - (ticks % 3_000_000_000); // arredonda para baixo em janelas de 5 min
-  return createHash('sha256').update(`${rounded}${TRUSTED_CLIENT_TOKEN}`, 'ascii').digest('hex').toUpperCase();
-}
-
+/** Data no formato que o serviço espera nos cabeçalhos das mensagens. */
 function stamp() {
-  return `${new Date().toUTCString().replace('GMT', 'GMT+0000 (Coordinated Universal Time)')}`;
+  return new Date().toUTCString();
 }
 
 export type EdgeSynthesisOptions = {
@@ -59,9 +54,10 @@ export async function edgeSynthesize(opts: EdgeSynthesisOptions): Promise<Buffer
         Origin: 'chrome-extension://jdiccldimpdaibmpdkjnbmckianbfold',
         Pragma: 'no-cache',
         'Cache-Control': 'no-cache',
-        'Accept-Encoding': 'gzip, deflate, br',
+        'Accept-Encoding': 'gzip, deflate, br, zstd',
         'Accept-Language': 'en-US,en;q=0.9',
-        'User-Agent': `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${CHROMIUM_FULL_VERSION} Safari/537.36 Edg/${CHROMIUM_FULL_VERSION}`,
+        'Sec-WebSocket-Version': '13',
+        'User-Agent': `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0`,
       },
     });
 
