@@ -167,7 +167,7 @@ export function AvatarStudio({
             </button>
           </div>
           <p className="mt-1 text-[11px] text-slate-500">
-            {AVATARS.length} personagens · rosto, meio corpo e corpo inteiro · boca animada pelo áudio em prévia e exportação.
+            {AVATARS.length} personagens 3D · close ou meio corpo · boca animada pelo áudio na prévia e na exportação.
           </p>
 
           <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-4">

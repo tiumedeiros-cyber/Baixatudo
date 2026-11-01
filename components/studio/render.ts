@@ -730,7 +730,7 @@ export function drawFrame(opts: FrameOptions) {
     } else if (clip.kind === 'sticker') {
       drawSticker(ctx, clip, height * 0.4);
     } else if (clip.kind === 'avatar') {
-      const avatar = clip.avatar ?? { preset: 'ana', mouth: [] };
+      const avatar = clip.avatar ?? { preset: 'theo', mouth: [] };
       const intensity = avatar.intensity ?? 1;
       const mouth = avatar.mouth?.length
         ? Math.min(1, mouthFromEnvelope(avatar.mouth, local + clip.trimStart) * intensity)

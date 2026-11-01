@@ -139,7 +139,7 @@ function getKeyed(src?: string): KeyedImage | null {
 /** Desenha o retrato 3D no quadro; devolve false se ainda não carregou. */
 function drawPhoto(
   ctx: CanvasRenderingContext2D,
-  photo: { base: string; talk: string },
+  photo: { base: string; mid?: string; talk: string },
   x: number,
   y: number,
   w: number,
@@ -150,7 +150,6 @@ function drawPhoto(
 ) {
   const base = getKeyed(photo.base);
   if (!base) return false;
-  const talk = getKeyed(photo.talk);
   const box = base.box;
   const cw = base.canvas.width;
   const ch = base.canvas.height;
@@ -172,13 +171,29 @@ function drawPhoto(
   ctx.scale(breathe, breathe);
   ctx.translate(-(x + w / 2), -(y + h / 2));
   ctx.drawImage(base.canvas, cx, cy, dw, dh);
-  if (talk) {
-    const t = Math.max(0, Math.min(1, (mouth - 0.16) / 0.5));
-    if (t > 0.02) {
-      ctx.globalAlpha = t;
-      ctx.drawImage(talk.canvas, cx, cy, dw, dh);
-      ctx.globalAlpha = 1;
+
+  // Leitura labial em 3 estados: fechado → entreaberto → aberto.
+  // A mistura é contínua com a amplitude do áudio, então a boca abre e fecha
+  // em passos suaves (antes era só "abre/fecha").
+  const midImg = photo.mid ? getKeyed(photo.mid) : null;
+  const talkImg = getKeyed(photo.talk);
+  const t = Math.max(0, Math.min(1, (mouth - 0.08) / 0.72));
+  const draw = (img: { canvas: HTMLCanvasElement } | null, alpha: number) => {
+    if (!img || alpha <= 0.01) return;
+    ctx.globalAlpha = alpha;
+    ctx.drawImage(img.canvas, cx, cy, dw, dh);
+    ctx.globalAlpha = 1;
+  };
+
+  if (midImg) {
+    if (t <= 0.5) {
+      draw(midImg, t / 0.5);
+    } else {
+      draw(midImg, 1);
+      draw(talkImg, (t - 0.5) / 0.5);
     }
+  } else {
+    draw(talkImg, t);
   }
   ctx.restore();
   return true;

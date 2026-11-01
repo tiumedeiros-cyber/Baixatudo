@@ -624,7 +624,7 @@ export function Inspector() {
                 onChange={(e) =>
                   patch({
                     avatar: {
-                      preset: withScene(clip.avatar?.preset ?? 'ana', e.target.value as (typeof SCENES)[number]['id']),
+                      preset: withScene(clip.avatar?.preset ?? 'theo', e.target.value as (typeof SCENES)[number]['id']),
                       mouth: clip.avatar?.mouth ?? [],
                       intensity: clip.avatar?.intensity ?? 1,
                     },
@@ -699,7 +699,7 @@ export function Inspector() {
               min={20}
               max={180}
               suffix="%"
-              onChange={(v) => patch({ avatar: { preset: clip.avatar?.preset ?? 'ana', mouth: clip.avatar?.mouth ?? [], intensity: v / 100 } })}
+              onChange={(v) => patch({ avatar: { preset: clip.avatar?.preset ?? 'theo', mouth: clip.avatar?.mouth ?? [], intensity: v / 100 } })}
             />
             <p className="text-[9px] leading-relaxed text-slate-500">
               {clip.avatar?.mouth?.length

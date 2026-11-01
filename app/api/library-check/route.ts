@@ -18,7 +18,11 @@ const SCENE_FILES = SCENES.map((s) => s.id).filter((id) => id !== 'chroma' && id
 
 /** Retratos 3D (render estilo Pixar) usados pelos avatares. */
 const AVATAR_IMAGES = Array.from(
-  new Set(AVATARS.flatMap((a) => (a.photo ? [a.photo.base, a.photo.talk] : []))),
+  new Set(
+    AVATARS.flatMap((a) =>
+      a.photo ? [a.photo.base, a.photo.mid, a.photo.talk].filter((x): x is string => Boolean(x)) : [],
+    ),
+  ),
 );
 
 const FILES = [
