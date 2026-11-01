@@ -47,6 +47,7 @@ export default async function AdminPlans() {
               </div>
               <div className="flex items-center gap-3 text-[10px] text-slate-400">
                 <label className="flex items-center gap-1"><input type="checkbox" name="premium_library" defaultChecked={plan.limits?.premium_library} className="accent-brand-500" /> Premium</label>
+                <label className="flex items-center gap-1"><input type="checkbox" name="unlimited" defaultChecked={Boolean(plan.limits?.unlimited)} className="accent-brand-500" /> Ilimitado</label>
                 <label className="flex items-center gap-1"><input type="checkbox" name="is_active" defaultChecked={plan.is_active} className="accent-brand-500" /> Ativo</label>
                 <input name="sort_order" type="number" defaultValue={plan.sort_order} className="w-12 rounded border border-white/10 bg-black/30 px-1 py-0.5 text-white" title="Ordem" />
               </div>
@@ -69,6 +70,7 @@ export default async function AdminPlans() {
           <input name="storage_gb" type="number" defaultValue={10} placeholder="GB" className="rounded-lg border border-white/10 bg-black/30 px-2 py-1.5 text-xs text-white" />
           <input name="max_quality" type="number" defaultValue={1080} placeholder="Qualidade" className="rounded-lg border border-white/10 bg-black/30 px-2 py-1.5 text-xs text-white" />
           <input name="trial_days" type="number" defaultValue={0} placeholder="Trial" className="rounded-lg border border-white/10 bg-black/30 px-2 py-1.5 text-xs text-white" />
+          <label className="flex items-center gap-1 text-[11px] text-slate-400"><input type="checkbox" name="unlimited" className="accent-brand-500" /> Plano ilimitado</label>
           <button className="rounded-lg bg-white/10 py-2 text-xs font-semibold text-white sm:col-span-2">Criar plano</button>
         </form>
       </Card>

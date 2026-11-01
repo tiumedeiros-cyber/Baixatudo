@@ -67,6 +67,7 @@ export async function upsertPlan(formData: FormData) {
       premium_library: formData.get('premium_library') === 'on',
       tts_minutes: Number(formData.get('tts_minutes') || 30),
       downloads_per_day: Number(formData.get('downloads_per_day') || 20),
+      unlimited: formData.get('unlimited') === 'on',
     },
     trial_days: Number(formData.get('trial_days') || 0),
     is_active: formData.get('is_active') === 'on',

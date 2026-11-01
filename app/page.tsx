@@ -88,8 +88,9 @@ const FAQ = [
   { q: 'Preciso instalar algo?', a: 'Não. O Editor Studio roda 100% no navegador (Chrome, Edge, Firefox e Safari) e também em tablets com toque.' },
   { q: 'Como funciona o Baixa Tudo integrado?', a: 'Já vem embutido na plataforma: dentro da sua conta você cola o link do vídeo, escolhe a qualidade (ou só o áudio) e o arquivo cai na biblioteca para usar na timeline. Não precisa instalar nada.' },
   { q: 'Os arquivos ficam salvos?', a: 'Sim. Seus uploads vão para o armazenamento da sua conta conforme o plano, e os projetos têm autosave a cada 2 segundos.' },
-  { q: 'Posso exportar em 4K?', a: 'Nos planos Pro e Studio a exportação chega a 4K. No Básico, até 1080p.' },
-  { q: 'Como funciona o pagamento?', a: 'Checkout com cartão, PIX ou boleto conforme o gateway configurado. A confirmação é automática via webhook assinado e a assinatura é liberada na hora.' },
+  { q: 'Posso exportar em 4K?', a: 'Nos planos Pro, Studio e Geral a exportação chega a 4K. No Básico, até 1080p.' },
+  { q: 'Como funciona o pagamento?', a: 'No PIX: você copia a chave, paga o valor do plano e envia o comprovante no WhatsApp com o número do pedido — a liberação é feita em minutos. Cartão e assinatura automática ficam disponíveis quando o gateway (Stripe ou Mercado Pago) está configurado.' },
+  { q: 'Consigo criar avatar falante com fundo transparente?', a: 'Sim. Escolha o cenário “Sem fundo” e exporte em WebM com canal alfa: o avatar sai recortado para você sobrepor em qualquer vídeo.' },
   { q: 'Posso cancelar quando quiser?', a: 'Sim. O cancelamento fica agendado para o fim do período e você mantém o acesso até lá.' },
 ];
 
