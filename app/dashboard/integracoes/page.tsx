@@ -4,6 +4,9 @@ import { requireUser } from '@/lib/auth';
 import { Badge, Card } from '@/components/ui';
 import { saveMyIntegrations } from './actions';
 import { userIntegrationState } from '@/lib/user-integrations';
+import { getSettings } from '@/lib/settings';
+import { stockKeyStatus } from '@/lib/fetchers/keys';
+import { StockKeysPanel } from '@/components/integrations/StockKeysPanel';
 
 export const metadata = { title: 'Minhas integrações · Editor Studio' };
 export const dynamic = 'force-dynamic';
@@ -30,6 +33,9 @@ function SourceBadge({ source, label }: { source: 'user' | 'shared' | 'off'; lab
 export default async function MyIntegrationsPage() {
   const { user } = await requireUser();
   const state = await userIntegrationState(user!.id);
+  const settings = await getSettings();
+  // Módulo 2 · item 1: estado real das chaves dos bancos gratuitos (banco de dados)
+  const stockKeys = await stockKeyStatus(user!.id);
 
   return (
     <div className="space-y-5">
@@ -48,6 +54,22 @@ export default async function MyIntegrationsPage() {
         <SourceBadge source={state.resolved.kieSource} label="Animação IA" />
         <SourceBadge source={state.resolved.postizSource} label="Publicação TikTok" />
       </div>
+
+      {/* Bancos gratuitos (Pexels, Unsplash, Pixabay, Freesound) — chaves + teste de conexão */}
+      <Card className="p-5">
+        <h3 className="flex items-center gap-2 text-sm font-semibold text-white">
+          <KeyRound className="h-4 w-4 text-emerald-300" /> Bibliotecas gratuitas — suas chaves
+        </h3>
+        <p className="mt-1 text-[11px] leading-relaxed text-slate-500">
+          Todas têm plano gratuito. A chave fica criptografada no servidor e é usada na hora em{' '}
+          <Link href="/dashboard/recursos" className="text-brand-300 hover:underline">Recursos grátis</Link> e na aba
+          <strong className="text-slate-200"> Bancos</strong> do editor. &quot;Testar conexão&quot; faz uma busca real e mostra
+          verde (sucesso) ou vermelho (erro).
+        </p>
+        <div className="mt-4">
+          <StockKeysPanel initialStatus={stockKeys} allowUserKeys={settings.integrations.allow_user_stock} />
+        </div>
+      </Card>
 
       <div className="grid gap-4 xl:grid-cols-2">
         <Card className="p-5">

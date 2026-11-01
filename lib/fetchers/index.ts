@@ -54,6 +54,28 @@ export async function searchStock(
   }
 }
 
+/**
+ * Teste de conexão de uma chave (Módulo 2 · item 1).
+ *
+ * Usa a MESMA função da busca real, com uma consulta mínima — se a chave for
+ * inválida, o provedor responde 401 e devolvemos o motivo para o toast.
+ */
+export async function testStockKey(
+  provider: StockProvider,
+  key: string,
+): Promise<{ ok: boolean; ms: number; items?: number; error?: string }> {
+  const t0 = Date.now();
+  if (!key) return { ok: false, ms: 0, error: 'Nenhuma chave informada.' };
+  try {
+    const result = await FETCHERS[provider](key, { query: 'background', kind: STOCK_KINDS[provider][0], perPage: 3 });
+    const ms = Date.now() - t0;
+    if (!result.ok) return { ok: false, ms, error: ('error' in result && result.error) || 'A fonte recusou a chave.' };
+    return { ok: true, ms, items: result.items.length };
+  } catch (error) {
+    return { ok: false, ms: Date.now() - t0, error: error instanceof Error ? error.message : 'Falha de rede.' };
+  }
+}
+
 export { STOCK_SIGNUP };
 export type { StockProvider };
 export type { StockItem, StockKind, StockSearchResult, StockSearchOptions } from './types';

@@ -45,6 +45,17 @@ export function driveFolderId(url: string): string | null {
 /** Converte links de "visualizar" em links de download direto. */
 export function directUrl(raw: string): { url: string; kind: 'drive' | 'dropbox' | 'onedrive' | 'direct' } {
   const url = raw.trim();
+
+  // Documentos nativos do Google (Docs/Sheets/Slides) precisam de /export —
+  // o link /d/<id>/edit não é um arquivo baixável. Mesma regra do cliente
+  // (lib/drive-link.ts), para o link colado no celular e o do servidor darem igual.
+  const docs = url.match(/docs\.google\.com\/(document|spreadsheets|presentation)\/d\/([\w-]{10,})/);
+  if (docs) {
+    const [, docKind, docId] = docs;
+    const format = docKind === 'document' ? 'docx' : docKind === 'spreadsheets' ? 'xlsx' : 'pptx';
+    return { url: `https://docs.google.com/${docKind}/d/${docId}/export?format=${format}`, kind: 'drive' };
+  }
+
   const fileId = driveFileId(url);
   if (fileId && /drive\.google\.com|docs\.google\.com/.test(url)) {
     const key = driveResourceKey(url);

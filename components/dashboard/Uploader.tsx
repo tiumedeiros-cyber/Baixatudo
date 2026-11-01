@@ -7,6 +7,8 @@ import { Button, Card } from '@/components/ui';
 import { deleteUserAsset, uploadUserAssetFallback } from '@/app/dashboard/actions';
 import { AssetThumb } from '@/components/media/AssetThumb';
 import { bytes, formatDate } from '@/lib/utils';
+import { prepareFileForUpload } from '@/lib/file-intake';
+import { toDirectDownload } from '@/lib/drive-link';
 import type { UserAsset } from '@/lib/types';
 
 type MediaKind = 'video' | 'image' | 'audio';
@@ -138,7 +140,11 @@ export function Uploader({
           `Sem espaço: o plano tem ${(limit / 1024 ** 3).toFixed(0)} GB, ${((limit - used) / 1024 ** 3).toFixed(1)} GB livres e você está enviando ${(incoming / 1024 ** 3).toFixed(1)} GB. Apague arquivos ou faça upgrade.`,
         );
       }
-      for (const file of Array.from(files)) {
+      for (const rawFile of Array.from(files)) {
+        setProgress(`Lendo ${rawFile.name}…`);
+        // Módulo 2 · item 2: arquivo do celular pode vir sem MIME (HEIC/WhatsApp).
+        // O helper lê pelo FileReader só quando necessário e devolve um File válido.
+        const file = await prepareFileForUpload(rawFile);
         setProgress(`Enviando ${file.name}…`);
         const type = detectType(file);
         const meta = await probe(file, type);
@@ -218,7 +224,11 @@ export function Uploader({
     }
   }
 
-  /** Importa do Google Drive / Dropbox / link direto (ou pasta pública do Drive). */
+  /**
+   * Importa do Google Drive / Dropbox / link direto (ou pasta pública do Drive).
+   * Módulo 2 · item 2: o link de "visualizar" é convertido em download direto
+   * antes de sair do navegador (o servidor aplica a mesma regra de novo).
+   */
   async function importLink() {
     const url = link.trim();
     if (!url) return;
@@ -226,7 +236,8 @@ export function Uploader({
     setError(null);
     setSuccess(null);
     try {
-      const targets: string[] = [url];
+      const direct = toDirectDownload(url);
+      const targets: string[] = [direct.url];
       if (/\/folders\//.test(url)) {
         setProgress('Lendo a pasta do Drive…');
         const listing = await fetch('/api/import', {
@@ -293,14 +304,14 @@ export function Uploader({
             ref={galleryRef}
             type="file"
             multiple
-            accept="video/*,image/*,audio/*,.heic,.heif"
+            accept="video/*,image/*,audio/*,.mp4,.m4v,.mov,.webm,.jpg,.jpeg,.png,.webp,.gif,.heic,.heif,.avif,.mp3,.wav,.m4a,.aac,.ogg,.opus"
             className="hidden"
             onChange={(e) => handleFiles(e.target.files)}
           />
           <input
             ref={cameraRef}
             type="file"
-            accept="image/*,video/*"
+            accept="image/*,video/*,.heic,.heif"
             capture="environment"
             className="hidden"
             onChange={(e) => handleFiles(e.target.files)}
@@ -349,6 +360,26 @@ export function Uploader({
             {linkBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Link2 className="h-4 w-4" />} Importar
           </Button>
         </div>
+
+        {/* Módulo 2 · item 2: o link de "visualizar" vira download direto */}
+        {link.trim() ? (
+          <div className="mt-2 rounded-lg border border-white/8 bg-black/25 px-2.5 py-1.5 text-[10px] leading-relaxed">
+            {(() => {
+              const direct = toDirectDownload(link.trim());
+              return (
+                <>
+                  <p className="text-slate-500">
+                    {direct.converted ? 'Link convertido para download direto:' : 'Link direto (não precisa converter):'}
+                  </p>
+                  <p className="break-all font-mono text-emerald-300/90">{direct.url}</p>
+                  {direct.kind === 'drive' && /\/folders\//.test(link) ? (
+                    <p className="text-amber-200/80">Pasta do Drive: os arquivos são listados e importados um a um.</p>
+                  ) : null}
+                </>
+              );
+            })()}
+          </div>
+        ) : null}
       </Card>
 
       <div className="flex items-center justify-between text-xs text-slate-400">

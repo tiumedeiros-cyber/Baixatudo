@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
-import { AudioLines, Download, Loader2, Mic, Play, Square, Subtitles, Wand2 } from 'lucide-react';
+import { AudioLines, Download, Loader2, Mic, Play, Square, Subtitles, Volume2, Wand2 } from 'lucide-react';
 import { useStudio } from './store';
 import { uid } from '@/lib/utils';
 import { VOICES, DEFAULT_VOICE, RATES } from '@/lib/catalog/voices';
@@ -31,6 +31,82 @@ export function TtsPanel({ projectId, onAdded }: { projectId: string; onAdded?: 
   const [rate, setRate] = useState<'normal' | 'lenta'>('normal');
   const [transcript, setTranscript] = useState('');
   const recognitionRef = useRef<{ stop: () => void } | null>(null);
+
+  /* ── Módulo 1 · item 3: prévia automática ao trocar de voz ─────────────────
+   * Cada amostra é buscada uma única vez em /api/tts/sample (o servidor também
+   * guarda em cache) e fica num Map de blob URLs — trocar de voz e voltar é
+   * instantâneo e não gasta nada.
+   * ---------------------------------------------------------------------- */
+  const [sampleState, setSampleState] = useState<'idle' | 'loading' | 'playing'>('idle');
+  const [sampleLabel, setSampleLabel] = useState('');
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const sampleCache = useRef<Map<string, string>>(new Map());
+  const previewTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const previewToken = useRef(0);
+
+  function stopSample() {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) window.speechSynthesis.cancel();
+    setSampleState('idle');
+  }
+
+  async function previewVoice(voiceId: string, voiceLang: string, label = '') {
+    const token = ++previewToken.current;
+    stopSample();
+    setSampleLabel(label);
+    setSampleState('loading');
+    const key = `${voiceId}|${voiceLang}`;
+    try {
+      let src = sampleCache.current.get(key);
+      if (!src) {
+        const res = await fetch(`/api/tts/sample?voice=${encodeURIComponent(voiceId)}&lang=${encodeURIComponent(voiceLang)}`, {
+          cache: 'force-cache',
+        });
+        if (!res.ok) throw new Error('sample');
+        const blob = await res.blob();
+        if (!blob.size) throw new Error('empty');
+        src = URL.createObjectURL(blob);
+        sampleCache.current.set(key, src);
+      }
+      if (token !== previewToken.current) return; // trocou de voz no meio
+      const audio = audioRef.current ?? new Audio();
+      audioRef.current = audio;
+      audio.onended = () => setSampleState('idle');
+      audio.src = src;
+      await audio.play();
+      setSampleState('playing');
+    } catch {
+      // motor neural indisponível: prévia com a voz do navegador (na hora)
+      if (token !== previewToken.current) return;
+      if (!('speechSynthesis' in window)) {
+        setSampleState('idle');
+        return;
+      }
+      const utter = new SpeechSynthesisUtterance('Olá! Esta é a minha voz no Editor Studio.');
+      utter.lang = voiceLang;
+      const match = voices.find((v) => v.lang.toLowerCase().startsWith(voiceLang.slice(0, 2).toLowerCase()));
+      if (match) utter.voice = match;
+      utter.onend = () => setSampleState('idle');
+      window.speechSynthesis.speak(utter);
+      setSampleState('playing');
+    }
+  }
+
+  function schedulePreview(voiceId: string, voiceLang: string, label = '') {
+    if (previewTimer.current) clearTimeout(previewTimer.current);
+    previewTimer.current = setTimeout(() => {
+      if (voiceId) void previewVoice(voiceId, voiceLang, label);
+    }, 220);
+  }
+
+  useEffect(() => () => {
+    if (previewTimer.current) clearTimeout(previewTimer.current);
+    audioRef.current?.pause();
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) window.speechSynthesis.cancel();
+  }, []);
 
   // situação real do motor de voz no servidor
   useEffect(() => {
@@ -232,10 +308,14 @@ export function TtsPanel({ projectId, onAdded }: { projectId: string; onAdded?: 
           <select
             value={serverVoice}
             onChange={(e) => {
-              setServerVoice(e.target.value);
-              const neural = presets.find((x) => x.id === e.target.value) ?? neuralVoices.find((x) => x.id === e.target.value);
-              const v = neural ?? VOICES.find((x) => x.id === e.target.value);
-              if (v) setLang(v.lang);
+              const id = e.target.value;
+              setServerVoice(id);
+              const neural = presets.find((x) => x.id === id) ?? neuralVoices.find((x) => x.id === id);
+              const v = neural ?? VOICES.find((x) => x.id === id);
+              const nextLang = v?.lang ?? lang;
+              setLang(nextLang);
+              // Módulo 1 · item 3: ouve a voz nova na hora (sem botão)
+              schedulePreview(id, nextLang, neural?.label ?? v?.label ?? id);
             }}
             className="w-full rounded-lg border border-white/10 bg-ink-900 px-1.5 py-1 text-[10px] text-white outline-none"
           >
@@ -273,6 +353,15 @@ export function TtsPanel({ projectId, onAdded }: { projectId: string; onAdded?: 
           {(VOICES.length + neuralVoices.length + presets.length).toString()} vozes disponíveis ·{' '}
           {presets.filter((v) => v.lang === 'pt-BR').length || 9} timbres diferentes em português
         </p>
+        {sampleState !== 'idle' ? (
+          <div className="mt-1.5 flex items-center gap-1.5 rounded-lg border border-brand-400/30 bg-brand-500/10 px-2 py-1 text-[9px] text-brand-100">
+            {sampleState === 'loading' ? <Loader2 className="h-2.5 w-2.5 animate-spin" /> : <Volume2 className="h-2.5 w-2.5" />}
+            <span className="truncate">{sampleState === 'loading' ? 'Preparando a voz…' : `Ouvindo: ${sampleLabel || 'voz selecionada'}`}</span>
+            <button onClick={stopSample} className="ml-auto rounded px-1 text-[9px] font-semibold text-brand-200 hover:bg-white/10">
+              parar
+            </button>
+          </div>
+        ) : null}
         <div className="mt-2 flex gap-1.5">
           <button onClick={previewBrowser} className="flex flex-1 items-center justify-center gap-1 rounded-lg border border-white/10 bg-white/5 py-1.5 text-[10px] font-semibold text-slate-200 hover:bg-white/10">
             <Play className="h-3 w-3" /> Ouvir prévia
@@ -281,7 +370,25 @@ export function TtsPanel({ projectId, onAdded }: { projectId: string; onAdded?: 
             {loading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Wand2 className="h-3 w-3" />} Gerar áudio
           </button>
         </div>
-        <select value={voiceURI} onChange={(e) => setVoiceURI(e.target.value)} className="mt-2 w-full rounded-lg border border-white/10 bg-ink-900 px-1.5 py-1 text-[10px] text-white outline-none">
+        <select
+          value={voiceURI}
+          onChange={(e) => {
+            setVoiceURI(e.target.value);
+            if (!e.target.value) return;
+            const chosen = voices.find((v) => v.voiceURI === e.target.value);
+            if (!chosen || !('speechSynthesis' in window)) return;
+            stopSample();
+            window.speechSynthesis.cancel();
+            const utter = new SpeechSynthesisUtterance('Olá! Esta é a minha voz.');
+            utter.voice = chosen;
+            utter.lang = chosen.lang;
+            utter.onend = () => setSampleState('idle');
+            window.speechSynthesis.speak(utter);
+            setSampleState('playing');
+            setSampleLabel(`${chosen.name} · ${chosen.lang}`);
+          }}
+          className="mt-2 w-full rounded-lg border border-white/10 bg-ink-900 px-1.5 py-1 text-[10px] text-white outline-none"
+        >
           <option value="">Voz do navegador (prévia)</option>
           {voices.filter((v) => v.lang.startsWith(lang.slice(0, 2))).map((v) => (
             <option key={v.voiceURI} value={v.voiceURI}>{v.name} · {v.lang}</option>

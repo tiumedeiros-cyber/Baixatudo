@@ -11,9 +11,10 @@
  */
 
 import { useMemo, useState } from 'react';
-import { Captions, Check, Wand2 } from 'lucide-react';
+import { Captions, Check, Eye, Wand2 } from 'lucide-react';
 import { useStudio } from './store';
-import { CAPTION_TEMPLATES, applyCaptionTemplate, type CaptionTemplateId } from './caption-presets';
+import type { Clip, TextProps } from '@/lib/types';
+import { CAPTION_TEMPLATES, applyCaptionTemplate, buildWordTimings, type CaptionTemplateId } from './caption-presets';
 import { cn } from '@/lib/utils';
 
 export function CaptionTemplates({ onApplied }: { onApplied?: (message: string) => void }) {
@@ -25,17 +26,75 @@ export function CaptionTemplates({ onApplied }: { onApplied?: (message: string) 
   const textClips = useMemo(() => clips.filter((c) => c.kind === 'text' && c.text), [clips]);
   const selectedText = textClips.find((c) => c.id === selectedId) ?? null;
 
-  function apply(id: CaptionTemplateId, scope: 'one' | 'all') {
+  /**
+   * Módulo 1 · item 4 — prévia imediata sobre o vídeo.
+   *
+   * 1. aplica o template nos clipes de texto (selecionado → todos → último);
+   * 2. se ainda não existe nenhuma legenda, cria um clipe de PRÉVIA na
+   *    timeline com o texto do exemplo, já com o template aplicado;
+   * 3. posiciona a agulha dentro do clipe e pausa — o canvas desenha o estilo
+   *    na hora, exatamente como sairá na exportação.
+   */
+  function previewOnVideo(id: CaptionTemplateId, scope: 'one' | 'all') {
+    const s = useStudio.getState();
     const targets = scope === 'all' ? textClips : selectedText ? [selectedText] : textClips.slice(-1);
+    const template = CAPTION_TEMPLATES.find((t) => t.id === id);
+
     if (!targets.length) {
-      onApplied?.('Adicione um texto (ou dite a narração) antes de aplicar o template.');
+      const textTrack =
+        s.tracks.find((t) => t.name.toLowerCase().includes('texto')) ?? s.tracks.find((t) => t.kind === 'visual');
+      const sample: Clip['text'] = {
+        content: template?.id === 'banner' ? 'IMPACTO BANNER' : 'ESSA LEGENDA ACENDE',
+        fontFamily: 'Montserrat',
+        fontSize: 58,
+        color: '#ffffff',
+        weight: 800,
+        align: 'center',
+        shadow: false,
+        stroke: 6,
+        strokeColor: '#0b0d13',
+        background: '',
+        letterSpacing: 0,
+        lineHeight: 1.2,
+        gradient: '',
+        animation: 'none',
+        ...template?.text,
+      } as TextProps;
+
+      const newId = s.addClip({
+        kind: 'text',
+        src: 'text',
+        name: `Prévia · ${template?.name ?? 'legenda'}`,
+        trackId: textTrack?.id ?? '',
+        start: 0,
+        duration: 3,
+        text: { ...sample, words: buildWordTimings(sample.content, 3) },
+      } as never);
+
+      useStudio.setState({ playing: false, playhead: 0.15, selectedId: newId, duration: Math.max(s.duration, 3) });
+      setApplied(id);
+      onApplied?.(
+        `Prévia “${template?.name}” criada na timeline (3 s). Dê play para ver e edite o texto no painel de ajustes.`,
+      );
       return;
     }
+
     targets.forEach((clip) => {
       updateClip(clip.id, { text: { ...clip.text!, ...applyCaptionTemplate(clip, id) } });
     });
+    const first = targets[0];
+    useStudio.setState({
+      playing: false,
+      playhead: Math.min(first.start + first.duration / 2, first.start + first.duration - 0.05),
+    });
     setApplied(id);
-    onApplied?.(`Template “${CAPTION_TEMPLATES.find((t) => t.id === id)?.name}” aplicado em ${targets.length} legenda(s).`);
+    onApplied?.(
+      `Template “${template?.name}” aplicado em ${targets.length} legenda(s) — prévia exibida no player.`,
+    );
+  }
+
+  function apply(id: CaptionTemplateId, scope: 'one' | 'all') {
+    previewOnVideo(id, scope);
   }
 
   return (
@@ -64,6 +123,9 @@ export function CaptionTemplates({ onApplied }: { onApplied?: (message: string) 
               <span className="text-[9px] font-semibold text-white">{template.name}</span>
               <span className="text-[8px] leading-tight text-slate-500">{template.hint}</span>
               {active ? <Check className="h-2.5 w-2.5 text-emerald-400" /> : null}
+              <span className="flex items-center gap-0.5 text-[8px] font-semibold text-brand-300">
+                <Eye className="h-2 w-2" /> prévia
+              </span>
             </button>
           );
         })}

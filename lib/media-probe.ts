@@ -92,13 +92,20 @@ export function probeMediaDuration(src: string, kind: MediaKind = 'video', timeo
 }
 
 /**
- * Onde um novo clipe deve entrar (bug 2: tudo caía no meio/fim da régua).
+ * Onde um novo clipe deve entrar.
  *
- * Regra pedida: início absoluto (0) ou o tempo atual da agulha. Se a agulha
- * estiver parada depois do último clipe (área vazia, o caso que gerava o
- * "vai pro fim"), começamos do zero em vez de jogar o elemento lá na frente.
+ * Regra padrão (pedido do cliente, Módulo 1 · bug da timeline): **todo elemento
+ * novo entra no início absoluto (0)** — antes ele caía no meio/fim da régua
+ * quando a agulha estava parada longe do começo.
+ *
+ * `{ atPlayhead: true }` mantém o comportamento antigo (inserir na agulha) e é
+ * usado só onde faz sentido: narração/TTS em sequência e drops arrastados.
  */
-export function resolveInsertStart(state: { playhead: number; clips: { start: number; duration: number }[] }): number {
+export function resolveInsertStart(
+  state: { playhead: number; clips: { start: number; duration: number }[] },
+  options: { atPlayhead?: boolean } = {},
+): number {
+  if (!options.atPlayhead) return 0; // padrão: início absoluto
   const playhead = Number(state.playhead) || 0;
   if (playhead <= 0.05) return 0;
   const end = state.clips.reduce((acc, clip) => Math.max(acc, clip.start + clip.duration), 0);

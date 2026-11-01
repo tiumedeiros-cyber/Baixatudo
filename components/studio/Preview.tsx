@@ -5,6 +5,7 @@ import { useStudio } from './store';
 import { drawFrame } from './render';
 import { media, seekVideo } from './media';
 import { audioEngine } from './audio';
+import { TransformHandles } from './TransformHandles';
 import { primeThree, threePool } from './three';
 import { timecode, cn } from '@/lib/utils';
 import type { Clip } from '@/lib/types';
@@ -261,6 +262,9 @@ export function Preview() {
           className="max-h-full max-w-full rounded-lg shadow-[0_20px_80px_-20px_rgba(0,0,0,0.9)]"
           style={{ aspectRatio: `${width} / ${height}`, cursor: selected && !['audio', 'sfx', 'music', 'overlay'].includes(selected.kind) ? 'move' : 'default', touchAction: 'none' }}
         />
+        {/* Módulo 1 · item 2: alças de mover/escala/rotação sobre o canvas (não altera o render) */}
+        <TransformHandles canvasRef={canvasRef} clip={selected} projectWidth={width} projectHeight={height} />
+
         <div className="pointer-events-none absolute left-3 top-3 rounded-md bg-black/55 px-2 py-1 font-mono text-[10px] text-white/80">
           {canvasW}×{canvasH}
         </div>
@@ -311,7 +315,7 @@ export function Preview() {
         <div className="hidden items-center gap-2 text-[11px] text-slate-500 md:flex">
           <span className={cn('rounded bg-brand-500/15 px-1.5 py-0.5 font-semibold text-brand-200')}>{selected.kind}</span>
           <span>{selected.name}</span>
-          <span className="ml-auto">arraste no preview para posicionar · keyframes no inspetor</span>
+          <span className="ml-auto">arraste para mover · alças nos cantos (escala) e topo (girar)</span>
         </div>
       ) : null}
       <SelectionHints clip={selected} />

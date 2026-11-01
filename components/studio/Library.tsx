@@ -149,7 +149,8 @@ export function Library({
   function addToTimeline(partial: Partial<Clip> & { kind: Clip['kind']; src: string; name: string; duration: number }) {
     const s = useStudio.getState();
     const trackId = targetTrack(partial.kind);
-    // início absoluto (0) ou a agulha — nunca a área vazia do fim da régua
+    // Módulo 1 · bug da timeline: todo elemento novo entra no INÍCIO (0).
+    // Arrastar direto na régua continua respeitando o ponto onde foi solto.
     const start = resolveInsertStart(s);
     s.addClip({ ...partial, trackId, start, duration: partial.duration } as never);
     useStudio.getState().select(useStudio.getState().clips[useStudio.getState().clips.length - 1]?.id ?? null);
