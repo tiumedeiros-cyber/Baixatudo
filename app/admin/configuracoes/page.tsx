@@ -1,7 +1,7 @@
-import { CheckCircle2, CreditCard, Globe2, LifeBuoy, QrCode, XCircle } from 'lucide-react';
+import { CheckCircle2, CreditCard, Globe2, LifeBuoy, QrCode, Sparkles, XCircle } from 'lucide-react';
 import { requireAdmin } from '@/lib/auth';
 import { Badge, Card } from '@/components/ui';
-import { saveGeneralSettings, saveLandingSettings, savePaymentSettings } from '@/app/admin/actions';
+import { saveGeneralSettings, saveLandingSettings, savePaymentSettings, saveIntegrationSettings } from '@/app/admin/actions';
 import { getSettingsFresh, effectivePayments } from '@/lib/settings';
 import { maskSecret, decryptSecret } from '@/lib/crypto';
 import { SITE_URL } from '@/lib/env';
@@ -34,6 +34,8 @@ export default async function AdminSettings() {
     { name: 'Mercado Pago', ok: Boolean(decryptSecret(settings.payments.mp_token) || process.env.MERCADOPAGO_ACCESS_TOKEN) },
     { name: 'PIX manual (comprovante no WhatsApp)', ok: Boolean(settings.payments.pix_key) },
     { name: 'Suporte por WhatsApp', ok: Boolean(general.whatsapp) },
+    { name: 'Kie AI (Kling motion control)', ok: Boolean(decryptSecret(settings.integrations.kie_key) || process.env.KIE_API_KEY) },
+    { name: 'Postiz (publicação TikTok)', ok: Boolean(decryptSecret(settings.integrations.postiz_key) || process.env.POSTIZ_API_KEY) },
   ];
 
   return (
@@ -204,6 +206,57 @@ export default async function AdminSettings() {
             <button className="rounded-lg bg-emerald-500 px-4 py-2 text-xs font-bold text-black hover:bg-emerald-400">Salvar pagamentos</button>
             <span className="flex items-center gap-1.5 text-[10px] text-slate-500">
               <QrCode className="h-3 w-3" /> O modo manual exige chave PIX ou WhatsApp para o comprovante.
+            </span>
+          </div>
+        </form>
+      </Card>
+
+      <Card className="p-5">
+        <h3 className="flex items-center gap-2 text-sm font-semibold text-white">
+          <Sparkles className="h-4 w-4 text-brand-300" /> Integrações de IA (Animação + TikTok)
+        </h3>
+        <p className="mt-1 text-[11px] leading-relaxed text-slate-500">
+          Liga a página <strong className="text-slate-300">Animação IA</strong>: o cliente manda a imagem do personagem e um
+          vídeo com o movimento; o Kling 2.6 Motion Control devolve o vídeo animado. Com a Postiz o cliente publica o vídeo
+          direto no TikTok. As chaves são guardadas criptografadas (AES-256-GCM).
+        </p>
+        <form action={saveIntegrationSettings} className="mt-3 space-y-4">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="rounded-xl border border-white/8 bg-white/[0.02] p-3">
+              <p className="text-[11px] font-semibold text-white">Kie AI — Kling Motion Control</p>
+              <Field
+                label="API key"
+                hint={settings.integrations.kie_key ? `Já salva: ${maskSecret(settings.integrations.kie_key)} — deixe vazio para manter.` : 'Pegue em kie.ai → API Keys. Precisa de créditos na conta.'}
+              >
+                <input name="kie_key" type="password" placeholder="kie_…" className={inputCls} autoComplete="off" />
+              </Field>
+              <label className="mt-2 flex items-center gap-2 text-[10px] text-slate-400">
+                <input type="checkbox" name="clear_kie" className="h-3 w-3 accent-rose-500" /> remover chave salva
+              </label>
+              <p className="mt-1 text-[10px] text-slate-500">Modelo usado: <code className="text-brand-300">kling-2.6/motion-control</code></p>
+            </div>
+            <div className="rounded-xl border border-white/8 bg-white/[0.02] p-3">
+              <p className="text-[11px] font-semibold text-white">Postiz — publicação no TikTok</p>
+              <Field
+                label="API key"
+                hint={settings.integrations.postiz_key ? `Já salva: ${maskSecret(settings.integrations.postiz_key)} — deixe vazio para manter.` : 'Postiz → Settings → Public API.'}
+              >
+                <input name="postiz_key" type="password" placeholder="chave pública da Postiz" className={inputCls} autoComplete="off" />
+              </Field>
+              <div className="mt-2">
+                <Field label="Integration ID do TikTok" hint="Aparece na URL do canal dentro da Postiz.">
+                  <input name="postiz_tiktok" defaultValue={settings.integrations.postiz_tiktok} placeholder="cm…" className={inputCls} />
+                </Field>
+              </div>
+              <label className="mt-2 flex items-center gap-2 text-[10px] text-slate-400">
+                <input type="checkbox" name="clear_postiz" className="h-3 w-3 accent-rose-500" /> remover credenciais salvas
+              </label>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <button className="rounded-lg bg-brand-500 px-4 py-2 text-xs font-bold text-white hover:bg-brand-400">Salvar integrações</button>
+            <span className="text-[10px] text-slate-500">
+              Callback do provedor: <code className="text-brand-300">{SITE_URL}/api/motion/callback</code>
             </span>
           </div>
         </form>

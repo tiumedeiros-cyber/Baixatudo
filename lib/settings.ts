@@ -37,10 +37,20 @@ export type LandingSettings = {
   show_support: boolean;
 };
 
+export type IntegrationSettings = {
+  /** chave da Kie AI (Kling) — criptografada */
+  kie_key: string;
+  /** chave da Postiz (publicação social) — criptografada */
+  postiz_key: string;
+  /** integration id do canal TikTok dentro da Postiz */
+  postiz_tiktok: string;
+};
+
 export type PlatformSettings = {
   general: GeneralSettings;
   payments: PaymentsSettings;
   landing: LandingSettings;
+  integrations: IntegrationSettings;
 };
 
 export const DEFAULT_SETTINGS: PlatformSettings = {
@@ -75,6 +85,11 @@ export const DEFAULT_SETTINGS: PlatformSettings = {
     show_pricing: true,
     show_support: true,
   },
+  integrations: {
+    kie_key: '',
+    postiz_key: '',
+    postiz_tiktok: '',
+  },
 };
 
 function merge<T extends Record<string, unknown>>(defaults: T, value: unknown): T {
@@ -91,6 +106,7 @@ async function readSettings(): Promise<PlatformSettings> {
       general: merge(DEFAULT_SETTINGS.general, map.get('general')),
       payments: merge(DEFAULT_SETTINGS.payments, map.get('payments')),
       landing: merge(DEFAULT_SETTINGS.landing, map.get('landing')),
+      integrations: merge(DEFAULT_SETTINGS.integrations, map.get('integrations')),
     };
   } catch {
     return DEFAULT_SETTINGS;
@@ -123,6 +139,16 @@ export function receiptLink(settings: PlatformSettings, message: string) {
   if (!digits) return '';
   const full = digits.startsWith('55') ? digits : `55${digits}`;
   return `https://wa.me/${full}?text=${encodeURIComponent(message)}`;
+}
+
+/** Chaves das integrações de IA/publicação: painel primeiro, ambiente como reserva. */
+export function effectiveIntegrations(settings: PlatformSettings) {
+  return {
+    kieKey: decryptSecret(settings.integrations.kie_key) || process.env.KIE_API_KEY || '',
+    postizKey: decryptSecret(settings.integrations.postiz_key) || process.env.POSTIZ_API_KEY || '',
+    postizTikTok:
+      settings.integrations.postiz_tiktok || process.env.POSTIZ_TIKTOK_INTEGRATION_ID || '',
+  };
 }
 
 /** Config de pagamento efetiva: painel primeiro, ambiente como reserva. */

@@ -284,6 +284,28 @@ export async function savePaymentSettings(formData: FormData) {
   revalidatePath('/admin/pagamentos');
 }
 
+export async function saveIntegrationSettings(formData: FormData) {
+  await requireAdmin();
+  const db = createAdminClient();
+  const { getSettingsFresh } = await import('@/lib/settings');
+  const { encryptSecret } = await import('@/lib/crypto');
+  const current = (await getSettingsFresh()).integrations;
+
+  const kieInput = String(formData.get('kie_key') || '').trim();
+  const postizInput = String(formData.get('postiz_key') || '').trim();
+  const value = {
+    kie_key: formData.get('clear_kie') === 'on' ? '' : kieInput ? encryptSecret(kieInput) : current.kie_key,
+    postiz_key:
+      formData.get('clear_postiz') === 'on' ? '' : postizInput ? encryptSecret(postizInput) : current.postiz_key,
+    postiz_tiktok: String(formData.get('postiz_tiktok') || '').trim().slice(0, 120),
+  };
+  await db.from('es_settings').upsert({ key: 'integrations', value, updated_at: new Date().toISOString() });
+  const { revalidateTag } = await import('next/cache');
+  revalidateTag('settings');
+  revalidatePath('/admin/configuracoes');
+  revalidatePath('/dashboard/animacao');
+}
+
 /* --------------------- Biblioteca: upload e import por link --------------------- */
 
 function catalogType(contentType: string, name: string): 'video' | 'image' | 'audio' {

@@ -4,6 +4,7 @@ import { usePathname } from 'next/navigation';
 import {
   Bot,
   Download,
+  Film,
   FolderKanban,
   Gauge,
   Image as ImageIcon,
@@ -19,6 +20,7 @@ const LINKS = [
   { href: '/dashboard/projetos', label: 'Meus projetos', icon: FolderKanban },
   { href: '/dashboard/arquivos', label: 'Meus arquivos', icon: ImageIcon },
   { href: '/dashboard/avatares', label: 'Avatares falantes', icon: Bot, badge: 'novo' },
+  { href: '/dashboard/animacao', label: 'Animação IA', icon: Film, badge: 'novo' },
   { href: '/dashboard/baixa-tudo', label: 'Baixa Tudo', icon: Download, badge: 'novo' },
   { href: '/dashboard/assinatura', label: 'Assinatura', icon: CreditCard },
   { href: '/dashboard/perfil', label: 'Perfil', icon: UserRound },
