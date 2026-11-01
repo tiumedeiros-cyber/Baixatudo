@@ -117,48 +117,89 @@ export async function POST(request: Request) {
 
   // Guardamos o vídeo na nossa storage: assim ele abre no editor sem depender
   // de CORS/permissão do Space (e o chroma key consegue ler os pixels).
-  try {
-    const stored = await storeGeneratedVideo(user.id, result.videoUrl);
+  // O vídeo TEM que virar um arquivo nosso: o editor desenha o quadro em canvas
+  // e precisa de CORS. O link direto do Space (/gradio_api/file=…) não manda
+  // CORS, então usá-lo deixava o avatar invisível na timeline.
+  const stored = await storeGeneratedVideo(user.id, result.videoUrl);
+  if ('url' in stored) {
     return NextResponse.json({
       ok: true,
-      videoUrl: stored ?? result.videoUrl,
-      stored: Boolean(stored),
+      stored: true,
+      videoUrl: stored.url,
       sourceUrl: result.videoUrl,
       space: result.space,
       endpoint: result.endpoint,
       ms: result.ms,
     });
-  } catch {
-    return NextResponse.json({
-      ok: true,
-      videoUrl: result.videoUrl,
+  }
+
+  // Não deu para copiar: devolvemos a verdade e o app usa o motor interno.
+  return NextResponse.json(
+    {
+      ok: false,
       stored: false,
+      error: `O vídeo foi gerado, mas não pôde ser copiado para a sua biblioteca (${stored.error}).`,
       sourceUrl: result.videoUrl,
       space: result.space,
+      tried: [],
       ms: result.ms,
-    });
-  }
+    },
+    { status: 502 },
+  );
 }
 
 /** Baixa o MP4 gerado pelo Space e grava em "Meus arquivos". */
-async function storeGeneratedVideo(userId: string, videoUrl: string): Promise<string | null> {
-  const res = await fetch(videoUrl, { signal: AbortSignal.timeout(120_000), cache: 'no-store' });
-  if (!res.ok) return null;
-  const type = (res.headers.get('content-type') ?? '').toLowerCase();
-  if (!type.startsWith('video/')) return null;
-  const buffer = Buffer.from(await res.arrayBuffer());
-  if (!buffer.length || buffer.length > 120 * 1024 * 1024) return null;
+async function storeGeneratedVideo(
+  userId: string,
+  videoUrl: string,
+): Promise<{ url: string } | { error: string }> {
+  let lastError = 'falha ao baixar do serviço de IA';
+  let buffer: Buffer | null = null;
+
+  // o arquivo do Gradio às vezes demora a "aparecer": duas tentativas
+  for (let attempt = 0; attempt < 2 && !buffer; attempt += 1) {
+    try {
+      const res = await fetch(videoUrl, {
+        signal: AbortSignal.timeout(120_000),
+        cache: 'no-store',
+        headers: { accept: 'video/mp4,video/*;q=0.9,*/*;q=0.5' },
+      });
+      if (!res.ok) {
+        lastError = `HTTP ${res.status}`;
+        continue;
+      }
+      const bytes = Buffer.from(await res.arrayBuffer());
+      if (!bytes.length) {
+        lastError = 'arquivo vazio';
+        continue;
+      }
+      // Não confiamos no content-type: o Gradio manda `application/octet-stream`.
+      // MP4/MOV têm a marca "ftyp" nos bytes 4..8; WebM começa com 0x1A45DFA3.
+      const isMp4 = bytes.length > 12 && bytes.subarray(4, 8).toString('latin1') === 'ftyp';
+      const isWebm = bytes[0] === 0x1a && bytes[1] === 0x45 && bytes[2] === 0xdf && bytes[3] === 0xa3;
+      if (!isMp4 && !isWebm) {
+        lastError = 'o serviço devolveu um arquivo que não é vídeo';
+        continue;
+      }
+      buffer = bytes;
+    } catch (error) {
+      lastError = error instanceof Error ? error.message : String(error);
+    }
+  }
+
+  if (!buffer) return { error: lastError };
+  if (buffer.length > 120 * 1024 * 1024) return { error: 'vídeo acima de 120 MB' };
 
   const admin = createAdminClient();
   const settings = await getSettings();
   const sub = await getActiveSubscription();
   const quota = await getQuota(admin, userId, Number(sub?.plans?.limits?.storage_gb ?? 5));
-  if (buffer.length > quota.freeBytes) return null;
-  if (buffer.length > effectiveFileLimitBytes(settings)) return null;
+  if (buffer.length > quota.freeBytes) return { error: 'sem espaço no seu plano' };
+  if (buffer.length > effectiveFileLimitBytes(settings)) return { error: 'acima do limite de arquivo do plano' };
 
   const path = `${userId}/avatares/${Date.now()}-avatar-ia.mp4`;
-  const stored = await storeFile(admin, settings, path, buffer, type || 'video/mp4');
-  if ('error' in stored) return null;
+  const stored = await storeFile(admin, settings, path, buffer, 'video/mp4');
+  if ('error' in stored) return { error: stored.error };
 
   await admin.from('es_user_assets').insert({
     user_id: userId,
@@ -167,8 +208,8 @@ async function storeGeneratedVideo(userId: string, videoUrl: string): Promise<st
     url: stored.url,
     storage_path: path,
     size_bytes: buffer.length,
-    metadata: { source: 'avatar-lipsync', source_url: videoUrl, bytes_label: formatBytes(buffer.length) },
+    metadata: { source: 'avatar-lipsync' },
   });
 
-  return stored.url;
+  return { url: stored.url };
 }

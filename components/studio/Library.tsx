@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { useStudio, DEFAULT_TEXT, DEFAULT_GENERATOR } from './store';
 import { cn } from '@/lib/utils';
+import { useProGate, useSubscription } from '@/components/billing/SubscriptionContext';
 import { presetDuration } from './audio';
 import { TtsPanel } from './TtsPanel';
 import { parseTimelineFile } from '@/lib/timeline-io';
@@ -105,6 +106,11 @@ export function Library({
   premiumAllowed: boolean;
   projectId: string;
 }) {
+  // Free/Pro vem do contexto global (com fallback no prop do servidor)
+  const requirePro = useProGate();
+  const { isPro } = useSubscription();
+  const proUnlocked = premiumAllowed || isPro;
+
   const [tab, setTab] = useState<TabId>('elements');
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState<string>('all');
@@ -156,10 +162,9 @@ export function Library({
   }
 
   function addBuiltin(asset: Asset) {
-    if (asset.premium && !premiumAllowed) {
-      flash('Esse item é exclusivo dos planos Pro e Studio.');
-      return;
-    }
+    // Item com cadeado abre o modal de upgrade (checkout real) em vez de
+    // simplesmente recusar — mesmo comportamento em desktop e mobile.
+    if (!requirePro(asset, asset.premium ? proUnlocked : true)) return;
     const url = asset.url ?? '';
     if (asset.type === 'transition') {
       const selected = useStudio.getState().selectedId;
@@ -395,7 +400,7 @@ export function Library({
                       {a.type === 'generator' ? (
                         <span className="absolute bottom-1 left-1 rounded bg-black/60 px-1 text-[8px] font-bold uppercase text-cyan-200">animado</span>
                       ) : null}
-                      {a.premium && !premiumAllowed ? (
+                      {a.premium && !proUnlocked ? (
                         <span className="absolute right-1 top-1 rounded bg-black/70 p-0.5 text-amber-300"><Lock className="h-2.5 w-2.5" /></span>
                       ) : null}
                     </div>
@@ -579,7 +584,7 @@ export function Library({
               Objetos WebGL com giro em X, Y e Z (360°). Ajuste rotação, cor, metal e sombra no inspetor.
             </p>
             {filteredAssets(['object3d']).map((a) => (
-              <AssetRow key={a.id} asset={a} locked={a.premium && !premiumAllowed} onClick={() => addBuiltin(a)} icon={<Boxes className="h-3.5 w-3.5" />} hint={String(a.metadata?.shape ?? '')} />
+              <AssetRow key={a.id} asset={a} locked={a.premium && !proUnlocked} onClick={() => addBuiltin(a)} icon={<Boxes className="h-3.5 w-3.5" />} hint={String(a.metadata?.shape ?? '')} />
             ))}
           </div>
         ) : null}
@@ -589,11 +594,11 @@ export function Library({
           <div className="space-y-2">
             {(byType.get('sfx') ?? []).length ? <p className="text-[10px] uppercase tracking-wider text-slate-500">Efeitos</p> : null}
             {filteredAssets(['sfx']).map((a) => (
-              <AssetRow key={a.id} asset={a} locked={a.premium && !premiumAllowed} onClick={() => addBuiltin(a)} icon={<Zap className="h-3.5 w-3.5" />} />
+              <AssetRow key={a.id} asset={a} locked={a.premium && !proUnlocked} onClick={() => addBuiltin(a)} icon={<Zap className="h-3.5 w-3.5" />} />
             ))}
             {(byType.get('music') ?? []).length ? <p className="pt-2 text-[10px] uppercase tracking-wider text-slate-500">Trilhas</p> : null}
             {filteredAssets(['music']).map((a) => (
-              <AssetRow key={a.id} asset={a} locked={a.premium && !premiumAllowed} onClick={() => addBuiltin(a)} icon={<Music4 className="h-3.5 w-3.5" />} />
+              <AssetRow key={a.id} asset={a} locked={a.premium && !proUnlocked} onClick={() => addBuiltin(a)} icon={<Music4 className="h-3.5 w-3.5" />} />
             ))}
             <button
               onClick={() => {
@@ -621,7 +626,7 @@ export function Library({
           <div className="space-y-2">
             <p className="text-[10px] leading-relaxed text-slate-500">Selecione um clipe e toque para aplicar a transição.</p>
             {filteredAssets(['transition']).map((a) => (
-              <AssetRow key={a.id} asset={a} locked={a.premium && !premiumAllowed} onClick={() => addBuiltin(a)} />
+              <AssetRow key={a.id} asset={a} locked={a.premium && !proUnlocked} onClick={() => addBuiltin(a)} />
             ))}
           </div>
         ) : null}

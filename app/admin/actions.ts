@@ -295,6 +295,12 @@ export async function saveIntegrationSettings(formData: FormData) {
 
   const kieInput = String(formData.get('kie_key') || '').trim();
   const postizInput = String(formData.get('postiz_key') || '').trim();
+  // chave compartilhada das bibliotecas grátis: vazia mantém a atual, "remover" limpa
+  const stockKey = (field: string, clearField: string, saved?: string) => {
+    if (formData.get(clearField) === 'on') return '';
+    const input = String(formData.get(field) || '').trim();
+    return input ? encryptSecret(input) : saved;
+  };
   const value = {
     kie_key: formData.get('clear_kie') === 'on' ? '' : kieInput ? encryptSecret(kieInput) : current.kie_key,
     postiz_key:
@@ -304,6 +310,12 @@ export async function saveIntegrationSettings(formData: FormData) {
     admin_postiz_enabled: formData.get('admin_postiz_enabled') === 'on',
     allow_user_kie: formData.get('allow_user_kie') === 'on',
     allow_user_postiz: formData.get('allow_user_postiz') === 'on',
+    // Módulo 2 · bancos de mídia grátis (chave compartilhada da plataforma)
+    pexels_key: stockKey('pexels_key', 'clear_pexels', current.pexels_key),
+    unsplash_key: stockKey('unsplash_key', 'clear_unsplash', current.unsplash_key),
+    pixabay_key: stockKey('pixabay_key', 'clear_pixabay', current.pixabay_key),
+    freesound_key: stockKey('freesound_key', 'clear_freesound', current.freesound_key),
+    allow_user_stock: formData.get('allow_user_stock') === 'on',
   };
   await db.from('es_settings').upsert({ key: 'integrations', value, updated_at: new Date().toISOString() });
   const { revalidateTag } = await import('next/cache');

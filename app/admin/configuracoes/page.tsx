@@ -37,6 +37,11 @@ export default async function AdminSettings() {
     { name: 'Suporte por WhatsApp', ok: Boolean(general.whatsapp) },
     { name: 'Kie AI (Kling motion control)', ok: Boolean(decryptSecret(settings.integrations.kie_key) || process.env.KIE_API_KEY) },
     { name: 'Postiz (publicação TikTok)', ok: Boolean(decryptSecret(settings.integrations.postiz_key) || process.env.POSTIZ_API_KEY) },
+    // bancos gratuitos do Módulo 2 (chave do usuário também vale, ver /api/stock/key)
+    { name: 'Pexels (vídeos/fotos B-roll)', ok: Boolean(settings.integrations.pexels_key || process.env.PEXELS_API_KEY) },
+    { name: 'Unsplash (fotos 4K)', ok: Boolean(settings.integrations.unsplash_key || process.env.UNSPLASH_ACCESS_KEY) },
+    { name: 'Pixabay (vídeos/fotos/sons)', ok: Boolean(settings.integrations.pixabay_key || process.env.PIXABAY_API_KEY) },
+    { name: 'Freesound (SFX/trilhas)', ok: Boolean(settings.integrations.freesound_key || process.env.FREESOUND_API_KEY) },
   ];
 
   return (
@@ -344,6 +349,52 @@ export default async function AdminSettings() {
               Callback do provedor: <code className="text-brand-300">{SITE_URL}/api/motion/callback</code>
             </span>
           </div>
+        </form>
+      </Card>
+
+      <Card className="p-5">
+        <h3 className="flex items-center gap-2 text-sm font-semibold text-white">
+          <Sparkles className="h-4 w-4 text-emerald-300" /> Bibliotecas grátis (Pexels · Unsplash · Pixabay · Freesound)
+        </h3>
+        <p className="mt-1 text-[11px] leading-relaxed text-slate-500">
+          Essas APIs são <strong className="text-slate-300">gratuitas</strong> e alimentam o buscador de B-roll, fotos e SFX
+          que aparece em <strong className="text-slate-300">Recursos → Bancos profissionais</strong>. Cole as chaves para todos
+          usarem a sua, ou libere para cada cliente usar a própria (sem conflito, uma nunca consome a cota da outra).
+          Os arquivos são salvos no storage do próprio cliente, com cota normal.
+        </p>
+        <form action={saveIntegrationSettings} className="mt-3 space-y-4">
+          <div className="grid gap-3 sm:grid-cols-2">
+            {[
+              { key: 'pexels_key', clear: 'clear_pexels', title: 'Pexels', hint: 'pexels.com/api → criar chave (grátis, ilimitado com fair use).', env: 'PEXELS_API_KEY' },
+              { key: 'unsplash_key', clear: 'clear_unsplash', title: 'Unsplash', hint: 'unsplash.com/developers → Access Key (50 req/h grátis).', env: 'UNSPLASH_ACCESS_KEY' },
+              { key: 'pixabay_key', clear: 'clear_pixabay', title: 'Pixabay', hint: 'pixabay.com/api/docs → sua API key.', env: 'PIXABAY_API_KEY' },
+              { key: 'freesound_key', clear: 'clear_freesound', title: 'Freesound', hint: 'freesound.org/apiv2/apply → API key (usa previews HQ).', env: 'FREESOUND_API_KEY' },
+            ].map((item) => (
+              <div key={item.key} className="rounded-xl border border-white/8 bg-white/[0.02] p-3">
+                <p className="text-[11px] font-semibold text-white">{item.title}</p>
+                <div className="mt-2">
+                  <Field
+                    label="API key"
+                    hint={
+                      (settings.integrations as unknown as Record<string, string>)[item.key]
+                        ? `Já salva: ${maskSecret((settings.integrations as unknown as Record<string, string>)[item.key])} — deixe vazio para manter.`
+                        : `${item.hint} Também funciona via env ${item.env}.`
+                    }
+                  >
+                    <input name={item.key} type="password" className={inputCls} autoComplete="off" />
+                  </Field>
+                </div>
+                <label className="mt-2 flex items-center gap-2 text-[10px] text-slate-400">
+                  <input type="checkbox" name={item.clear} className="h-3 w-3 accent-rose-500" /> remover chave salva
+                </label>
+              </div>
+            ))}
+          </div>
+          <label className="flex items-start gap-2 rounded-lg border border-white/8 bg-black/20 p-2 text-[11px] text-slate-300">
+            <input type="checkbox" name="allow_user_stock" defaultChecked={settings.integrations.allow_user_stock} className="mt-0.5 h-3 w-3 accent-emerald-500" />
+            <span>Permitir que cada cliente <strong>cadastre a própria chave</strong> dessas bibliotecas</span>
+          </label>
+          <button className="rounded-lg bg-brand-500 px-4 py-2 text-xs font-bold text-white hover:bg-brand-400">Salvar bibliotecas</button>
         </form>
       </Card>
 

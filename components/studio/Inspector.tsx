@@ -27,6 +27,7 @@ import {
   Type,
 } from 'lucide-react';
 import { useStudio, DEFAULT_GENERATOR } from './store';
+import { FontPicker } from './FontPicker';
 import { cn } from '@/lib/utils';
 import type { Clip, KeyframeProp, TransitionType } from '@/lib/types';
 
@@ -544,11 +545,17 @@ export function Inspector() {
             />
             <div className="grid grid-cols-2 gap-2">
               <Row label="Fonte">
+                {/* Módulo 2 · Google Fonts dinâmico (CDN, sem chave e sem storage) */}
+                <FontPicker
+                  value={clip.text.fontFamily}
+                  onChange={(family) => useStudio.getState().patchText(clip.id, { fontFamily: family })}
+                />
                 <select
+                  aria-label="Fontes da biblioteca"
                   value={clip.text.fontFamily}
                   onChange={(e) => useStudio.getState().patchText(clip.id, { fontFamily: e.target.value })}
                   style={{ fontFamily: clip.text.fontFamily }}
-                  className="w-full rounded-lg border border-white/10 bg-ink-850 px-1.5 py-1 text-[11px] text-white outline-none"
+                  className="mt-1 w-full rounded-lg border border-white/10 bg-ink-850 px-1.5 py-1 text-[11px] text-white outline-none"
                 >
                   {FONTS.map((f) => (
                     <option key={f} value={f}>{f}</option>

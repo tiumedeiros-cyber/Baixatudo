@@ -9,6 +9,7 @@ import { primeThree, threePool } from './three';
 import { audioEngine } from './audio';
 import { cn } from '@/lib/utils';
 import { buildProjectJson, buildXmeml, downloadText } from '@/lib/timeline-io';
+import { remuxToMp4 } from '@/lib/export-service';
 
 type Phase = 'idle' | 'recording' | 'processing' | 'done' | 'error';
 
@@ -99,6 +100,8 @@ function ExportDialog({ maxQuality, onClose }: { maxQuality: number; onClose: ()
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<{ url: string; size: number; ext: string } | null>(null);
+  /** aviso honesto quando o navegador entrega WebM em vez de MP4 */
+  const [note2, setNote2] = useState<string | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const cancelRef = useRef(false);
   const rafRef = useRef(0);
@@ -218,8 +221,27 @@ function ExportDialog({ maxQuality, onClose }: { maxQuality: number; onClose: ()
       return;
     }
 
-    const ext = format === 'mov' ? 'mov' : mime.includes('mp4') ? 'mp4' : 'webm';
-    setResult({ url: URL.createObjectURL(blob), size: blob.size, ext });
+    // Módulo 3 · se o navegador gravou WebM mas o usuário pediu MP4/MOV,
+    // tentamos converter no próprio navegador (FFmpeg.wasm, CDN, custo $0).
+    let outBlob = blob;
+    let ext = format === 'mov' ? 'mov' : mime.includes('mp4') ? 'mp4' : 'webm';
+    if (format !== 'webm' && ext === 'webm' && !wantAlpha) {
+      setNote2('Convertendo para MP4 no seu navegador (FFmpeg.wasm)…');
+      const converted = await remuxToMp4(blob, (ratio) => setProgress(Math.min(1, ratio)));
+      if (cancelRef.current) {
+        setPhase('idle');
+        setProgress(0);
+        return;
+      }
+      if (converted.ok) {
+        outBlob = converted.blob;
+        ext = 'mp4';
+        setNote2('Convertido para MP4 no navegador com FFmpeg.wasm (sem servidor).');
+      } else {
+        setNote2(`Seu navegador gravou em WebM. Conversão local para MP4 indisponível agora (${converted.error}). O arquivo abaixo está completo e abre em qualquer player.`);
+      }
+    }
+    setResult({ url: URL.createObjectURL(outBlob), size: outBlob.size, ext });
     setPhase('done');
   }
 
@@ -402,6 +424,7 @@ function ExportDialog({ maxQuality, onClose }: { maxQuality: number; onClose: ()
           <div className="mt-4 rounded-xl border border-emerald-400/25 bg-emerald-500/10 p-3">
             <p className="flex items-center gap-1.5 text-xs font-semibold text-emerald-200"><Check className="h-3.5 w-3.5" /> Pronto!</p>
             <p className="mt-0.5 text-[10px] text-emerald-100/70">{(result.size / (1024 * 1024)).toFixed(1)} MB · .{result.ext}</p>
+            {note2 ? <p className="mt-1 text-[10px] leading-snug text-amber-200/90">{note2}</p> : null}
             <a
               href={result.url}
               download={`${useStudio.getState().name || 'projeto'}-${result.ext === 'gif' ? '480p' : `${quality}p`}.${result.ext}`}

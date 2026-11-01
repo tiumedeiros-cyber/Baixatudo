@@ -18,6 +18,9 @@ import { Timeline } from './Timeline';
 import { Inspector } from './Inspector';
 import { Library } from './Library';
 import { ExportButton } from './Exporter';
+// Módulo Premium (isolado): contexto global + modal de upgrade
+import { SubscriptionProvider } from '@/components/billing/SubscriptionContext';
+import { UpgradeModal } from '@/components/billing/UpgradeModal';
 import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 import type { Asset, Project, UserAsset } from '@/lib/types';
@@ -176,6 +179,7 @@ export function Studio({
   }, []);
 
   return (
+    <SubscriptionProvider>
     <div className="flex h-[100dvh] flex-col overflow-hidden bg-ink-950">
       {/* topbar */}
       <header className="flex h-12 shrink-0 items-center gap-2 border-b border-white/8 bg-ink-900/90 px-2">
@@ -298,5 +302,7 @@ export function Studio({
         <span className="ml-auto">{project.width}×{project.height} · {project.fps}fps</span>
       </footer>
     </div>
+    <UpgradeModal />
+    </SubscriptionProvider>
   );
 }

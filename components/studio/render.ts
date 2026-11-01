@@ -588,6 +588,10 @@ export function drawFrame(opts: FrameOptions) {
     .sort((a, b) => (trackIndex.get(b.trackId) ?? 0) - (trackIndex.get(a.trackId) ?? 0));
 
   for (const clip of active) {
+    // Um clipe com dado inválido (arquivo antigo, WebGL off, mídia que não
+    // carregou) não pode apagar o resto da timeline: cada clipe é desenhado
+    // em isolamento. Era isso que fazia "o avatar não aparecer".
+    try {
     const track = tracks.find((t) => t.id === clip.trackId);
     if (track?.hidden) continue;
     if (['audio', 'sfx', 'music'].includes(clip.kind)) continue;
@@ -798,6 +802,18 @@ export function drawFrame(opts: FrameOptions) {
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(0, 0, width, height);
       ctx.restore();
+    }
+    } catch (error) {
+      // segue para o próximo clipe com o contexto limpo
+      console.warn('[render] clipe ignorado:', clip.kind, error);
+      try {
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.globalAlpha = 1;
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.filter = 'none';
+      } catch {
+        /* noop */
+      }
     }
   }
 

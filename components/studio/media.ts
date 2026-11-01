@@ -15,7 +15,15 @@ export class MediaRegistry {
 
   private makeVideo(src: string) {
     const el = document.createElement('video');
+    // `anonymous` é necessário para o chroma key ler os pixels do quadro.
+    // Se o servidor não mandar CORS, o navegador recusa o vídeo inteiro — então
+    // na primeira falha recarregamos sem CORS (perde só o recorte, nunca o vídeo).
     el.crossOrigin = 'anonymous';
+    el.addEventListener('error', () => {
+      if (!el.crossOrigin) return;
+      el.removeAttribute('crossorigin');
+      el.load();
+    });
     el.src = src;
     el.preload = 'auto';
     el.playsInline = true;

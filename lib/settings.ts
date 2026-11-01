@@ -55,6 +55,13 @@ export type IntegrationSettings = {
   allow_user_kie: boolean;
   /** o cliente pode colar a própria chave da Postiz? */
   allow_user_postiz: boolean;
+  /** chaves dos bancos de mídia gratuitos (Pexels/Unsplash/Pixabay/Freesound) */
+  pexels_key: string;
+  unsplash_key: string;
+  pixabay_key: string;
+  freesound_key: string;
+  /** o cliente pode usar a própria chave gratuita? */
+  allow_user_stock: boolean;
 };
 
 /** Storage externo S3-compatível (R2/B2/MinIO) — tira os arquivos do Supabase. */
@@ -129,6 +136,11 @@ export const DEFAULT_SETTINGS: PlatformSettings = {
     admin_postiz_enabled: true,
     allow_user_kie: true,
     allow_user_postiz: true,
+    pexels_key: '',
+    unsplash_key: '',
+    pixabay_key: '',
+    freesound_key: '',
+    allow_user_stock: true,
   },
 };
 
@@ -189,6 +201,17 @@ export function effectiveIntegrations(settings: PlatformSettings) {
     postizKey: decryptSecret(settings.integrations.postiz_key) || process.env.POSTIZ_API_KEY || '',
     postizTikTok:
       settings.integrations.postiz_tiktok || process.env.POSTIZ_TIKTOK_INTEGRATION_ID || '',
+  };
+}
+
+/** Chaves dos bancos gratuitos (admin, criptografadas, ou ambiente). */
+export async function effectiveStock() {
+  const settings = await getSettings();
+  return {
+    pexels: decryptSecret(settings.integrations.pexels_key) || process.env.PEXELS_API_KEY || '',
+    unsplash: decryptSecret(settings.integrations.unsplash_key) || process.env.UNSPLASH_ACCESS_KEY || '',
+    pixabay: decryptSecret(settings.integrations.pixabay_key) || process.env.PIXABAY_API_KEY || '',
+    freesound: decryptSecret(settings.integrations.freesound_key) || process.env.FREESOUND_API_KEY || '',
   };
 }
 
