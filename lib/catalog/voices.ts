@@ -103,7 +103,8 @@ export const VOICES: CatalogVoice[] = [
   { id: 'g:la', label: 'Clara', lang: 'la', locale: 'Latim', accent: 'Vaticano', hint: 'latim clássico' },
 ];
 
-export const DEFAULT_VOICE = 'g:pt-BR';
+// Voz neural brasileira com timbre próprio (ver lib/voice-presets.ts)
+export const DEFAULT_VOICE = 'br-francisca-clara';
 
 export function voiceById(id?: string | null) {
   if (!id) return VOICES[0];

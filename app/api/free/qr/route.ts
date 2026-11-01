@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import QRCode from 'qrcode';
+// Garante que o gerador rode no bundler do servidor (não no navegador).
+export const dynamic = 'force-dynamic';
 
 export const runtime = 'nodejs';
 
@@ -27,6 +29,7 @@ export async function GET(request: Request) {
       },
     });
   } catch (err) {
-    return NextResponse.json({ error: err instanceof Error ? err.message : 'Falha ao gerar o QR Code.' }, { status: 500 });
+    const message = err instanceof Error ? err.message : 'Falha ao gerar o QR Code.';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

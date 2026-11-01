@@ -15,6 +15,7 @@ import {
 } from '@/lib/catalog/avatars';
 import type { ExpressionId, FramingId, HairStyle, PoseId, SceneId } from '@/lib/catalog/avatars';
 import { VOICES, DEFAULT_VOICE } from '@/lib/catalog/voices';
+import { VOICE_PRESETS } from '@/lib/voice-presets';
 import { computeEnvelope, ENVELOPE_STEP } from '@/components/studio/envelope';
 import { cn } from '@/lib/utils';
 
@@ -87,7 +88,8 @@ export function AvatarStudio({
 
   const avatar = AVATARS.find((a) => a.id === baseId) ?? AVATARS[0];
   const isPhoto = Boolean(avatar.photo);
-  const voice = VOICES.find((v) => v.id === voiceId) ?? VOICES[0];
+  const voice =
+    VOICE_PRESETS.find((v) => v.id === voiceId) ?? VOICES.find((v) => v.id === voiceId) ?? VOICES[0];
 
   function pickAvatar(id: string) {
     setBaseId(id);
@@ -423,15 +425,20 @@ export function AvatarStudio({
             <h2 className="text-sm font-semibold text-white">3. Voz e roteiro</h2>
           </div>
           <label className="mt-3 block text-[10px] font-semibold uppercase tracking-wider text-slate-500">
-            Voz ({VOICES.length} disponíveis · {LOCALES.length} idiomas)
+            Voz ({VOICES.length + VOICE_PRESETS.length} disponíveis · timbres próprios)
           </label>
           <select
             value={voiceId}
             onChange={(e) => setVoiceId(e.target.value)}
             className="mt-1 w-full rounded-xl border border-white/10 bg-ink-900 px-2 py-2 text-xs text-white outline-none focus:border-brand-400/60"
           >
+            <optgroup label="Vozes neurais com timbre próprio">
+              {VOICE_PRESETS.map((v) => (
+                <option key={v.id} value={v.id}>{v.label}</option>
+              ))}
+            </optgroup>
             {LOCALES.map((locale) => (
-              <optgroup key={locale} label={locale}>
+              <optgroup key={locale} label={`${locale} (sotaque)`}>
                 {VOICES.filter((v) => v.locale === locale).map((v) => (
                   <option key={v.id} value={v.id}>{v.label} — {v.hint}</option>
                 ))}
@@ -496,7 +503,10 @@ export function AvatarStudio({
           <ul className="mt-2 space-y-1 text-[11px] leading-relaxed text-slate-400">
             <li>• Projeto aberto no editor com o avatar falando em {ratio}</li>
             <li>• Cenário “{SCENES.find((s) => s.id === scene)?.label}” já composto na cena</li>
-            <li>• Narração na trilha de áudio (voz {voice.label}, {voice.locale})</li>
+            <li>
+              • Narração na trilha de áudio (voz {voice.label}
+              {'locale' in voice ? `, ${voice.locale}` : `, ${voice.lang}`})
+            </li>
             <li>• Legendas automáticas do roteiro, já sincronizadas</li>
             <li>• Exportação em MP4, WebM ou GIF até 4K</li>
           </ul>
