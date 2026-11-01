@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import Link from 'next/link';
-import { ArrowRight, Menu, ShieldCheck, X } from 'lucide-react';
+import { ArrowRight, Menu, X } from 'lucide-react';
 import { ButtonLink, Logo } from '@/components/ui';
 
 const NAV = [
@@ -30,14 +30,6 @@ export function SiteHeader() {
           <ButtonLink href="/login" variant="ghost" size="sm" className="hidden sm:inline-flex">
             Entrar
           </ButtonLink>
-          <a
-            href="/admin"
-            title="Painel administrativo"
-            aria-label="Painel administrativo"
-            className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-amber-400/25 bg-amber-500/10 text-amber-200 transition hover:bg-amber-500/20"
-          >
-            <ShieldCheck className="h-4 w-4" />
-          </a>
           <ButtonLink href="/cadastro" size="sm" className="btn-shine whitespace-nowrap">
             Começar<span className="hidden sm:inline">&nbsp;grátis</span> <ArrowRight className="h-4 w-4" />
           </ButtonLink>
@@ -89,13 +81,6 @@ export function SiteHeader() {
               <ButtonLink href="/cadastro" variant="ghost" onClick={() => setOpen(false)} className="w-full">
                 Criar conta grátis
               </ButtonLink>
-              <a
-                href="/admin"
-                onClick={() => setOpen(false)}
-                className="mt-1 flex items-center justify-center gap-1.5 rounded-xl border border-amber-400/25 bg-amber-500/10 px-3 py-2.5 text-[13px] font-semibold text-amber-200"
-              >
-                <ShieldCheck className="h-4 w-4" /> Painel administrativo
-              </a>
             </div>
           </div>
         </div>

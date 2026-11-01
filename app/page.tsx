@@ -480,7 +480,7 @@ export default async function LandingPage() {
               <a className="block hover:text-white" href="#recursos">Recursos</a>
               <a className="block hover:text-white" href="#planos">Planos</a>
               <a className="block hover:text-white" href="#baixa-tudo">Baixa Tudo</a>
-              <a className="block text-amber-200/80 hover:text-amber-100" href="/admin">Painel administrativo</a>
+              <Link className="block hover:text-white" href="/login">Entrar na conta</Link>
             </div>
             <div className="space-y-2">
               <p className="font-semibold text-white">Legal</p>
