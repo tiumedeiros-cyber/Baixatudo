@@ -316,6 +316,8 @@ export async function saveIntegrationSettings(formData: FormData) {
     pixabay_key: stockKey('pixabay_key', 'clear_pixabay', current.pixabay_key),
     freesound_key: stockKey('freesound_key', 'clear_freesound', current.freesound_key),
     allow_user_stock: formData.get('allow_user_stock') === 'on',
+    // servidor Voicebox próprio (voz clonada gratuita) — vazio mantém o atual
+    voicebox_url: String(formData.get('voicebox_url') || '').trim().slice(0, 200),
   };
   await db.from('es_settings').upsert({ key: 'integrations', value, updated_at: new Date().toISOString() });
   const { revalidateTag } = await import('next/cache');

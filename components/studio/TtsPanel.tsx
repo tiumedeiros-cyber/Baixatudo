@@ -4,6 +4,7 @@ import { AudioLines, Download, Loader2, Mic, Play, Square, Subtitles, Wand2 } fr
 import { useStudio } from './store';
 import { uid } from '@/lib/utils';
 import { VOICES, DEFAULT_VOICE, RATES } from '@/lib/catalog/voices';
+import { VoiceboxPanel } from './VoiceboxPanel';
 
 type Segment = { url: string; text: string; duration: number };
 
@@ -327,6 +328,9 @@ export function TtsPanel({ projectId, onAdded }: { projectId: string; onAdded?: 
           </button>
         </div>
       ) : null}
+
+      {/* Voz clonada local/remota (Voicebox, grátis) — componente isolado */}
+      <VoiceboxPanel text={text} onDone={(msg) => setInfo(msg)} />
 
       {info ? <p className="rounded-lg border border-emerald-400/25 bg-emerald-500/10 px-2 py-1.5 text-[10px] text-emerald-200">{info}</p> : null}
       {error ? (

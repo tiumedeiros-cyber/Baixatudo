@@ -62,6 +62,8 @@ export type IntegrationSettings = {
   freesound_key: string;
   /** o cliente pode usar a própria chave gratuita? */
   allow_user_stock: boolean;
+  /** URL de um servidor Voicebox próprio (voz clonada grátis) — ex.: https://voz.seudominio.com */
+  voicebox_url: string;
 };
 
 /** Storage externo S3-compatível (R2/B2/MinIO) — tira os arquivos do Supabase. */
@@ -141,6 +143,7 @@ export const DEFAULT_SETTINGS: PlatformSettings = {
     pixabay_key: '',
     freesound_key: '',
     allow_user_stock: true,
+    voicebox_url: '',
   },
 };
 

@@ -42,6 +42,7 @@ export default async function AdminSettings() {
     { name: 'Unsplash (fotos 4K)', ok: Boolean(settings.integrations.unsplash_key || process.env.UNSPLASH_ACCESS_KEY) },
     { name: 'Pixabay (vídeos/fotos/sons)', ok: Boolean(settings.integrations.pixabay_key || process.env.PIXABAY_API_KEY) },
     { name: 'Freesound (SFX/trilhas)', ok: Boolean(settings.integrations.freesound_key || process.env.FREESOUND_API_KEY) },
+    { name: 'Voicebox (voz clonada grátis)', ok: Boolean(settings.integrations.voicebox_url || process.env.VOICEBOX_URL) },
   ];
 
   return (
@@ -394,6 +395,20 @@ export default async function AdminSettings() {
             <input type="checkbox" name="allow_user_stock" defaultChecked={settings.integrations.allow_user_stock} className="mt-0.5 h-3 w-3 accent-emerald-500" />
             <span>Permitir que cada cliente <strong>cadastre a própria chave</strong> dessas bibliotecas</span>
           </label>
+          <div className="rounded-xl border border-white/8 bg-white/[0.02] p-3">
+            <p className="text-[11px] font-semibold text-white">Voicebox · voz clonada gratuita (opcional)</p>
+            <p className="mt-1 text-[10px] leading-relaxed text-slate-500">
+              O Voicebox é open-source (MIT) e roda na máquina de quem usa, sem chave e sem limite. Se você tiver um
+              servidor Voicebox próprio (ex.: um PC com GPU rodando <code className="text-brand-300">--host 0.0.0.0</code> atrás de
+              um túnel), cole a URL aqui: aí todos os clientes usam a voz clonada sem instalar nada. Sem isso, cada cliente
+              usa o próprio app em <code className="text-brand-300">127.0.0.1:17493</code>.
+            </p>
+            <div className="mt-2">
+              <Field label="URL do servidor Voicebox" hint="Ex.: https://voz.seudominio.com — deixe vazio para usar somente o app local.">
+                <input name="voicebox_url" defaultValue={settings.integrations.voicebox_url} placeholder="https://voz.seudominio.com" className={inputCls} />
+              </Field>
+            </div>
+          </div>
           <button className="rounded-lg bg-brand-500 px-4 py-2 text-xs font-bold text-white hover:bg-brand-400">Salvar bibliotecas</button>
         </form>
       </Card>
