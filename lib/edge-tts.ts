@@ -16,9 +16,27 @@ const SEC_MS_GEC_VERSION = `2-${CHROMIUM_FULL_VERSION}`;
 const WSS_BASE = 'wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1';
 const OUTPUT_FORMAT = 'audio-24khz-48kbitrate-mono-mp3';
 
+const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
 /** Data no formato que o serviço espera nos cabeçalhos das mensagens. */
 function stamp() {
-  return new Date().toUTCString();
+  const now = new Date();
+  const pad = (value: number) => String(value).padStart(2, '0');
+  return (
+    `${WEEKDAYS[now.getUTCDay()]} ${MONTHS[now.getUTCMonth()]} ${pad(now.getUTCDate())} ${now.getUTCFullYear()} ` +
+    `${pad(now.getUTCHours())}:${pad(now.getUTCMinutes())}:${pad(now.getUTCSeconds())} GMT+0000 (Coordinated Universal Time)`
+  );
+}
+
+/** Identificador da conexão (hexadecimal de 32 caracteres, como o serviço espera). */
+function connectionId() {
+  return randomUUID().replace(/-/g, '');
+}
+
+/** O serviço exige um cookie muid novo a cada conexão. */
+function muid() {
+  return randomUUID().replace(/-/g, '').toUpperCase();
 }
 
 export type EdgeSynthesisOptions = {
@@ -38,11 +56,10 @@ export async function edgeSynthesize(opts: EdgeSynthesisOptions): Promise<Buffer
   if (!/^[a-z]{2,3}-[A-Z]{2}-\w+Neural$/.test(voice)) throw new Error(`voz inválida: ${voice}`);
 
   const { WebSocket } = await import('ws');
-  const connectionId = randomUUID().replace(/-/g, '');
-  const requestId = randomUUID().replace(/-/g, '');
+  const connectId = connectionId();
   const url =
     `${WSS_BASE}?TrustedClientToken=${TRUSTED_CLIENT_TOKEN}` +
-    `&Sec-MS-GEC=${secMsGec()}&Sec-MS-GEC-Version=${SEC_MS_GEC_VERSION}&ConnectionId=${connectionId}`;
+    `&ConnectionId=${connectId}&Sec-MS-GEC=${secMsGec()}&Sec-MS-GEC-Version=${SEC_MS_GEC_VERSION}`;
 
   const timeout = opts.timeoutMs ?? 15_000;
 
@@ -50,8 +67,10 @@ export async function edgeSynthesize(opts: EdgeSynthesisOptions): Promise<Buffer
     const chunks: Buffer[] = [];
     let finished = false;
     const socket = new WebSocket(url, {
+      perMessageDeflate: true,
       headers: {
         Origin: 'chrome-extension://jdiccldimpdaibmpdkjnbmckianbfold',
+        Cookie: `muid=${muid()};`,
         Pragma: 'no-cache',
         'Cache-Control': 'no-cache',
         'Accept-Encoding': 'gzip, deflate, br, zstd',
@@ -86,22 +105,22 @@ export async function edgeSynthesize(opts: EdgeSynthesisOptions): Promise<Buffer
           context: {
             synthesis: {
               audio: {
-                metadataoptions: { sentenceBoundaryEnabled: 'false', wordBoundaryEnabled: 'false' },
+                metadataoptions: { sentenceBoundaryEnabled: 'false', wordBoundaryEnabled: 'true' },
                 outputFormat: OUTPUT_FORMAT,
               },
             },
           },
-        });
+        }) +
+        '\r\n';
       socket.send(config);
 
       const safe = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-      const lang = voice.slice(0, 5);
       const ssml =
-        `X-RequestId:${requestId}\r\n` +
+        `X-RequestId:${connectId}\r\n` +
         'Content-Type:application/ssml+xml\r\n' +
-        `X-Timestamp:${stamp()}\r\n` +
+        `X-Timestamp:${stamp()}Z\r\n` +
         'Path:ssml\r\n\r\n' +
-        `<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xml:lang='${lang}'>` +
+        `<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xml:lang='en-US'>` +
         `<voice name='${voice}'>` +
         `<prosody pitch='${opts.pitch ?? '+0Hz'}' rate='${opts.rate ?? '+0%'}' volume='${opts.volume ?? '+0%'}'>${safe}</prosody>` +
         '</voice></speak>';
