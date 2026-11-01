@@ -50,6 +50,8 @@ export type LipSyncOptions = {
   audioUrl: string;
   /** força um Space específico */
   space?: string;
+  /** coloca a foto sobre fundo #00FF00 (padrão: true) para o chroma key do editor */
+  greenScreen?: boolean;
   /** orçamento total em ms (padrão: 240 s) */
   budgetMs?: number;
   /** recebe mensagens de andamento para a UI */
@@ -119,6 +121,31 @@ async function toUploadable(url: string, baseName: string): Promise<File | Blob>
   return new File([bytes], name, { type: mime });
 }
 
+/**
+ * Fundo verde automático: recorta o fundo da foto (mesmo motor do
+ * `/api/ai/cutout`) e recompõe sobre #00FF00. Assim o vídeo que volta do Space
+ * tem fundo chapado e o chroma key do editor encaixa o avatar no cenário
+ * escolhido — sem custo de servidor na prévia.
+ */
+async function imageForSpace(imageUrl: string, greenScreen: boolean): Promise<File | Blob> {
+  const original = await toUploadable(imageUrl, 'avatar');
+  if (!greenScreen) return original;
+  try {
+    const input = Buffer.from(await original.arrayBuffer());
+    const { greenScreenImage } = await import('./avatar-greenscreen');
+    const { png, removedPercent } = await greenScreenImage(input);
+    // fundo praticamente não separável (foto de ambiente): mantém a original
+    if (removedPercent < 6) return original;
+    const bytes = png.buffer.slice(png.byteOffset, png.byteOffset + png.byteLength) as ArrayBuffer;
+    return typeof File === 'undefined'
+      ? new Blob([bytes], { type: 'image/png' })
+      : new File([bytes], 'avatar.png', { type: 'image/png' });
+  } catch {
+    // qualquer falha no recorte não impede a geração: vai a foto original
+    return original;
+  }
+}
+
 /** Descobre o endpoint certo do Space (prefere `/predict`, senão o 1º com 2 entradas). */
 function pickEndpoint(api: unknown): string | null {
   const named = (api as { named_endpoints?: Record<string, { parameters?: unknown[] }> })?.named_endpoints ?? {};
@@ -170,7 +197,7 @@ export async function generateLipSyncVideo(options: LipSyncOptions): Promise<Lip
   try {
     status('Preparando a imagem do avatar e a narração…');
     media = await Promise.all([
-      toUploadable(options.imageUrl, 'avatar'),
+      imageForSpace(options.imageUrl, options.greenScreen !== false),
       toUploadable(options.audioUrl, 'narracao'),
     ]);
   } catch (error) {

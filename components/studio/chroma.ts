@@ -24,6 +24,13 @@ const DEFAULTS: Required<ChromaOptions> = { color: 'verde', tolerance: 0.42, sof
 /** Um canvas reaproveitado por vídeo — sem alocar a cada quadro. */
 const canvases = new WeakMap<HTMLVideoElement, HTMLCanvasElement>();
 
+/**
+ * Vídeo de origem sem CORS libera os pixels: o canvas fica "sujo" e o recorte é
+ * impossível. Marcamos uma vez e a partir daí o render desenha o vídeo normal —
+ * nunca quebra a prévia por causa disso.
+ */
+const unreadable = new WeakSet<HTMLVideoElement>();
+
 function canvasFor(video: HTMLVideoElement, width: number, height: number) {
   let canvas = canvases.get(video);
   if (!canvas) {
@@ -57,9 +64,18 @@ export function keyFrame(video: HTMLVideoElement, options: ChromaOptions = {}): 
   const ctx = canvas.getContext('2d', { willReadFrequently: true });
   if (!ctx) return null;
 
-  ctx.clearRect(0, 0, width, height);
-  ctx.drawImage(video, 0, 0, width, height);
-  const frame = ctx.getImageData(0, 0, width, height);
+  if (unreadable.has(video)) return null;
+
+  let frame: ImageData;
+  try {
+    ctx.clearRect(0, 0, width, height);
+    ctx.drawImage(video, 0, 0, width, height);
+    frame = ctx.getImageData(0, 0, width, height);
+  } catch {
+    // canvas contaminado (vídeo sem CORS) ou quadro indisponível
+    unreadable.add(video);
+    return null;
+  }
   const px = frame.data;
 
   // tolerância em distância de cor (0..1 → 0..441 no cubo RGB)

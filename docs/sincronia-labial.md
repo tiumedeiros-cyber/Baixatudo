@@ -87,3 +87,27 @@ node -e "import('/tmp/vt/visemes.js').then(m=>console.log(m.wordVisemes('parabé
 
 O resultado esperado é `PP aa RR aa PP E nn SS` e uma trilha com 10+ visemas
 distintos cobrindo a duração do áudio.
+
+## Sincronização por IA (opcional, gratuita)
+
+`lib/avatar-sync.ts` conecta num Space público do Hugging Face (SadTalker) com
+`@gradio/client` e devolve a URL do MP4. Nada de chave paga: se o Space estiver
+dormindo/fora do ar, o app cai no motor interno de visemas sem travar a tela.
+
+- `POST /api/avatar/lipsync` — exige login (4/min). Envia foto + áudio do TTS e
+  guarda o MP4 em "Meus arquivos" (o player precisa dos pixels para o chroma).
+- `GET /api/avatar/lipsync?probe=1` — status HTTP de cada Space.
+- `GET /api/avatar/lipsync?probe=connect` — handshake real do cliente Gradio
+  (SSE + `view_api`) sem gerar vídeo: é o teste rápido do caminho do botão.
+- Envs: `AVATAR_LIPSYNC_SPACE`, `HUGGINGFACE_TOKEN`/`HF_TOKEN`,
+  `AVATAR_LIPSYNC_ENABLED=false` para desligar.
+
+### Fundo verde automático
+
+`lib/avatar-greenscreen.ts` recorta o fundo da foto (flood fill pela cor da
+borda) e recompõe sobre `#00FF00` antes de mandar para o Space. O vídeo volta
+com fundo chapado e o chroma key do render (`components/studio/chroma.ts`,
+ligado por `Clip.chroma`) apaga esse verde no navegador — o avatar aparece
+dentro do cenário escolhido (Escritório, Estúdio…), sem custo de servidor.
+Se o fundo da foto não for separável, a foto original é usada e o vídeo fica
+como está (o sistema avisa, nunca finge).

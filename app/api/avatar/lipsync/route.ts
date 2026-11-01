@@ -66,7 +66,7 @@ export async function POST(request: Request) {
   const limit = rateLimit(`lipsync:${user.id}:${clientIp(request.headers)}`, 4, 60_000);
   if (!limit.ok) return NextResponse.json({ error: 'Aguarde um minuto antes de gerar outro vídeo.' }, { status: 429 });
 
-  let body: { imageUrl?: string; audioUrl?: string; space?: string };
+  let body: { imageUrl?: string; audioUrl?: string; space?: string; green?: boolean };
   try {
     body = (await request.json()) as typeof body;
   } catch {
@@ -89,7 +89,13 @@ export async function POST(request: Request) {
   if (!audioUrl) return NextResponse.json({ error: 'Áudio da narração inválido.' }, { status: 400 });
 
   const started = Date.now();
-  const result = await generateLipSyncVideo({ imageUrl, audioUrl, space: body.space });
+  const result = await generateLipSyncVideo({
+    imageUrl,
+    audioUrl,
+    space: body.space,
+    // fundo verde automático: é o que deixa o avatar "dentro" do cenário
+    greenScreen: body.green !== false,
+  });
 
   if (!result.ok) {
     return NextResponse.json(
