@@ -263,11 +263,40 @@ export async function searchMet(query: string, limit = 12): Promise<FreeItem[]> 
     }));
 }
 
-/** Busca combinada: Chicago + Met (as duas melhores fontes de arte livre). */
+/**
+ * Library of Congress — milhões de fotos, gravuras e cartazes em domínio
+ * público (coleção "Prints & Photographs"), API JSON aberta e sem chave.
+ */
+export async function searchLoc(query: string, limit = 16): Promise<FreeItem[]> {
+  const params = new URLSearchParams({ q: query, fo: 'json', c: String(Math.min(Math.max(limit, 1), 40)), at: 'results' });
+  const data = await getJson(`https://www.loc.gov/photos/?${params.toString()}`, 14_000);
+  const results = (data?.results as Array<Record<string, unknown>>) ?? [];
+  const items: FreeItem[] = [];
+  for (const row of results) {
+      const urls = (row.image_url as string[]) ?? [];
+      if (!urls.length) continue;
+      // a última URL costuma ser a maior; tira o "#h=..&w=.." do final
+      const best = urls[urls.length - 1].split('#')[0];
+      const item = (row.item as Record<string, unknown>) ?? {};
+      items.push({
+        id: `loc-${String(row.id ?? Math.random()).slice(-40)}`,
+        title: String(item.title ?? row.title ?? 'Acervo').slice(0, 90),
+        thumb: urls[0].split('#')[0],
+        url: best,
+        page: String(row.id ?? ''),
+        license: String(item.rights_advisory ?? 'Domínio público'),
+        author: String((item.contributor_names as string[])?.[0] ?? '').slice(0, 70),
+        kind: 'image' as const,
+      });
+  }
+  return items.filter((item) => Boolean(item.url));
+}
+
+/** Busca combinada: Met + Library of Congress (arte/foto livre em alta). */
 export async function searchArt(query: string, limit = 24): Promise<FreeItem[]> {
-  const [artic, met] = await Promise.all([searchArtic(query, limit), searchMet(query, 10)]);
+  const [met, loc] = await Promise.all([searchMet(query, 10), searchLoc(query, limit)]);
   const seen = new Set<string>();
-  const all = [...artic, ...met].filter((item) => {
+  const all = [...met, ...loc].filter((item) => {
     if (!item.url || seen.has(item.url)) return false;
     seen.add(item.url);
     return true;
@@ -287,6 +316,8 @@ export const ALLOWED_HOSTS = [
   'api.iconify.design',
   'image.pollinations.ai',
   'api.qrserver.com',
+  'tile.loc.gov',
+  'www.loc.gov',
   'www.artic.edu',
   'api.artic.edu',
   'images.metmuseum.org',

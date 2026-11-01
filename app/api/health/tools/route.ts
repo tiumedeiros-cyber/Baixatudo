@@ -3,7 +3,7 @@ import QRCode from 'qrcode';
 import { isAllowedFreeUrl } from '@/lib/free-media';
 import { craiyon } from '@/lib/craiyon';
 import { diagnoseDrive } from '@/lib/import-url';
-import { searchArtic, searchMet } from '@/lib/free-media';
+import { searchLoc, searchMet } from '@/lib/free-media';
 import { clientIp, rateLimit } from '@/lib/rate-limit';
 
 export const runtime = 'nodejs';
@@ -138,7 +138,7 @@ export async function GET(request: Request) {
 
   t0 = Date.now();
   try {
-    const artic = await searchArtic('sunset', 3);
+    const artic = await searchLoc('sunset', 3);
     // baixa a primeira imagem de verdade: garante que a URL IIIF responde
     let bytes = 0;
     let type = '';
@@ -150,13 +150,13 @@ export async function GET(request: Request) {
       type = img.headers.get('content-type') ?? '';
       bytes = (await img.arrayBuffer()).byteLength;
     }
-    results.artic = {
+    results.loc = {
       ok: artic.length > 0 && bytes > 5000 && type.startsWith('image/'),
       ms: Date.now() - t0,
       detail: `${artic.length} obras · ${bytes} bytes · ${type}`,
     };
   } catch (err) {
-    results.artic = { ok: false, ms: Date.now() - t0, detail: (err instanceof Error ? err.message : String(err)).slice(0, 200) };
+    results.loc = { ok: false, ms: Date.now() - t0, detail: (err instanceof Error ? err.message : String(err)).slice(0, 200) };
   }
 
   t0 = Date.now();

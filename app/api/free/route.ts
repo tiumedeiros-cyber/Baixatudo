@@ -13,7 +13,7 @@ import {
   pollinationsUrl,
   searchArchive,
   searchArt,
-  searchArtic,
+  searchLoc,
   searchCommons,
   searchIcons,
   searchMet,
@@ -27,11 +27,11 @@ export async function GET(request: Request) {
   const q = (url.searchParams.get('check') || 'fundo').slice(0, 60);
   const limit = rateLimit(`free-check:${clientIp(request.headers)}`, 12, 60_000);
   if (!limit.ok) return NextResponse.json({ error: 'Muitos pedidos.' }, { status: 429 });
-  const [images, audio, icons, artic, met] = await Promise.all([
+  const [images, audio, icons, loc, met] = await Promise.all([
     searchCommons(q, 3),
     searchArchive(q, 3),
     searchIcons(q, 3),
-    searchArtic(q, 3),
+    searchLoc(q, 3),
     searchMet(q, 3),
   ]);
   let pollinations = { ok: false, bytes: 0, type: '' };
@@ -53,7 +53,7 @@ export async function GET(request: Request) {
       wikimedia: { ok: images.length > 0, itens: images.length, exemplo: images[0]?.url ?? '' },
       archive: { ok: audio.length > 0, itens: audio.length, exemplo: audio[0]?.thumb ?? '' },
       iconify: { ok: icons.length > 0, itens: icons.length, exemplo: icons[0]?.url ?? '' },
-      artic: { ok: artic.length > 0, itens: artic.length, exemplo: artic[0]?.url ?? '' },
+      loc: { ok: loc.length > 0, itens: loc.length, exemplo: loc[0]?.url ?? '' },
       met: { ok: met.length > 0, itens: met.length, exemplo: met[0]?.url ?? '' },
       pollinations,
     },
