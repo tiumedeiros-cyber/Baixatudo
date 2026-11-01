@@ -6,6 +6,7 @@ import { getSettings } from '@/lib/settings';
 import { driveFileId, fetchMedia, listDriveFolder, mediaTypeOf, safeFileName } from '@/lib/import-url';
 import { getActiveSubscription } from '@/lib/auth';
 import { formatBytes, getQuota } from '@/lib/quota';
+import { providerRoom, effectiveFileLimitBytes } from '@/lib/storage-capacity';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300;
@@ -43,10 +44,12 @@ export async function POST(request: Request) {
   }
 
   const settings = await getSettings();
-  const maxMb = Math.min(Math.max(Number(settings.general.max_upload_mb) || 200, 20), 800);
-  const maxBytes = maxMb * 1024 * 1024;
+  const maxBytes = Math.min(effectiveFileLimitBytes(settings), 800 * 1024 * 1024);
+  const maxMb = Math.round(maxBytes / (1024 * 1024));
 
   const admin = createAdminClient();
+  const room = await providerRoom(admin, settings, 1024 * 1024);
+  if (!room.ok) return NextResponse.json({ error: room.message }, { status: 507 });
   const sub = await getActiveSubscription();
   const quota = await getQuota(admin, user.id, Number(sub?.plans?.limits?.storage_gb ?? 5));
   if (quota.freeBytes < 5 * 1024 * 1024) {

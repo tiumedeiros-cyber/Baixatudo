@@ -16,13 +16,47 @@ function fmt(bytes: number) {
 }
 
 /** Manutenção do storage: mostra o uso real e limpa arquivos órfãos. */
-export function StorageCleanup({ usedBytes, files, users }: { usedBytes: number; files: number; users: number }) {
+export function StorageCleanup({
+  usedBytes,
+  files,
+  users,
+  capacityBytes,
+  fileLimitMb,
+}: {
+  usedBytes: number;
+  files: number;
+  users: number;
+  capacityBytes?: number;
+  fileLimitMb?: number;
+}) {
   const [pending, start] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   return (
     <div className="space-y-2">
+      {capacityBytes ? (
+        <div className="space-y-1">
+          <div className="flex items-center justify-between text-[10px] text-slate-400">
+            <span>Servidor de arquivos (teto do provedor)</span>
+            <span className={usedBytes / capacityBytes > 0.85 ? 'font-bold text-amber-300' : ''}>
+              {fmt(usedBytes)} de {fmt(capacityBytes)}
+            </span>
+          </div>
+          <div className="h-2 overflow-hidden rounded-full bg-white/10">
+            <div
+              className={usedBytes / capacityBytes > 0.85 ? 'h-full bg-amber-400' : 'h-full bg-emerald-400'}
+              style={{ width: `${Math.min(100, (usedBytes / capacityBytes) * 100)}%` }}
+            />
+          </div>
+          {usedBytes / capacityBytes > 0.85 ? (
+            <p className="text-[10px] text-amber-300">
+              Quase no limite do provedor. Amplie a capacidade (Configurações → Capacidade total) depois de fazer upgrade, ou
+              rode a limpeza abaixo.
+            </p>
+          ) : null}
+        </div>
+      ) : null}
       <div className="grid grid-cols-3 gap-2 text-center">
         <div className="rounded-xl border border-white/10 bg-white/[0.02] px-2 py-2">
           <p className="text-[10px] uppercase tracking-wider text-slate-500">Em uso</p>
@@ -65,6 +99,7 @@ export function StorageCleanup({ usedBytes, files, users }: { usedBytes: number;
       ) : null}
       <p className="text-[10px] leading-relaxed text-slate-500">
         Só apaga o que não está em nenhum asset, projeto ou narração e tem mais de 2 dias — nunca remove arquivo em uso.
+        {fileLimitMb ? ` Limite por arquivo configurado hoje: ${fileLimitMb} MB.` : ''}
       </p>
     </div>
   );

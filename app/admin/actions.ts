@@ -224,7 +224,9 @@ export async function saveGeneralSettings(formData: FormData) {
     whatsapp: String(formData.get('whatsapp') || '').trim(),
     support_mode: String(formData.get('support_mode') || 'email'),
     whatsapp_message: String(formData.get('whatsapp_message') || '').slice(0, 300),
-    max_upload_mb: Number(formData.get('max_upload_mb') || current.max_upload_mb),
+    max_upload_mb: Math.min(Math.max(Number(formData.get('max_upload_mb') || current.max_upload_mb), 5), 2048),
+    provider_file_limit_mb: Math.min(Math.max(Number(formData.get('provider_file_limit_mb') || current.provider_file_limit_mb), 5), 5120),
+    storage_capacity_gb: Math.min(Math.max(Number(formData.get('storage_capacity_gb') || current.storage_capacity_gb), 1), 100000),
   };
   await db.from('es_settings').upsert({ key: 'general', value, updated_at: new Date().toISOString() });
   const { revalidateTag } = await import('next/cache');
@@ -298,12 +300,17 @@ export async function saveIntegrationSettings(formData: FormData) {
     postiz_key:
       formData.get('clear_postiz') === 'on' ? '' : postizInput ? encryptSecret(postizInput) : current.postiz_key,
     postiz_tiktok: String(formData.get('postiz_tiktok') || '').trim().slice(0, 120),
+    admin_kie_enabled: formData.get('admin_kie_enabled') === 'on',
+    admin_postiz_enabled: formData.get('admin_postiz_enabled') === 'on',
+    allow_user_kie: formData.get('allow_user_kie') === 'on',
+    allow_user_postiz: formData.get('allow_user_postiz') === 'on',
   };
   await db.from('es_settings').upsert({ key: 'integrations', value, updated_at: new Date().toISOString() });
   const { revalidateTag } = await import('next/cache');
   revalidateTag('settings');
   revalidatePath('/admin/configuracoes');
   revalidatePath('/dashboard/animacao');
+  revalidatePath('/dashboard/integracoes');
 }
 
 /* --------------------- Biblioteca: upload e import por link --------------------- */

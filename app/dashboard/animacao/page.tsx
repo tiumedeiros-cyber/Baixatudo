@@ -1,14 +1,14 @@
 import { Film } from 'lucide-react';
 import { requireUser } from '@/lib/auth';
-import { getSettings, effectiveIntegrations } from '@/lib/settings';
+import { resolveAiForUser } from '@/lib/user-integrations';
 import { MotionStudio } from '@/components/dashboard/MotionStudio';
 
 export const metadata = { title: 'Animação IA · Editor Studio' };
 export const dynamic = 'force-dynamic';
 
 export default async function AnimacaoPage() {
-  await requireUser();
-  const keys = effectiveIntegrations(await getSettings());
+  const { user } = await requireUser();
+  const keys = await resolveAiForUser(user!.id);
   return (
     <div className="space-y-5">
       <div>
@@ -20,7 +20,14 @@ export default async function AnimacaoPage() {
           personagem mantendo o rosto, e o vídeo fica pronto para usar no editor ou publicar no TikTok.
         </p>
       </div>
-      <MotionStudio configured={{ kie: Boolean(keys.kieKey), postiz: Boolean(keys.postizKey && keys.postizTikTok) }} />
+      <MotionStudio
+        configured={{
+          kie: Boolean(keys.kieKey),
+          postiz: Boolean(keys.postizKey && keys.postizTiktok),
+          kieSource: keys.kieSource,
+          postizSource: keys.postizSource,
+        }}
+      />
     </div>
   );
 }

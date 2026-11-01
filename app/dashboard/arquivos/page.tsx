@@ -3,6 +3,8 @@ import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { Uploader } from '@/components/dashboard/Uploader';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getQuota } from '@/lib/quota';
+import { getSettings } from '@/lib/settings';
+import { effectiveFileLimitBytes } from '@/lib/storage-capacity';
 import type { UserAsset } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
@@ -19,6 +21,8 @@ export default async function FilesPage() {
 
   const planGb = Number(sub?.plans?.limits?.storage_gb ?? 10);
   const quota = await getQuota(createAdminClient(), user!.id, planGb);
+  const settings = await getSettings();
+  const maxFileMb = Math.round(effectiveFileLimitBytes(settings) / (1024 * 1024));
 
   return (
     <div className="space-y-6">
@@ -31,6 +35,7 @@ export default async function FilesPage() {
         assets={(data ?? []) as UserAsset[]}
         storageLimitGb={planGb}
         quota={{ usedBytes: quota.usedBytes, limitBytes: quota.limitBytes }}
+        maxFileMb={maxFileMb}
       />
     </div>
   );

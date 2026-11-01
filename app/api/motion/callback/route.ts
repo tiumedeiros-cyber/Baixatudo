@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { getSettings, effectiveIntegrations } from '@/lib/settings';
+import { getSettings } from '@/lib/settings';
+import { resolveAiForUser } from '@/lib/user-integrations';
 import { kieGetTask } from '@/lib/motion';
 
 export const runtime = 'nodejs';
@@ -12,11 +13,11 @@ export async function POST(request: Request) {
   if (!jobId) return NextResponse.json({ ok: false }, { status: 400 });
 
   const admin = createAdminClient();
-  const { data: job } = await admin.from('es_motion_jobs').select('id,task_id,status').eq('id', jobId).maybeSingle();
+  const { data: job } = await admin.from('es_motion_jobs').select('id,user_id,task_id,status').eq('id', jobId).maybeSingle();
   if (!job?.task_id) return NextResponse.json({ ok: false }, { status: 404 });
 
   const settings = await getSettings();
-  const { kieKey } = effectiveIntegrations(settings);
+  const { kieKey } = await resolveAiForUser(job.user_id as string, settings);
   if (!kieKey) return NextResponse.json({ ok: false }, { status: 400 });
 
   const info = await kieGetTask({ key: kieKey, taskId: job.task_id });

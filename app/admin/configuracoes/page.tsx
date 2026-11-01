@@ -84,8 +84,14 @@ export default async function AdminSettings() {
             <Field label="Mensagem pronta do WhatsApp">
               <input name="whatsapp_message" defaultValue={general.whatsapp_message} className={inputCls} />
             </Field>
-            <Field label="Tamanho máximo de upload (MB)">
-              <input name="max_upload_mb" type="number" min={10} defaultValue={general.max_upload_mb} className={inputCls} />
+            <Field label="Tamanho máximo de upload (MB)" hint="Limite lógico por arquivo do sistema.">
+              <input name="max_upload_mb" type="number" min={5} defaultValue={general.max_upload_mb} className={inputCls} />
+            </Field>
+            <Field label="Limite por arquivo do provedor (MB)" hint="Free do Supabase aceita 50 MB por arquivo; Pro aceita até 5 GB.">
+              <input name="provider_file_limit_mb" type="number" min={5} defaultValue={general.provider_file_limit_mb} className={inputCls} />
+            </Field>
+            <Field label="Capacidade total de storage (GB)" hint="Teto físico contratado no Supabase. O sistema bloqueia antes de estourar.">
+              <input name="storage_capacity_gb" type="number" min={1} defaultValue={general.storage_capacity_gb} className={inputCls} />
             </Field>
             <button className="rounded-lg bg-brand-500 px-3 py-2 text-xs font-bold text-white hover:bg-brand-400">Salvar</button>
           </form>
@@ -250,6 +256,31 @@ export default async function AdminSettings() {
               </div>
               <label className="mt-2 flex items-center gap-2 text-[10px] text-slate-400">
                 <input type="checkbox" name="clear_postiz" className="h-3 w-3 accent-rose-500" /> remover credenciais salvas
+              </label>
+            </div>
+          </div>
+          <div className="rounded-xl border border-white/8 bg-white/[0.02] p-3">
+            <p className="text-[11px] font-semibold text-white">Quem paga a conta da IA</p>
+            <p className="mt-1 text-[10px] leading-relaxed text-slate-500">
+              Você escolhe: usar a chave da plataforma para todos, deixar cada cliente usar a própria conta, ou desligar.
+              A chave do cliente sempre tem prioridade — assim ninguém consome crédito de outro.
+            </p>
+            <div className="mt-2 grid gap-2 sm:grid-cols-2">
+              <label className="flex items-start gap-2 rounded-lg border border-white/8 bg-black/20 p-2 text-[11px] text-slate-300">
+                <input type="checkbox" name="admin_kie_enabled" defaultChecked={settings.integrations.admin_kie_enabled} className="mt-0.5 h-3 w-3 accent-emerald-500" />
+                <span>Usar a <strong>minha chave</strong> da Kie AI para os clientes sem chave própria</span>
+              </label>
+              <label className="flex items-start gap-2 rounded-lg border border-white/8 bg-black/20 p-2 text-[11px] text-slate-300">
+                <input type="checkbox" name="allow_user_kie" defaultChecked={settings.integrations.allow_user_kie} className="mt-0.5 h-3 w-3 accent-emerald-500" />
+                <span>Permitir que cada cliente <strong>cadastre a própria</strong> chave da Kie AI</span>
+              </label>
+              <label className="flex items-start gap-2 rounded-lg border border-white/8 bg-black/20 p-2 text-[11px] text-slate-300">
+                <input type="checkbox" name="admin_postiz_enabled" defaultChecked={settings.integrations.admin_postiz_enabled} className="mt-0.5 h-3 w-3 accent-emerald-500" />
+                <span>Usar as <strong>minhas credenciais</strong> da Postiz para publicar</span>
+              </label>
+              <label className="flex items-start gap-2 rounded-lg border border-white/8 bg-black/20 p-2 text-[11px] text-slate-300">
+                <input type="checkbox" name="allow_user_postiz" defaultChecked={settings.integrations.allow_user_postiz} className="mt-0.5 h-3 w-3 accent-emerald-500" />
+                <span>Permitir que cada cliente <strong>cadastre a própria</strong> Postiz/TikTok</span>
               </label>
             </div>
           </div>

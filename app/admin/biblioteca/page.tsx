@@ -5,6 +5,8 @@ import { saveAsset, uploadCatalogMedia, importCatalogUrl } from '@/app/admin/act
 import { AssetDelete } from '@/components/admin/ActionButtons';
 import { StorageCleanup } from '@/components/admin/StorageCleanup';
 import type { Asset } from '@/lib/types';
+import { getSettings } from '@/lib/settings';
+import { effectiveFileLimitBytes } from '@/lib/storage-capacity';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,6 +25,9 @@ export default async function AdminLibrary() {
   ]);
   const usedBytes = (usage ?? []).reduce((acc, row) => acc + Number((row as { storage_used_bytes: number }).storage_used_bytes || 0), 0);
   const usersWithFiles = (usage ?? []).filter((row) => Number((row as { storage_used_bytes: number }).storage_used_bytes || 0) > 0).length;
+  const settings = await getSettings();
+  const capacityBytes = Math.max(1, Number(settings.general.storage_capacity_gb) || 1) * 1024 ** 3;
+  const fileLimitMb = Math.round(effectiveFileLimitBytes(settings) / (1024 * 1024));
 
   return (
     <div className="space-y-5">
@@ -69,7 +74,13 @@ export default async function AdminLibrary() {
           O catálogo do sistema não ocupa storage (vive no código). Aqui aparece só o que os clientes enviaram.
         </p>
         <div className="mt-3">
-          <StorageCleanup usedBytes={usedBytes} files={files ?? 0} users={usersWithFiles} />
+          <StorageCleanup
+            usedBytes={usedBytes}
+            files={files ?? 0}
+            users={usersWithFiles}
+            capacityBytes={capacityBytes}
+            fileLimitMb={fileLimitMb}
+          />
         </div>
       </Card>
 

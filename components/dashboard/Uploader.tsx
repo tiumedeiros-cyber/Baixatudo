@@ -92,12 +92,15 @@ export function Uploader({
   assets,
   storageLimitGb,
   quota,
+  maxFileMb = 50,
 }: {
   userId: string;
   assets: UserAsset[];
   storageLimitGb: number;
   /** contador do banco (O(1)) — quando vem, é a fonte da verdade */
   quota?: { usedBytes: number; limitBytes: number };
+  /** limite por arquivo (o menor entre o do sistema e o do provedor de storage) */
+  maxFileMb?: number;
 }) {
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState<string | null>(null);
@@ -121,6 +124,12 @@ export function Uploader({
       const limit = quota?.limitBytes ?? storageLimitGb * 1024 ** 3;
       const used = quota?.usedBytes ?? assets.reduce((a, b) => a + Number(b.size_bytes || 0), 0);
       const incoming = Array.from(files).reduce((a, f) => a + f.size, 0);
+      const big = Array.from(files).find((f) => f.size > maxFileMb * 1024 * 1024);
+      if (big) {
+        throw new Error(
+          `"${big.name}" tem ${(big.size / 1024 / 1024).toFixed(1)} MB e o limite por arquivo é ${maxFileMb} MB. Comprima o vídeo ou use o Baixa Tudo (que salva direto no servidor).`,
+        );
+      }
       if (used + incoming > limit) {
         throw new Error(
           `Sem espaço: o plano tem ${(limit / 1024 ** 3).toFixed(0)} GB, ${((limit - used) / 1024 ** 3).toFixed(1)} GB livres e você está enviando ${(incoming / 1024 ** 3).toFixed(1)} GB. Apague arquivos ou faça upgrade.`,

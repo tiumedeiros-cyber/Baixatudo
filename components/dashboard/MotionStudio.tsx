@@ -15,7 +15,11 @@ const STATUS_LABEL: Record<string, string> = {
   failed: 'Falhou',
 };
 
-export function MotionStudio({ configured }: { configured: { kie: boolean; postiz: boolean } }) {
+export function MotionStudio({
+  configured,
+}: {
+  configured: { kie: boolean; postiz: boolean; kieSource: 'user' | 'shared' | 'off'; postizSource: 'user' | 'shared' | 'off' };
+}) {
   const [preset, setPreset] = useState(AVATARS[0]?.id ?? 'theo');
   const [imageUrl, setImageUrl] = useState('');
   const [videoUrl, setVideoUrl] = useState('');
@@ -195,8 +199,9 @@ export function MotionStudio({ configured }: { configured: { kie: boolean; posti
         {!configured.kie ? (
           <p className="mt-3 flex items-start gap-2 rounded-lg border border-amber-400/25 bg-amber-500/10 p-2 text-[11px] leading-relaxed text-amber-200">
             <TriangleAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-            Falta a chave da Kie AI. O admin cola em <strong>Admin → Configurações → Integrações</strong> (ou define a variável
-            <code className="mx-1">KIE_API_KEY</code>).
+            Animação sem chave: cadastre a sua em{' '}
+            <a href="/dashboard/integracoes" className="underline">Minhas integrações</a> ou peça ao admin para liberar a chave
+            da plataforma.
           </p>
         ) : null}
 
@@ -212,6 +217,11 @@ export function MotionStudio({ configured }: { configured: { kie: boolean; posti
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />} Gerar vídeo
           </Button>
           {job ? <span className="self-center text-[11px] text-slate-400">{STATUS_LABEL[job.status] ?? job.status}</span> : null}
+          {configured.kie ? (
+            <span className="self-center text-[10px] text-slate-500">
+              chave: {configured.kieSource === 'user' ? 'sua conta' : 'Editor Studio'}
+            </span>
+          ) : null}
         </div>
       </Card>
 
@@ -240,8 +250,8 @@ export function MotionStudio({ configured }: { configured: { kie: boolean; posti
             </div>
             {!configured.postiz ? (
               <p className="mt-2 text-[10px] leading-relaxed text-slate-500">
-                Para publicar direto: cole a API key da Postiz e o Integration ID do TikTok em Admin → Configurações →
-                Integrações.
+                Para publicar direto: cadastre a API key da Postiz e o Integration ID do TikTok em{' '}
+                <a href="/dashboard/integracoes" className="underline">Minhas integrações</a>.
               </p>
             ) : null}
           </>

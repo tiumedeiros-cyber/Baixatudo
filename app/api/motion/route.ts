@@ -1,7 +1,10 @@
 import { NextResponse } from 'next/server';
 import { getSessionUser } from '@/lib/auth';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { getSettings, effectiveIntegrations } from '@/lib/settings';
+import { getSettings } from '@/lib/settings';
+import { resolveAiForUser } from '@/lib/user-integrations';
+import { getQuota, formatBytes } from '@/lib/quota';
+import { getActiveSubscription } from '@/lib/auth';
 import { clientIp, rateLimit } from '@/lib/rate-limit';
 import { kieCreateTask, kieGetTask, postizUpload, postizPublish } from '@/lib/motion';
 import { SITE_URL } from '@/lib/env';
@@ -44,12 +47,15 @@ export async function POST(request: Request) {
   const action = String(body.action ?? 'create');
   const admin = createAdminClient();
   const settings = await getSettings();
-  const keys = effectiveIntegrations(settings);
+  const keys = await resolveAiForUser(user.id, settings);
 
   if (action === 'create') {
     if (!keys.kieKey) {
       return NextResponse.json(
-        { error: 'Kie AI não configurada. O admin precisa colar a chave em Admin → Configurações → Integrações.' },
+        {
+          error:
+            'Animação IA está sem chave. Cadastre a sua em Painel → Minhas integrações ou peça ao admin para liberar a chave da plataforma.',
+        },
         { status: 400 },
       );
     }
@@ -140,6 +146,15 @@ export async function POST(request: Request) {
     if (!job.result_url) return NextResponse.json({ error: 'O vídeo ainda não está pronto.' }, { status: 400 });
     if (job.status === 'saved') return NextResponse.json({ ok: true, alreadySaved: true });
 
+    const sub = await getActiveSubscription();
+    const quota = await getQuota(admin, user.id, Number(sub?.plans?.limits?.storage_gb ?? 5));
+    if (quota.freeBytes <= 0) {
+      return NextResponse.json(
+        { error: `Sem espaço no seu plano (${formatBytes(quota.usedBytes)} de ${formatBytes(quota.limitBytes)} usados).` },
+        { status: 413 },
+      );
+    }
+
     const res = await fetch(job.result_url, { cache: 'no-store' });
     if (!res.ok) return NextResponse.json({ error: `Não foi possível baixar o vídeo (${res.status}).` }, { status: 502 });
     const buffer = Buffer.from(await res.arrayBuffer());
@@ -170,9 +185,9 @@ export async function POST(request: Request) {
   }
 
   if (action === 'publish') {
-    if (!keys.postizKey || !keys.postizTikTok) {
+    if (!keys.postizKey || !keys.postizTiktok) {
       return NextResponse.json(
-        { error: 'Postiz não configurada. Cole a API key e o Integration ID do TikTok em Admin → Configurações → Integrações.' },
+        { error: 'Publicação desligada: cadastre a API key da Postiz e o Integration ID do TikTok em Painel → Minhas integrações.' },
         { status: 400 },
       );
     }
@@ -192,7 +207,7 @@ export async function POST(request: Request) {
 
     const published = await postizPublish({
       key: keys.postizKey,
-      integrationId: keys.postizTikTok,
+      integrationId: keys.postizTiktok,
       mediaId: uploaded.id,
       mediaPath: uploaded.path,
       caption,

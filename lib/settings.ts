@@ -12,6 +12,10 @@ export type GeneralSettings = {
   support_mode: SupportMode;
   whatsapp_message: string;
   max_upload_mb: number;
+  /** limite de upload por arquivo imposto pelo provedor de storage */
+  provider_file_limit_mb: number;
+  /** teto total de storage contratado no provedor (todos os usuários juntos) */
+  storage_capacity_gb: number;
 };
 
 export type PaymentsSettings = {
@@ -44,6 +48,13 @@ export type IntegrationSettings = {
   postiz_key: string;
   /** integration id do canal TikTok dentro da Postiz */
   postiz_tiktok: string;
+  /** a chave da plataforma pode ser usada pelos clientes? */
+  admin_kie_enabled: boolean;
+  admin_postiz_enabled: boolean;
+  /** o cliente pode colar a própria chave da Kie AI? */
+  allow_user_kie: boolean;
+  /** o cliente pode colar a própria chave da Postiz? */
+  allow_user_postiz: boolean;
 };
 
 export type PlatformSettings = {
@@ -61,6 +72,8 @@ export const DEFAULT_SETTINGS: PlatformSettings = {
     support_mode: 'email',
     whatsapp_message: 'Olá! Preciso de ajuda com o Editor Studio.',
     max_upload_mb: 500,
+    provider_file_limit_mb: 50,
+    storage_capacity_gb: 1,
   },
   payments: {
     mode: 'manual',
@@ -89,6 +102,10 @@ export const DEFAULT_SETTINGS: PlatformSettings = {
     kie_key: '',
     postiz_key: '',
     postiz_tiktok: '',
+    admin_kie_enabled: true,
+    admin_postiz_enabled: true,
+    allow_user_kie: true,
+    allow_user_postiz: true,
   },
 };
 

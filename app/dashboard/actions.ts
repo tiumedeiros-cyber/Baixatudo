@@ -127,6 +127,15 @@ export async function uploadUserAssetFallback(formData: FormData): Promise<{ ok:
       error: `Sem espaço no plano (${formatBytes(quota.freeBytes)} livres de ${formatBytes(quota.limitBytes)}). Apague arquivos ou faça upgrade.`,
     };
   }
+  const { getSettings } = await import('@/lib/settings');
+  const { providerRoom, effectiveFileLimitBytes } = await import('@/lib/storage-capacity');
+  const settings = await getSettings();
+  const fileLimit = effectiveFileLimitBytes(settings);
+  if (file.size > fileLimit) {
+    return { ok: false, error: `Arquivo acima de ${Math.round(fileLimit / 1024 / 1024)} MB (limite do provedor de arquivos).` };
+  }
+  const room = await providerRoom(admin, settings, file.size);
+  if (!room.ok) return { ok: false, error: room.message };
 
   const type = file.type.startsWith('video') ? 'video' : file.type.startsWith('audio') ? 'audio' : 'image';
   const safe = (file.name || 'arquivo').replace(/[^\w.\-]+/g, '_');
