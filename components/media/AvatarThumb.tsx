@@ -31,9 +31,9 @@ export function AvatarThumb({
       drawAvatar(ctx, preset, 0, 0, size, size, mouth, 0.9);
     };
     paint();
-    // repinta depois que o fundo fotorrealista termina de carregar
-    const retry = setTimeout(paint, 450);
-    return () => clearTimeout(retry);
+    // repinta enquanto o fundo/retrato termina de carregar (e recortar)
+    const timers = [450, 1100, 2200, 4000].map((ms) => setTimeout(paint, ms));
+    return () => timers.forEach(clearTimeout);
   }, [preset, mouth]);
 
   return (

@@ -58,6 +58,11 @@ export type AvatarPreset = {
   tattoos?: boolean;
   /** headset de gamer */
   headphones?: boolean;
+  /**
+   * Retrato 3D (render estilo Pixar) com fundo branco removido em tempo real.
+   * `base` = boca fechada, `talk` = boca aberta (mistura pelo áudio).
+   */
+  photo?: { base: string; talk: string };
   /** corrente/cordão no pescoço */
   chain?: boolean;
   /** relógio no pulso */
@@ -362,6 +367,7 @@ export const AVATARS: AvatarPreset[] = [
     watch: true,
     earrings: true,
     fabric: 'algodao',
+    photo: { base: '/avatars3d/theo.jpg', talk: '/avatars3d/theo-talk.jpg' },
   },
   {
     id: 'lucas',
@@ -381,6 +387,7 @@ export const AVATARS: AvatarPreset[] = [
     tattoos: true,
     chain: true,
     fabric: 'malha',
+    photo: { base: '/avatars3d/lucas.jpg', talk: '/avatars3d/lucas-talk.jpg' },
   },
   {
     id: 'rafa',
@@ -401,6 +408,7 @@ export const AVATARS: AvatarPreset[] = [
     tattoos: true,
     earrings: true,
     fabric: 'algodao',
+    photo: { base: '/avatars3d/rafa.jpg', talk: '/avatars3d/rafa.jpg' },
   },
   {
     id: 'bia',
@@ -421,6 +429,7 @@ export const AVATARS: AvatarPreset[] = [
     earrings: true,
     freckles: true,
     fabric: 'malha',
+    photo: { base: '/avatars3d/bia.jpg', talk: '/avatars3d/bia-talk.jpg' },
   },
   {
     id: 'igor',
@@ -441,6 +450,7 @@ export const AVATARS: AvatarPreset[] = [
     beard: true,
     watch: true,
     fabric: 'social',
+    photo: { base: '/avatars3d/igor.jpg', talk: '/avatars3d/igor.jpg' },
   },
   {
     id: 'nara',
@@ -461,6 +471,7 @@ export const AVATARS: AvatarPreset[] = [
     earrings: true,
     chain: true,
     fabric: 'social',
+    photo: { base: '/avatars3d/nara.jpg', talk: '/avatars3d/nara-talk.jpg' },
   },
 ];
 
@@ -502,6 +513,9 @@ function b64decode(value: string) {
 }
 
 /** Monta um id portátil com as edições do usuário. */
+// Retratos 3D aparecem primeiro na galeria (o resto do elenco vem depois).
+AVATARS.sort((a, b) => Number(Boolean(b.photo)) - Number(Boolean(a.photo)));
+
 export function encodeAvatar(edit: AvatarEdit): string {
   const payload: Record<string, unknown> = {};
   if (edit.base) payload.b = edit.base;

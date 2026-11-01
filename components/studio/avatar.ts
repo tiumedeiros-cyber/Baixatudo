@@ -2,6 +2,188 @@
 import { avatarById, shade } from '@/lib/catalog/avatars';
 import type { AvatarPreset, SceneId } from '@/lib/catalog/avatars';
 
+
+/* -------------------------------------------------------------------------- */
+/*                        RETRATOS 3D (fundo removido)                        */
+/* -------------------------------------------------------------------------- */
+
+type KeyedImage = {
+  canvas: HTMLCanvasElement;
+  box: { x: number; y: number; w: number; h: number };
+};
+
+const keyedCache = new Map<string, KeyedImage | null>();
+const KEY_MAX = 1152;
+
+/**
+ * Remove o fundo branco do retrato (flood fill a partir das bordas, então
+ * blusinhas brancas no meio do personagem não somem) e guarda o recorte.
+ */
+function buildKeyed(img: HTMLImageElement): KeyedImage | null {
+  if (typeof document === 'undefined') return null;
+  const nw = img.naturalWidth || img.width;
+  const nh = img.naturalHeight || img.height;
+  if (!nw || !nh) return null;
+  const k = Math.min(1, KEY_MAX / Math.max(nw, nh));
+  const w = Math.max(1, Math.round(nw * k));
+  const h = Math.max(1, Math.round(nh * k));
+  const canvas = document.createElement('canvas');
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  if (!ctx) return null;
+  ctx.drawImage(img, 0, 0, w, h);
+  const data = ctx.getImageData(0, 0, w, h);
+  const px = data.data;
+
+  const white = (i: number) => {
+    const r = px[i];
+    const g = px[i + 1];
+    const b = px[i + 2];
+    return Math.min(r, g, b) > 226 && Math.max(r, g, b) - Math.min(r, g, b) < 24;
+  };
+
+  const mask = new Uint8Array(w * h);
+  const stack: number[] = [];
+  const push = (idx: number) => {
+    if (idx < 0 || idx >= w * h || mask[idx]) return;
+    if (!white(idx * 4)) return;
+    mask[idx] = 1;
+    stack.push(idx);
+  };
+  for (let x = 0; x < w; x++) {
+    push(x);
+    push((h - 1) * w + x);
+  }
+  for (let y = 0; y < h; y++) {
+    push(y * w);
+    push(y * w + w - 1);
+  }
+  while (stack.length) {
+    const idx = stack.pop() as number;
+    const cx = idx % w;
+    const cy = (idx - cx) / w;
+    if (cx > 0) push(idx - 1);
+    if (cx < w - 1) push(idx + 1);
+    if (cy > 0) push(idx - w);
+    if (cy < h - 1) push(idx + w);
+  }
+
+  // segunda passada: tira o resto de branco "quase puro" colado na borda
+  const loose = (i: number) => {
+    const r = px[i];
+    const g = px[i + 1];
+    const b = px[i + 2];
+    return Math.min(r, g, b) > 205 && Math.max(r, g, b) - Math.min(r, g, b) < 34;
+  };
+  const ring: number[] = [];
+  for (let y = 1; y < h - 1; y++) {
+    for (let x = 1; x < w - 1; x++) {
+      const idx = y * w + x;
+      if (mask[idx]) continue;
+      if (!loose(idx * 4)) continue;
+      if (mask[idx - 1] || mask[idx + 1] || mask[idx - w] || mask[idx + w]) ring.push(idx);
+    }
+  }
+  ring.forEach((idx) => {
+    mask[idx] = 1;
+  });
+
+  let minX = w;
+  let minY = h;
+  let maxX = 0;
+  let maxY = 0;
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const idx = y * w + x;
+      const i = idx * 4;
+      if (mask[idx]) {
+        px[i + 3] = 0;
+        continue;
+      }
+      // borda: suaviza para não deixar serrilhado branco
+      const nearRemoved =
+        (x > 0 && mask[idx - 1]) ||
+        (x < w - 1 && mask[idx + 1]) ||
+        (y > 0 && mask[idx - w]) ||
+        (y < h - 1 && mask[idx + w]);
+      if (nearRemoved) {
+        // come 1px da borda: mata o anel branco que sobra do fundo (sem halo escuro)
+        px[i + 3] = 0;
+      }
+      if (px[i + 3] > 10) {
+        if (x < minX) minX = x;
+        if (y < minY) minY = y;
+        if (x > maxX) maxX = x;
+        if (y > maxY) maxY = y;
+      }
+    }
+  }
+  if (minX > maxX || minY > maxY) return null;
+  ctx.putImageData(data, 0, 0);
+  return { canvas, box: { x: minX, y: minY, w: maxX - minX + 1, h: maxY - minY + 1 } };
+}
+
+function getKeyed(src?: string): KeyedImage | null {
+  if (!src || typeof document === 'undefined') return null;
+  if (keyedCache.has(src)) return keyedCache.get(src) ?? null;
+  keyedCache.set(src, null); // marca como "carregando"
+  const img = new Image();
+  img.crossOrigin = 'anonymous';
+  img.onload = () => keyedCache.set(src, buildKeyed(img));
+  img.onerror = () => keyedCache.set(src, null);
+  img.src = src;
+  return null;
+}
+
+/** Desenha o retrato 3D no quadro; devolve false se ainda não carregou. */
+function drawPhoto(
+  ctx: CanvasRenderingContext2D,
+  photo: { base: string; talk: string },
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  mouth: number,
+  time: number,
+  framing: string,
+) {
+  const base = getKeyed(photo.base);
+  if (!base) return false;
+  const talk = getKeyed(photo.talk);
+  const box = base.box;
+  const cw = base.canvas.width;
+  const ch = base.canvas.height;
+
+  // Busto: a altura do personagem define a escala (os lados podem sair do quadro,
+  // como num retrato). Close: amplia no rosto mantendo o topo no topo.
+  const scale =
+    framing === 'rosto' ? (h * 1.6) / box.h : (h * 0.9) / box.h;
+  const dw = cw * scale;
+  const dh = ch * scale;
+  const cx = x + w / 2 - (box.x + box.w / 2) * scale;
+  const cy = framing === 'rosto' ? y + h * 0.08 - box.y * scale : y + h * 1.02 - (box.y + box.h) * scale;
+
+  const bob = Math.sin(time * 1.6) * h * 0.004;
+  const breathe = 1 + Math.sin(time * 1.2) * 0.004;
+
+  ctx.save();
+  ctx.translate(x + w / 2, y + h / 2 + bob);
+  ctx.scale(breathe, breathe);
+  ctx.translate(-(x + w / 2), -(y + h / 2));
+  ctx.drawImage(base.canvas, cx, cy, dw, dh);
+  if (talk) {
+    const t = Math.max(0, Math.min(1, (mouth - 0.16) / 0.5));
+    if (t > 0.02) {
+      ctx.globalAlpha = t;
+      ctx.drawImage(talk.canvas, cx, cy, dw, dh);
+      ctx.globalAlpha = 1;
+    }
+  }
+  ctx.restore();
+  return true;
+}
+
 /**
  * Render dos avatares falantes.
  *
@@ -37,6 +219,22 @@ export function drawAvatar(
   const framing = a.framing ?? 'rosto';
   const pose = a.pose ?? 'neutro';
   const expression = a.expression ?? 'sorriso';
+
+  // no modo recorte o avatar não escurece o vídeo que está embaixo
+  const cutout = (a.scene ?? 'estudio') === 'transparente';
+
+  // Retratos 3D (render estilo Pixar): entram como imagem recortada sobre a cena.
+  if (a.photo && drawPhoto(ctx, a.photo, x, y, w, h, open, time, framing)) {
+    if (!cutout) {
+      const vig = ctx.createRadialGradient(cx, y + h * 0.45, Math.min(w, h) * 0.25, cx, y + h * 0.45, Math.max(w, h) * 0.75);
+      vig.addColorStop(0, 'rgba(0,0,0,0)');
+      vig.addColorStop(1, 'rgba(0,0,0,0.34)');
+      ctx.fillStyle = vig;
+      ctx.fillRect(x, y, w, h);
+    }
+    ctx.restore();
+    return;
+  }
 
   // Proporções humanas, por enquadramento:
   //  • rosto  → close-up, o rosto domina o quadro;
@@ -76,9 +274,6 @@ export function drawAvatar(
     shoulderY = headCy + headH * 0.78;
     waistY = figureTop + headH * 3.6;
   }
-
-  // no modo recorte o avatar não escurece o vídeo que está embaixo
-  const cutout = (a.scene ?? 'estudio') === 'transparente';
 
   const shirtLight = shade(a.shirt, 0.24);
   const shirtDark = shade(a.shirt, -0.34);

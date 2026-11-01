@@ -86,6 +86,7 @@ export function AvatarStudio({
   }, [baseId, scene, edit]);
 
   const avatar = AVATARS.find((a) => a.id === baseId) ?? AVATARS[0];
+  const isPhoto = Boolean(avatar.photo);
   const voice = VOICES.find((v) => v.id === voiceId) ?? VOICES[0];
 
   function pickAvatar(id: string) {
@@ -212,7 +213,7 @@ export function AvatarStudio({
 
               <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Enquadramento</p>
               <div className="flex flex-wrap gap-1">
-                {FRAMINGS.map((f) => (
+                {FRAMINGS.filter((f) => !isPhoto || f.id !== 'corpo').map((f) => (
                   <button
                     key={f.id}
                     onClick={() => setField('framing', f.id)}
@@ -227,6 +228,13 @@ export function AvatarStudio({
                 ))}
               </div>
 
+              {isPhoto ? (
+                <p className="rounded-lg border border-white/10 bg-white/[0.03] p-2 text-[10px] leading-relaxed text-slate-400">
+                  Retrato 3D: expressão, roupa e acessórios fazem parte da arte. A boca abre junto com a narração
+                  (mistura entre o quadro de boca fechada e o de fala).
+                </p>
+              ) : (
+                <>
               <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Pose</p>
               <div className="flex flex-wrap gap-1">
                 {POSES.map((p) => (
@@ -378,6 +386,8 @@ export function AvatarStudio({
                   <RotateCcw className="h-3 w-3" /> Desfazer edições
                 </button>
               </div>
+                </>
+              )}
             </div>
           ) : null}
         </Card>
