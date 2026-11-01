@@ -5,6 +5,7 @@ import { clientIp, rateLimit } from '@/lib/rate-limit';
 import { getSettings } from '@/lib/settings';
 import { formatBytes, getQuota } from '@/lib/quota';
 import { providerRoom, effectiveFileLimitBytes } from '@/lib/storage-capacity';
+import { storeFile } from '@/lib/storage';
 import {
   archiveAudioFile,
   isAllowedFreeUrl,
@@ -190,12 +191,9 @@ async function saveToLibrary(userId: string, url: string, rawName: string, kind:
   const safeName = rawName.replace(/[^\p{L}\p{N}\-_. ]/gu, '').trim().slice(0, 60) || 'arquivo-gratis';
   const path = `${userId}/livre/${Date.now()}-${safeName.replace(/\s+/g, '-').toLowerCase()}.${ext}`;
 
-  const { error: upErr } = await admin.storage
-    .from('media')
-    .upload(path, buffer, { contentType: contentType || 'application/octet-stream', upsert: false });
-  if (upErr) return { error: `Falha ao guardar o arquivo (${upErr.message}).` };
-
-  const { data: pub } = admin.storage.from('media').getPublicUrl(path);
+  const stored = await storeFile(admin, settings, path, buffer, contentType || 'application/octet-stream');
+  if ('error' in stored) return { error: `Falha ao guardar o arquivo (${stored.error}).` };
+  const pub = { publicUrl: stored.url };
   const { error: dbErr } = await admin.from('es_user_assets').insert({
     user_id: userId,
     name: `${safeName}.${ext}`,

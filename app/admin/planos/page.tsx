@@ -38,13 +38,35 @@ export default async function AdminPlans() {
               <input name="description" defaultValue={plan.description ?? ''} className="w-full rounded-lg border border-white/10 bg-black/30 px-2 py-1 text-xs text-white" placeholder="Descrição" />
               <textarea name="features" defaultValue={(plan.features ?? []).join('\n')} rows={5} className="w-full rounded-lg border border-white/10 bg-black/30 px-2 py-1 text-[11px] text-white" placeholder="Um recurso por linha" />
               <div className="grid grid-cols-3 gap-1">
-                <input name="projects" type="number" defaultValue={plan.limits?.projects} className="rounded-lg border border-white/10 bg-black/30 px-1.5 py-1 text-[10px] text-white" title="Projetos" />
-                <input name="storage_gb" type="number" defaultValue={plan.limits?.storage_gb} className="rounded-lg border border-white/10 bg-black/30 px-1.5 py-1 text-[10px] text-white" title="GB" />
-                <input name="max_quality" type="number" defaultValue={plan.limits?.max_quality} className="rounded-lg border border-white/10 bg-black/30 px-1.5 py-1 text-[10px] text-white" title="Qualidade" />
-                <input name="tts_minutes" type="number" defaultValue={plan.limits?.tts_minutes} className="rounded-lg border border-white/10 bg-black/30 px-1.5 py-1 text-[10px] text-white" title="Min TTS" />
-                <input name="downloads_per_day" type="number" defaultValue={plan.limits?.downloads_per_day} className="rounded-lg border border-white/10 bg-black/30 px-1.5 py-1 text-[10px] text-white" title="Downloads/dia" />
-                <input name="trial_days" type="number" defaultValue={plan.trial_days} className="rounded-lg border border-white/10 bg-black/30 px-1.5 py-1 text-[10px] text-white" title="Trial dias" />
+                <label className="text-[9px] uppercase tracking-wider text-slate-500">
+                  Projetos
+                  <input name="projects" type="number" defaultValue={plan.limits?.projects} className="mt-0.5 w-full rounded-lg border border-white/10 bg-black/30 px-1.5 py-1 text-[10px] text-white" />
+                </label>
+                <label className="text-[9px] uppercase tracking-wider text-cyan-300">
+                  Storage (GB)
+                  <input name="storage_gb" type="number" defaultValue={plan.limits?.storage_gb} className="mt-0.5 w-full rounded-lg border border-cyan-400/40 bg-black/30 px-1.5 py-1 text-[10px] text-white" />
+                </label>
+                <label className="text-[9px] uppercase tracking-wider text-slate-500">
+                  Qualidade
+                  <input name="max_quality" type="number" defaultValue={plan.limits?.max_quality} className="mt-0.5 w-full rounded-lg border border-white/10 bg-black/30 px-1.5 py-1 text-[10px] text-white" />
+                </label>
+                <label className="text-[9px] uppercase tracking-wider text-slate-500">
+                  Min TTS
+                  <input name="tts_minutes" type="number" defaultValue={plan.limits?.tts_minutes} className="mt-0.5 w-full rounded-lg border border-white/10 bg-black/30 px-1.5 py-1 text-[10px] text-white" />
+                </label>
+                <label className="text-[9px] uppercase tracking-wider text-slate-500">
+                  Downloads/dia
+                  <input name="downloads_per_day" type="number" defaultValue={plan.limits?.downloads_per_day} className="mt-0.5 w-full rounded-lg border border-white/10 bg-black/30 px-1.5 py-1 text-[10px] text-white" />
+                </label>
+                <label className="text-[9px] uppercase tracking-wider text-slate-500">
+                  Trial (dias)
+                  <input name="trial_days" type="number" defaultValue={plan.trial_days} className="mt-0.5 w-full rounded-lg border border-white/10 bg-black/30 px-1.5 py-1 text-[10px] text-white" />
+                </label>
               </div>
+              <p className="text-[9px] leading-relaxed text-slate-500">
+                O limite de <strong className="text-cyan-300">Storage (GB)</strong> é aplicado de verdade: o upload, a
+                importação, o Baixa Tudo e a IA somam os bytes do usuário e bloqueiam quando o plano enche.
+              </p>
               <div className="flex items-center gap-3 text-[10px] text-slate-400">
                 <label className="flex items-center gap-1"><input type="checkbox" name="premium_library" defaultChecked={plan.limits?.premium_library} className="accent-brand-500" /> Premium</label>
                 <label className="flex items-center gap-1"><input type="checkbox" name="unlimited" defaultChecked={Boolean(plan.limits?.unlimited)} className="accent-brand-500" /> Ilimitado</label>

@@ -36,6 +36,7 @@ export default async function FilesPage() {
         storageLimitGb={planGb}
         quota={{ usedBytes: quota.usedBytes, limitBytes: quota.limitBytes }}
         maxFileMb={maxFileMb}
+        externalStorage={settings.storage.mode === 's3' && Boolean(settings.storage.endpoint && settings.storage.bucket)}
       />
     </div>
   );

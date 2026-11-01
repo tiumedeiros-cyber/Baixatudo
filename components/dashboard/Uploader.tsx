@@ -93,6 +93,7 @@ export function Uploader({
   storageLimitGb,
   quota,
   maxFileMb = 50,
+  externalStorage = false,
 }: {
   userId: string;
   assets: UserAsset[];
@@ -101,6 +102,8 @@ export function Uploader({
   quota?: { usedBytes: number; limitBytes: number };
   /** limite por arquivo (o menor entre o do sistema e o do provedor de storage) */
   maxFileMb?: number;
+  /** storage externo ligado: o upload vai pelo servidor (S3 assinado no backend) */
+  externalStorage?: boolean;
 }) {
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState<string | null>(null);
@@ -143,6 +146,36 @@ export function Uploader({
         const safeName = file.name.replace(/[^\w.\-]+/g, '_') || `arquivo.${ext}`;
         const path = `${userId}/uploads/${Date.now()}-${Math.random().toString(36).slice(2, 7)}-${safeName}`;
         const contentType = contentTypeOf(file);
+        if (externalStorage) {
+          // storage externo: o navegador envia direto ao bucket com URL assinada
+          const presignRes = await fetch('/api/upload/presign', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: file.name, size: file.size, contentType }),
+          });
+          const presign = (await presignRes.json()) as { url?: string; path?: string; error?: string };
+          if (!presignRes.ok || !presign.url || !presign.path) {
+            throw new Error(`${file.name}: ${presign.error ?? 'não foi possível preparar o envio'}`);
+          }
+          const put = await fetch(presign.url, {
+            method: 'PUT',
+            headers: { 'Content-Type': contentType },
+            body: file,
+          });
+          if (!put.ok) throw new Error(`${file.name}: o bucket recusou o envio (${put.status}). Confira o CORS do bucket.`);
+          const doneRes = await fetch('/api/upload/complete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ path: presign.path, name: file.name, size: file.size, type, contentType }),
+          });
+          if (!doneRes.ok) {
+            const done = (await doneRes.json()) as { error?: string };
+            throw new Error(`${file.name}: ${done.error ?? 'falha ao registrar o arquivo'}`);
+          }
+          uploaded += 1;
+          continue;
+        }
+
         const { error: upErr } = await supabase.storage
           .from('media')
           .upload(path, file, { cacheControl: '3600', upsert: false, contentType });

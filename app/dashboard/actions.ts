@@ -96,7 +96,11 @@ export async function deleteUserAsset(id: string, storagePath?: string | null) {
 
   // apaga o binário do storage e a linha — o contador de cota volta pelo trigger
   const path = asset.storage_path || storagePath;
-  if (path) await admin.storage.from('media').remove([path]);
+  if (path) {
+    const { getSettings } = await import('@/lib/settings');
+    const { removeFile } = await import('@/lib/storage');
+    await removeFile(admin, await getSettings(), path);
+  }
   await admin.from('es_user_assets').delete().eq('id', id);
   revalidatePath('/dashboard/arquivos');
 }
@@ -142,12 +146,10 @@ export async function uploadUserAssetFallback(formData: FormData): Promise<{ ok:
   const path = `${user.id}/uploads/${Date.now()}-${Math.random().toString(36).slice(2, 7)}-${safe}`;
   const buffer = Buffer.from(await file.arrayBuffer());
 
-  const { error } = await admin.storage
-    .from('media')
-    .upload(path, buffer, { contentType: file.type || 'application/octet-stream', upsert: false });
-  if (error) return { ok: false, error: error.message };
-
-  const { data: pub } = admin.storage.from('media').getPublicUrl(path);
+  const { storeFile } = await import('@/lib/storage');
+  const stored = await storeFile(admin, settings, path, buffer, file.type || 'application/octet-stream');
+  if ('error' in stored) return { ok: false, error: stored.error };
+  const pub = { publicUrl: stored.url };
   const { error: insErr } = await admin.from('es_user_assets').insert({
     user_id: user.id,
     name: file.name || safe,

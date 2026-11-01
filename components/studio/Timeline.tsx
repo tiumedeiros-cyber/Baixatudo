@@ -54,6 +54,10 @@ export function Timeline() {
   const fps = useStudio((s) => s.fps);
   const dragRef = useRef<DragState>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const rulerRef = useRef<HTMLDivElement>(null);
+  const headerRef = useRef<HTMLDivElement>(null);
+  const [headerW, setHeaderW] = useState(HEADER_W);
+  const timelineDurationRef = useRef(30);
   const [marquee, setMarquee] = useState<{ trackId: string; t: number } | null>(null);
 
   const pxPerSec = zoom;
@@ -94,12 +98,53 @@ export function Timeline() {
     return () => el.removeEventListener('wheel', onWheel);
   }, []);
 
-  function seekFromEvent(e: React.PointerEvent | React.MouseEvent) {
-    const el = scrollRef.current;
+  /** Régua/playhead: converte o X da tela em tempo usando o retângulo da própria régua. */
+  function seekFromClientX(clientX: number) {
+    const el = rulerRef.current;
     if (!el) return;
     const rect = el.getBoundingClientRect();
-    const x = e.clientX - rect.left + el.scrollLeft;
-    useStudio.getState().setPlayhead(clamp(x / pxPerSec, 0, duration));
+    const x = Math.max(0, clientX - rect.left);
+    useStudio.getState().setPlayhead(clamp(x / pxPerSec, 0, Math.max(duration, timelineDurationRef.current)));
+  }
+
+  function seekFromEvent(e: React.PointerEvent | React.MouseEvent) {
+    seekFromClientX(e.clientX);
+  }
+
+  /** Arrastar a régua ou a linha vermelha — funciona com mouse, caneta e dedo. */
+  function beginScrub(e: React.PointerEvent<HTMLElement>) {
+    if (e.button !== undefined && e.button > 0) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const el = e.currentTarget;
+    try {
+      el.setPointerCapture(e.pointerId);
+    } catch {
+      /* navegadores antigos: segue com listeners globais */
+    }
+    seekFromClientX(e.clientX);
+
+    const move = (ev: PointerEvent) => {
+      ev.preventDefault();
+      seekFromClientX(ev.clientX);
+    };
+    const finish = () => {
+      el.removeEventListener('pointermove', move);
+      el.removeEventListener('pointerup', finish);
+      el.removeEventListener('pointercancel', finish);
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', finish);
+      try {
+        el.releasePointerCapture(e.pointerId);
+      } catch {
+        /* ignora */
+      }
+    };
+    el.addEventListener('pointermove', move);
+    el.addEventListener('pointerup', finish);
+    el.addEventListener('pointercancel', finish);
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', finish);
   }
 
   function startDrag(e: React.PointerEvent, clip: Clip, mode: 'move' | 'trim-start' | 'trim-end') {
@@ -187,6 +232,23 @@ export function Timeline() {
   }
 
   const timelineDuration = useStudio((s) => s.duration);
+  timelineDurationRef.current = timelineDuration;
+
+  // a coluna fixa da esquerda é 92px no celular e 148px no desktop —
+  // medimos de verdade para a linha do playhead ficar exatamente sob o dedo
+  useEffect(() => {
+    const el = headerRef.current;
+    if (!el) return;
+    const measure = () => setHeaderW(el.getBoundingClientRect().width || HEADER_W);
+    measure();
+    const observer = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(measure) : null;
+    observer?.observe(el);
+    window.addEventListener('resize', measure);
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener('resize', measure);
+    };
+  }, []);
   const setDuration = useStudio((s) => s.setDuration);
 
   return (
@@ -273,29 +335,30 @@ export function Timeline() {
       </div>
 
       <div ref={scrollRef} className="relative min-h-0 min-w-0 flex-1 overflow-auto">
-        <div style={{ width: totalWidth + HEADER_W }} className="relative">
+        <div style={{ width: totalWidth + headerW }} className="relative">
           {/* régua */}
           <div className="sticky top-0 z-20 flex h-8 border-b border-white/8 bg-ink-900/95 backdrop-blur">
-            <div className="sticky left-0 z-30 flex w-[92px] shrink-0 items-center gap-1 border-r border-white/8 bg-ink-900/95 px-2 font-mono text-[9px] uppercase tracking-wider text-slate-500 sm:w-[148px] sm:text-[10px]">
+            <div
+              ref={headerRef}
+              className="sticky left-0 z-30 flex w-[92px] shrink-0 items-center gap-1 border-r border-white/8 bg-ink-900/95 px-2 font-mono text-[9px] uppercase tracking-wider text-slate-500 sm:w-[148px] sm:text-[10px]"
+            >
               <Subtitles className="h-3 w-3" /> régua
             </div>
             <div
-              className="relative flex-1 cursor-pointer select-none"
-              onPointerDown={(e) => {
-                seekFromEvent(e);
-                const move = (ev: PointerEvent) => {
-                  const el = scrollRef.current!;
-                  const rect = el.getBoundingClientRect();
-                  const x = ev.clientX - rect.left + el.scrollLeft;
-                  useStudio.getState().setPlayhead(clamp(x / pxPerSec, 0, timelineDuration));
-                };
-                const up = () => {
-                  window.removeEventListener('pointermove', move);
-                  window.removeEventListener('pointerup', up);
-                };
-                window.addEventListener('pointermove', move);
-                window.addEventListener('pointerup', up);
+              ref={rulerRef}
+              role="slider"
+              aria-label="Posição do playhead"
+              aria-valuemin={0}
+              aria-valuemax={Math.round(timelineDuration)}
+              aria-valuenow={Math.round(playhead)}
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'ArrowRight') useStudio.getState().setPlayhead(clamp(playhead + 0.2, 0, timelineDuration));
+                if (e.key === 'ArrowLeft') useStudio.getState().setPlayhead(clamp(playhead - 0.2, 0, timelineDuration));
               }}
+              className="relative flex-1 cursor-ew-resize touch-none select-none"
+              style={{ touchAction: 'none' }}
+              onPointerDown={beginScrub}
             >
               {ticks.map((t) => (
                 <div key={t} className="absolute top-0 h-full border-l border-white/10" style={{ left: t * pxPerSec }}>
@@ -411,10 +474,26 @@ export function Timeline() {
             </div>
           ))}
 
-          {/* playhead */}
-          <div className="pointer-events-none absolute bottom-0 top-0 z-30" style={{ left: HEADER_W + playhead * pxPerSec }}>
-            <div className="h-full w-px bg-rose-400" />
-            <div className="absolute -left-[5px] top-0 h-2.5 w-2.5 rotate-45 rounded-sm bg-rose-400" />
+          {/* playhead — a linha pode ser arrastada com o dedo ou o mouse */}
+          <div
+            className="absolute bottom-0 top-0 z-30 w-0"
+            style={{ left: `${headerW}px`, transform: `translateX(${playhead * pxPerSec}px)` }}
+          >
+            <div className="pointer-events-none h-full w-px bg-rose-400" />
+            <div
+              onPointerDown={beginScrub}
+              className="absolute -left-3 top-0 h-8 w-6 cursor-ew-resize touch-none rounded-md"
+              style={{ touchAction: 'none' }}
+              title="Arraste para mover o playhead"
+            >
+              <div className="mx-auto mt-1 h-3 w-3 rotate-45 rounded-sm bg-rose-400 shadow-[0_0_0_2px_rgba(0,0,0,0.35)]" />
+            </div>
+            <div
+              onPointerDown={beginScrub}
+              className="absolute -left-2 top-8 bottom-0 w-4 cursor-ew-resize touch-none"
+              style={{ touchAction: 'none' }}
+              aria-hidden
+            />
           </div>
         </div>
       </div>

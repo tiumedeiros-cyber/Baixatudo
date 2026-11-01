@@ -4,6 +4,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { getSettings } from '@/lib/settings';
 import { resolveAiForUser } from '@/lib/user-integrations';
 import { getQuota, formatBytes } from '@/lib/quota';
+import { storeFile } from '@/lib/storage';
 import { getActiveSubscription } from '@/lib/auth';
 import { clientIp, rateLimit } from '@/lib/rate-limit';
 import { kieCreateTask, kieGetTask, postizUpload, postizPublish } from '@/lib/motion';
@@ -159,9 +160,9 @@ export async function POST(request: Request) {
     if (!res.ok) return NextResponse.json({ error: `Não foi possível baixar o vídeo (${res.status}).` }, { status: 502 });
     const buffer = Buffer.from(await res.arrayBuffer());
     const path = `${user.id}/ai/${Date.now()}-kling.mp4`;
-    const { error: upErr } = await admin.storage.from('media').upload(path, buffer, { contentType: 'video/mp4', upsert: false });
-    if (upErr) return NextResponse.json({ error: `Falha ao guardar o vídeo (${upErr.message}).` }, { status: 500 });
-    const { data: pub } = admin.storage.from('media').getPublicUrl(path);
+    const stored = await storeFile(admin, settings, path, buffer, 'video/mp4');
+    if ('error' in stored) return NextResponse.json({ error: `Falha ao guardar o vídeo (${stored.error}).` }, { status: 500 });
+    const pub = { publicUrl: stored.url };
 
     const { data: asset } = await admin
       .from('es_user_assets')

@@ -7,6 +7,7 @@ import { driveFileId, fetchMedia, listDriveFolder, mediaTypeOf, safeFileName } f
 import { getActiveSubscription } from '@/lib/auth';
 import { formatBytes, getQuota } from '@/lib/quota';
 import { providerRoom, effectiveFileLimitBytes } from '@/lib/storage-capacity';
+import { storeFile } from '@/lib/storage';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300;
@@ -75,13 +76,9 @@ export async function POST(request: Request) {
   const ext = fetched.filename.match(/\.([a-z0-9]{2,5})$/i)?.[1]?.toLowerCase() || (type === 'video' ? 'mp4' : type === 'audio' ? 'mp3' : 'jpg');
   const path = `${user.id}/imports/${Date.now()}-${base.slice(0, 50)}.${ext}`;
 
-  const { error: upErr } = await admin.storage.from('media').upload(path, fetched.buffer, {
-    contentType: fetched.contentType,
-    upsert: false,
-  });
-  if (upErr) return NextResponse.json({ error: `Não foi possível guardar o arquivo (${upErr.message}).` }, { status: 500 });
-
-  const { data: pub } = admin.storage.from('media').getPublicUrl(path);
+  const stored = await storeFile(admin, settings, path, fetched.buffer, fetched.contentType || 'application/octet-stream');
+  if ('error' in stored) return NextResponse.json({ error: `Não foi possível guardar o arquivo (${stored.error}).` }, { status: 500 });
+  const pub = { publicUrl: stored.url };
   const driveId = driveFileId(url);
   const thumbnail = driveId ? `https://drive.google.com/thumbnail?id=${driveId}&sz=w800` : null;
 

@@ -16,7 +16,14 @@ export async function storageTotals(admin: SupabaseClient) {
 }
 
 export async function providerRoom(admin: SupabaseClient, settings: PlatformSettings, addBytes: number) {
+  const external = settings.storage?.mode === 's3';
   const capacityBytes = Math.max(1, Number(settings.general.storage_capacity_gb) || 1) * 1024 ** 3;
+  // com storage externo o teto do Supabase deixa de ser o gargalo
+  if (external) {
+    const { usedBytes } = await storageTotals(admin);
+    const freeBytes = Math.max(0, capacityBytes - usedBytes);
+    return { ok: true, freeBytes, capacityBytes, usedBytes, message: '' };
+  }
   const { usedBytes } = await storageTotals(admin);
   const freeBytes = Math.max(0, capacityBytes - usedBytes);
   return {
@@ -28,9 +35,15 @@ export async function providerRoom(admin: SupabaseClient, settings: PlatformSett
   };
 }
 
-/** Limite efetivo por arquivo: o menor entre o do sistema e o do provedor. */
+/**
+ * Limite efetivo por arquivo.
+ * Com storage externo ligado o teto do Supabase não vale mais — sobra o limite
+ * do sistema. Sem ele, vale o menor entre sistema e provedor.
+ */
 export function effectiveFileLimitBytes(settings: PlatformSettings) {
   const app = Number(settings.general.max_upload_mb) || 500;
+  const external = settings.storage?.mode === 's3' && Boolean(settings.storage?.endpoint && settings.storage?.bucket);
+  if (external) return Math.max(app, 1) * 1024 * 1024;
   const provider = Number(settings.general.provider_file_limit_mb) || 50;
   return Math.min(app, provider) * 1024 * 1024;
 }

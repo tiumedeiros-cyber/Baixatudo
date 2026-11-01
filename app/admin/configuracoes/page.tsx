@@ -1,7 +1,8 @@
-import { CheckCircle2, CreditCard, Globe2, LifeBuoy, QrCode, Sparkles, XCircle } from 'lucide-react';
+import { CheckCircle2, CreditCard, Globe2, HardDrive, LifeBuoy, QrCode, Sparkles, XCircle } from 'lucide-react';
 import { requireAdmin } from '@/lib/auth';
 import { Badge, Card } from '@/components/ui';
-import { saveGeneralSettings, saveLandingSettings, savePaymentSettings, saveIntegrationSettings } from '@/app/admin/actions';
+import { saveGeneralSettings, saveLandingSettings, savePaymentSettings, saveIntegrationSettings, saveStorageSettings } from '@/app/admin/actions';
+import { StorageTest } from '@/components/admin/StorageTest';
 import { getSettingsFresh, effectivePayments } from '@/lib/settings';
 import { maskSecret, decryptSecret } from '@/lib/crypto';
 import { SITE_URL } from '@/lib/env';
@@ -213,6 +214,59 @@ export default async function AdminSettings() {
             <span className="flex items-center gap-1.5 text-[10px] text-slate-500">
               <QrCode className="h-3 w-3" /> O modo manual exige chave PIX ou WhatsApp para o comprovante.
             </span>
+          </div>
+        </form>
+      </Card>
+
+      <Card className="p-5">
+        <h3 className="flex items-center gap-2 text-sm font-semibold text-white">
+          <HardDrive className="h-4 w-4 text-cyan-300" /> Armazenamento externo (fora do Supabase)
+        </h3>
+        <p className="mt-1 text-[11px] leading-relaxed text-slate-500">
+          Tira os arquivos grandes do Supabase e usa um bucket S3-compatível — <strong className="text-slate-300">Cloudflare R2</strong> e{' '}
+          <strong className="text-slate-300">Backblaze B2</strong> têm 10 GB grátis, <strong className="text-slate-300">MinIO</strong> roda no seu
+          servidor sem limite. Quando ligado, todo upload novo (biblioteca, importação, Baixa Tudo, IA e recursos grátis) vai para lá.
+          Lembre de subir “Capacidade total de storage” em Plataforma quando trocar de provedor.
+        </p>
+        <form action={saveStorageSettings} className="mt-3 space-y-3">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Field label="Onde os arquivos ficam">
+              <select name="mode" defaultValue={settings.storage.mode} className={inputCls}>
+                <option value="supabase">Supabase Storage (padrão)</option>
+                <option value="s3">Storage externo S3-compatível</option>
+              </select>
+            </Field>
+            <Field label="Região" hint="R2 usa “auto”; B2 usa a região do bucket (ex.: us-west-004).">
+              <input name="region" defaultValue={settings.storage.region} placeholder="auto" className={inputCls} />
+            </Field>
+            <Field label="Endpoint" hint="R2: https://<conta>.r2.cloudflarestorage.com · B2: https://s3.<região>.backblazeb2.com · MinIO: https://seu-servidor">
+              <input name="endpoint" defaultValue={settings.storage.endpoint} placeholder="https://…" className={inputCls} />
+            </Field>
+            <Field label="Bucket">
+              <input name="bucket" defaultValue={settings.storage.bucket} placeholder="editor-studio" className={inputCls} />
+            </Field>
+            <Field
+              label="Access key ID"
+              hint={settings.storage.access_key ? `Já salva: ${maskSecret(settings.storage.access_key)} — deixe vazio para manter.` : 'Guardada criptografada.'}
+            >
+              <input name="access_key" type="password" placeholder="AKIA…" className={inputCls} autoComplete="off" />
+            </Field>
+            <Field
+              label="Secret access key"
+              hint={settings.storage.secret_key ? `Já salva: ${maskSecret(settings.storage.secret_key)} — deixe vazio para manter.` : 'Guardada criptografada.'}
+            >
+              <input name="secret_key" type="password" placeholder="••••••••" className={inputCls} autoComplete="off" />
+            </Field>
+          </div>
+          <Field label="Domínio público do bucket (CDN)" hint="R2 → Public access / Custom domain. Sem isso, a URL usada é endpoint/bucket/arquivo.">
+            <input name="public_base" defaultValue={settings.storage.public_base} placeholder="https://media.seudominio.com" className={inputCls} />
+          </Field>
+          <label className="flex items-center gap-2 text-[10px] text-slate-400">
+            <input type="checkbox" name="clear_keys" className="h-3 w-3 accent-rose-500" /> remover credenciais salvas
+          </label>
+          <div className="flex flex-wrap items-center gap-3">
+            <button className="rounded-lg bg-cyan-500 px-4 py-2 text-xs font-bold text-black hover:bg-cyan-400">Salvar armazenamento</button>
+            <StorageTest />
           </div>
         </form>
       </Card>

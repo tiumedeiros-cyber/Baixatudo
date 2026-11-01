@@ -440,3 +440,113 @@ export async function cleanOrphanStorage(): Promise<{ removed: number; bytes: nu
     return { removed: 0, bytes: 0, error: err instanceof Error ? err.message : 'erro' };
   }
 }
+
+/* ------------------------ Armazenamento externo (S3) ------------------------ */
+
+/** Salva a configuração do storage externo (R2/B2/MinIO/S3). */
+export async function saveStorageSettings(formData: FormData) {
+  await requireAdmin();
+  const db = createAdminClient();
+  const { getSettingsFresh } = await import('@/lib/settings');
+  const { encryptSecret } = await import('@/lib/crypto');
+  const current = (await getSettingsFresh()).storage;
+
+  const accessInput = String(formData.get('access_key') || '').trim();
+  const secretInput = String(formData.get('secret_key') || '').trim();
+  const clear = formData.get('clear_keys') === 'on';
+  const value = {
+    mode: String(formData.get('mode')) === 's3' ? 's3' : 'supabase',
+    endpoint: String(formData.get('endpoint') || '').trim(),
+    region: String(formData.get('region') || 'auto').trim() || 'auto',
+    bucket: String(formData.get('bucket') || '').trim(),
+    public_base: String(formData.get('public_base') || '').trim(),
+    access_key: clear ? '' : accessInput ? encryptSecret(accessInput) : current.access_key,
+    secret_key: clear ? '' : secretInput ? encryptSecret(secretInput) : current.secret_key,
+  };
+  await db.from('es_settings').upsert({ key: 'storage', value, updated_at: new Date().toISOString() });
+  const { revalidateTag } = await import('next/cache');
+  revalidateTag('settings');
+  revalidatePath('/admin/configuracoes');
+  revalidatePath('/admin/biblioteca');
+}
+
+/** Testa de verdade: envia um arquivo pequeno, lê pela URL pública e apaga. */
+export async function testExternalStorage(): Promise<{ ok: boolean; message: string }> {
+  await requireAdmin();
+  const { getSettingsFresh } = await import('@/lib/settings');
+  const { storageS3Config } = await import('@/lib/storage');
+  const { s3Put, s3PublicUrl, s3Delete } = await import('@/lib/s3');
+  const settings = await getSettingsFresh();
+  const config = storageS3Config(settings);
+  if (!config) return { ok: false, message: 'Preencha endpoint, bucket, chave e segredo e marque “usar storage externo”.' };
+
+  const key = `_teste-${Date.now()}.txt`;
+  const body = Buffer.from(`Editor Studio · teste ${new Date().toISOString()}`);
+  const put = await s3Put(config, key, body, 'text/plain');
+  if ('error' in put && put.error) return { ok: false, message: put.error };
+
+  const url = s3PublicUrl(config, key);
+  let publicOk = false;
+  try {
+    const res = await fetch(url, { cache: 'no-store' });
+    publicOk = res.ok;
+  } catch {
+    publicOk = false;
+  }
+  await s3Delete(config, key);
+
+  if (!publicOk) {
+    return {
+      ok: false,
+      message: `O envio funcionou, mas a leitura pública falhou em ${url}. Configure o domínio público do bucket (R2 → Public access) ou use o endpoint com /bucket.`,
+    };
+  }
+  return { ok: true, message: `Storage externo funcionando: ${url}` };
+}
+
+/* ------------------------------ Auditoria ------------------------------ */
+
+export async function deleteAuditLog(id: string) {
+  await requireAdmin();
+  const db = createAdminClient();
+  await db.from('es_audit_logs').delete().eq('id', id);
+  revalidatePath('/admin/logs');
+}
+
+export async function clearAuditLogs() {
+  await requireAdmin();
+  const db = createAdminClient();
+  await db.from('es_audit_logs').delete().not('id', 'is', null);
+  revalidatePath('/admin/logs');
+}
+
+/** Troca o plano ativo do usuário (usado no painel de usuários). */
+export async function setUserPlan(userId: string, planId: string) {
+  await requireAdmin();
+  const db = createAdminClient();
+  if (!planId) return;
+  const { data: existing } = await db
+    .from('es_subscriptions')
+    .select('id')
+    .eq('user_id', userId)
+    .in('status', ['trial', 'active', 'past_due'])
+    .maybeSingle();
+  if (existing?.id) {
+    await db.from('es_subscriptions').update({ plan_id: planId, status: 'active' }).eq('id', existing.id);
+  } else {
+    const end = new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString();
+    await db.from('es_subscriptions').insert({
+      user_id: userId,
+      plan_id: planId,
+      status: 'active',
+      current_period_end: end,
+    });
+  }
+  await db.from('es_audit_logs').insert({
+    actor_email: 'admin',
+    action: 'plan.change',
+    entity: userId,
+    meta: { plan_id: planId },
+  });
+  revalidatePath('/admin/usuarios');
+}

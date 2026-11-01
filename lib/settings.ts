@@ -57,11 +57,25 @@ export type IntegrationSettings = {
   allow_user_postiz: boolean;
 };
 
+/** Storage externo S3-compatível (R2/B2/MinIO) — tira os arquivos do Supabase. */
+export type StorageSettings = {
+  mode: 'supabase' | 's3';
+  endpoint: string;
+  region: string;
+  bucket: string;
+  /** criptografadas */
+  access_key: string;
+  secret_key: string;
+  /** domínio público do bucket (CDN) */
+  public_base: string;
+};
+
 export type PlatformSettings = {
   general: GeneralSettings;
   payments: PaymentsSettings;
   landing: LandingSettings;
   integrations: IntegrationSettings;
+  storage: StorageSettings;
 };
 
 export const DEFAULT_SETTINGS: PlatformSettings = {
@@ -98,6 +112,15 @@ export const DEFAULT_SETTINGS: PlatformSettings = {
     show_pricing: true,
     show_support: true,
   },
+  storage: {
+    mode: 'supabase',
+    endpoint: '',
+    region: 'auto',
+    bucket: '',
+    access_key: '',
+    secret_key: '',
+    public_base: '',
+  },
   integrations: {
     kie_key: '',
     postiz_key: '',
@@ -124,6 +147,7 @@ async function readSettings(): Promise<PlatformSettings> {
       payments: merge(DEFAULT_SETTINGS.payments, map.get('payments')),
       landing: merge(DEFAULT_SETTINGS.landing, map.get('landing')),
       integrations: merge(DEFAULT_SETTINGS.integrations, map.get('integrations')),
+      storage: merge(DEFAULT_SETTINGS.storage, map.get('storage')),
     };
   } catch {
     return DEFAULT_SETTINGS;
@@ -166,6 +190,19 @@ export function effectiveIntegrations(settings: PlatformSettings) {
     postizTikTok:
       settings.integrations.postiz_tiktok || process.env.POSTIZ_TIKTOK_INTEGRATION_ID || '',
   };
+}
+
+/** Config do storage externo (quando ligado e completo). */
+export function effectiveStorage(settings: PlatformSettings) {
+  const cfg = settings.storage;
+  const accessKey = decryptSecret(cfg.access_key) || process.env.S3_ACCESS_KEY_ID || '';
+  const secretKey = decryptSecret(cfg.secret_key) || process.env.S3_SECRET_ACCESS_KEY || '';
+  const endpoint = cfg.endpoint || process.env.S3_ENDPOINT || '';
+  const bucket = cfg.bucket || process.env.S3_BUCKET || '';
+  const region = cfg.region || process.env.S3_REGION || 'auto';
+  const publicBase = cfg.public_base || process.env.S3_PUBLIC_BASE || '';
+  const enabled = cfg.mode === 's3' && Boolean(endpoint && bucket && accessKey && secretKey);
+  return { enabled, endpoint, region, bucket, accessKey, secretKey, publicBase };
 }
 
 /** Config de pagamento efetiva: painel primeiro, ambiente como reserva. */

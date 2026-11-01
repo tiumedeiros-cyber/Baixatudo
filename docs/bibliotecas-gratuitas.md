@@ -47,3 +47,41 @@ de IA*:
 - `Permitir que cada cliente cadastre a própria chave` — liga/desliga chaves de clientes.
 
 Precedência: **chave do cliente → chave da plataforma → desligado**. Sem conflito de créditos.
+
+---
+
+# Rodada 2 — grátis e ilimitado dentro do sistema
+
+Filtro aplicado: **sem chave, sem cota, rodando no navegador do cliente ou em serviço aberto**.
+
+| Recurso | Como é usado | Custo | Onde |
+| --- | --- | --- | --- |
+| **Síntese de efeitos sonoros** (Web Audio API) | 8 efeitos (whoosh, riser, impacto, pop, notificação, caixa, suspense, swipe) gerados em WAV 44,1 kHz e salvos na biblioteca | zero, ilimitado | Ferramentas de IA → Sons e efeitos |
+| **Remoção de fundo** (`@imgly/background-removal`, ONNX no navegador) | PNG transparente a partir de qualquer foto/produto | zero, ilimitado | Ferramentas de IA → Remover fundo |
+| **Transcrição** (`@huggingface/transformers` + Whisper tiny, carregado por CDN e executado localmente) | texto + legenda `.srt` com marcações de tempo | zero, ilimitado | Ferramentas de IA → Transcrever áudio |
+| **Geração de imagem** (Pollinations) | fundos, cenários, produtos | zero, sem chave | Recursos grátis → Gerar com IA |
+| **Fotos/ilustrações** (Wikimedia Commons) | biblioteca de imagens livres | zero | Recursos grátis → Fotos livres |
+| **Músicas/áudios** (Internet Archive) | trilha | zero | Recursos grátis → Músicas |
+| **Ícones** (Iconify, +200 mil) | SVG com tradução pt→en | zero | Recursos grátis → Ícones |
+| **QR Code** (QR Server) | anúncios e vitrines | zero | Recursos grátis → QR Code |
+| **Narração** (Edge TTS, 84 vozes) | avatares falantes | zero | Avatares falantes |
+| **Baixa Tudo** (motor cobalt próprio) | vídeo/áudio de redes sociais | zero | Baixa Tudo |
+
+## Armazenamento: como escalar sem pagar
+
+O sistema já contava os bytes por usuário (trigger `es_storage_used_bytes`) e respeitava o limite de cada plano.
+Nesta rodada entrou o **storage externo S3-compatível** em *Admin → Configurações → Armazenamento externo*:
+
+- **Cloudflare R2** — 10 GB grátis, sem taxa de saída;
+- **Backblaze B2** — 10 GB grátis;
+- **MinIO** — no seu próprio servidor, sem limite;
+- AWS S3, Wasabi, IDrive e qualquer endpoint S3.
+
+Quando ligado: uploads vão por **URL assinada (SigV4) direto do navegador para o bucket** (arquivos grandes não passam
+pela Vercel), os vídeos do Baixa Tudo, da importação e da IA também, e a URL pública do bucket entra no banco como
+sempre. O botão **Testar conexão** envia um arquivo, lê pela URL pública e apaga — prova real, não só “salvou”.
+
+Sobre o **banco**: o Postgres do Supabase (free) guarda só metadados (~centenas de bytes por arquivo), então ele não
+é o gargalo — quem enche é o storage. Se quiser um Postgres externo (Neon free, por exemplo), o próximo passo é trocar
+`NEXT_PUBLIC_SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` por um adaptador — precisa da string de conexão da sua conta,
+porque essas plataformas exigem cadastro. Todo o resto do sistema já está isolado em `lib/storage.ts` + `lib/supabase/*`.

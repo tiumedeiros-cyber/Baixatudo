@@ -1,7 +1,7 @@
 import { requireAdmin } from '@/lib/auth';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { Badge, Card, Input } from '@/components/ui';
-import { UserActions } from '@/components/admin/ActionButtons';
+import { UserActions } from '@/components/admin/UserEdit';
 import { formatDate } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
@@ -13,10 +13,12 @@ export default async function AdminUsers({ searchParams }: { searchParams: Promi
 
   let query = db.from('es_profiles').select('*').order('created_at', { ascending: false }).limit(100);
   if (q) query = query.or(`email.ilike.%${q}%,full_name.ilike.%${q}%`);
-  const [{ data: profiles }, { data: subs }] = await Promise.all([
+  const [{ data: profiles }, { data: subs }, { data: plans }] = await Promise.all([
     query,
     db.from('es_subscriptions').select('*, es_plans(name)').in('status', ['trial', 'active', 'past_due']),
+    db.from('es_plans').select('id,name').eq('is_active', true).order('sort_order'),
   ]);
+  const planList = ((plans ?? []) as Array<{ id: string; name: string }>).map((p) => ({ id: p.id, name: p.name }));
 
   const subMap = new Map((subs ?? []).map((s) => [s.user_id, s]));
 
@@ -47,7 +49,9 @@ export default async function AdminUsers({ searchParams }: { searchParams: Promi
           </thead>
           <tbody className="divide-y divide-white/5">
             {(profiles ?? []).map((u) => {
-              const sub = subMap.get(u.id) as unknown as { es_plans?: { name: string }; status?: string } | undefined;
+              const sub = subMap.get(u.id) as unknown as
+                | { es_plans?: { name: string }; status?: string; plan_id?: string }
+                | undefined;
               return (
                 <tr key={u.id}>
                   <td className="px-4 py-3">
@@ -61,7 +65,16 @@ export default async function AdminUsers({ searchParams }: { searchParams: Promi
                   <td className="px-4 py-3"><Badge tone={u.role === 'admin' ? 'brand' : 'neutral'}>{u.role}</Badge></td>
                   <td className="px-4 py-3"><Badge tone={u.status === 'active' ? 'success' : 'danger'}>{u.status}</Badge></td>
                   <td className="px-4 py-3 text-[11px] text-slate-500">{formatDate(u.created_at)}</td>
-                  <td className="px-4 py-3"><UserActions userId={u.id} status={u.status} role={u.role} email={u.email} /></td>
+                  <td className="px-4 py-3">
+                    <UserActions
+                      userId={u.id}
+                      status={u.status}
+                      role={u.role}
+                      email={u.email}
+                      plans={planList}
+                      currentPlanId={sub?.plan_id}
+                    />
+                  </td>
                 </tr>
               );
             })}
