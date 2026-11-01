@@ -143,7 +143,10 @@ export async function GET(request: Request) {
     let bytes = 0;
     let type = '';
     if (artic[0]?.url) {
-      const img = await fetch(artic[0].url, { signal: AbortSignal.timeout(12_000) });
+      const img = await fetch(artic[0].url, {
+        signal: AbortSignal.timeout(12_000),
+        headers: { 'User-Agent': 'EditorStudio/1.0 (+https://editor-studio-one.vercel.app)' },
+      });
       type = img.headers.get('content-type') ?? '';
       bytes = (await img.arrayBuffer()).byteLength;
     }

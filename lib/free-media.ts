@@ -216,11 +216,12 @@ export async function searchArtic(query: string, limit = 24): Promise<FreeItem[]
     .filter((row) => row.image_id && row.is_public_domain !== false)
     .map((row) => {
       const imageId = String(row.image_id);
-      const url = `https://www.artic.edu/iiif/2/${imageId}/full/1686,/0/default.jpg`;
+      // IIIF do Art Institute: usa tamanho confinado (é o modo suportado)
+      const url = `https://www.artic.edu/iiif/2/${imageId}/full/!1686,1686/0/default.jpg`;
       return {
         id: `artic-${row.id}`,
         title: String(row.title ?? 'Obra').slice(0, 90),
-        thumb: `https://www.artic.edu/iiif/2/${imageId}/full/600,/0/default.jpg`,
+        thumb: `https://www.artic.edu/iiif/2/${imageId}/full/!600,600/0/default.jpg`,
         url,
         page: `https://www.artic.edu/artworks/${row.id}`,
         license: 'Domínio público',
