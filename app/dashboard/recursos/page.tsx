@@ -3,6 +3,7 @@ import { requireUser, getActiveSubscription } from '@/lib/auth';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { formatBytes, getQuota } from '@/lib/quota';
 import { FreeResources } from '@/components/dashboard/FreeResources';
+import { StockBrowser } from '@/components/dashboard/StockBrowser';
 
 export const metadata = { title: 'Recursos grátis · Editor Studio' };
 export const dynamic = 'force-dynamic';
@@ -25,6 +26,10 @@ export default async function FreeResourcesPage() {
         </p>
       </div>
       <FreeResources storageLabel={`${formatBytes(quota.freeBytes)} livres de ${formatBytes(quota.limitBytes)}`} />
+
+      {/* Módulo 2 · bancos profissionais gratuitos (Pexels, Unsplash, Pixabay, Freesound).
+          Componente isolado: não mexe em nada do editor nem na timeline. */}
+      <StockBrowser />
     </div>
   );
 }
