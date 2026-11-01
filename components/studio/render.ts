@@ -4,6 +4,7 @@ import { clamp } from '@/lib/utils';
 import type { MediaRegistry } from './media';
 import type { ThreePool } from './three';
 import { drawAvatar, mouthFromEnvelope } from './avatar';
+import { blendWithAmplitude, shapeAt, shapeFromAmplitude } from '@/lib/visemes';
 
 export type FrameOptions = {
   ctx: CanvasRenderingContext2D;
@@ -734,18 +735,23 @@ export function drawFrame(opts: FrameOptions) {
     } else if (clip.kind === 'avatar') {
       const avatar = clip.avatar ?? { preset: 'theo', mouth: [] };
       const intensity = avatar.intensity ?? 1;
-      const mouth = avatar.mouth?.length
-        ? Math.min(
-            1,
-            mouthFromEnvelope(avatar.mouth, (local + clip.trimStart) * (clip.speed && clip.speed > 0 ? clip.speed : 1)) *
-              intensity,
-          )
-        : 0.3 + 0.35 * Math.abs(Math.sin((local + clip.trimStart) * 6.5)) * intensity;
+      const at = (local + clip.trimStart) * (clip.speed && clip.speed > 0 ? clip.speed : 1);
+      const amp = avatar.mouth?.length ? mouthFromEnvelope(avatar.mouth, at) : null;
+      // formato vem dos visemas (a letra); a intensidade vem do volume real
+      const base = avatar.visemes?.length
+        ? blendWithAmplitude(shapeAt(avatar.visemes, at), amp)
+        : shapeFromAmplitude(amp ?? 0.45 + 0.25 * Math.abs(Math.sin(at * 6.5)));
+      const shape = {
+        ...base,
+        jaw: Math.min(1, base.jaw * (0.55 + 0.45 * intensity)),
+        teeth: Math.min(1, base.teeth * intensity),
+        smile: Math.min(1, base.smile * intensity),
+      };
       ctx.save();
       ctx.beginPath();
       ctx.roundRect(-width / 2, -height / 2, width, height, Math.min(width, height) * 0.03);
       ctx.clip();
-      drawAvatar(ctx, avatar.preset, -width / 2, -height / 2, width, height, mouth, local + clip.trimStart);
+      drawAvatar(ctx, avatar.preset, -width / 2, -height / 2, width, height, shape.jaw, local + clip.trimStart, shape);
       ctx.restore();
     }
 

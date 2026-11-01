@@ -1,4 +1,5 @@
 import { avatarById } from '@/lib/catalog/avatars';
+import { buildVisemeTrack } from '@/lib/visemes';
 import type { Clip, TimelineData, Track } from '@/lib/types';
 
 type Segment = { url: string; text: string; duration: number };
@@ -17,6 +18,11 @@ export function buildAvatarTimeline(opts: {
   const envelope = Array.isArray(opts.envelope)
     ? opts.envelope.slice(0, 20_000).map((n) => Math.max(0, Math.min(1, Number(n) || 0)))
     : [];
+
+  // trilha de visemas: alinha cada sílaba ao tempo real do áudio da narração
+  const visemes = buildVisemeTrack(
+    segments.map((s) => ({ text: s.text, duration: Number(s.duration) })),
+  );
 
   const tracks: Track[] = [
     { id: 'av', name: 'Avatar', kind: 'visual', muted: false, hidden: false },
@@ -57,7 +63,7 @@ export function buildAvatarTimeline(opts: {
       trackId: 'av',
       start: 0,
       duration: total,
-      avatar: { preset: presetId, mouth: envelope, intensity: 1 },
+      avatar: { preset: presetId, mouth: envelope, intensity: 1, visemes },
     }),
   ];
 

@@ -244,6 +244,11 @@ export function Inspector() {
     const cur = avatarById(clip?.avatar?.preset);
     const preset = encodeAvatar({
       base: cur.id,
+      photo: (() => {
+        const url = typeof cur.photo === 'object' ? cur.photo?.base : undefined;
+        return url && !url.startsWith('/avatars3d/') ? url : undefined;
+      })(),
+      photoMouth: cur.photoMouth,
       name: cur.name !== avatarById(cur.id).name ? cur.name : undefined,
       scene: cur.scene,
       skin: cur.skin,
@@ -260,9 +265,9 @@ export function Inspector() {
       headphones: cur.headphones,
       chain: cur.chain,
       watch: cur.watch,
-      ...extra,
-    });
-    patch({ avatar: { preset, mouth: clip?.avatar?.mouth ?? [], intensity: clip?.avatar?.intensity ?? 1 } });
+      ...(extra as Record<string, never>),
+    } as Parameters<typeof encodeAvatar>[0]);
+    patch({ avatar: { preset, mouth: clip?.avatar?.mouth ?? [], visemes: clip?.avatar?.visemes, intensity: clip?.avatar?.intensity ?? 1 } });
   }
 
   /** Gira 360° com dois keyframes (0 → 360). */
@@ -656,7 +661,8 @@ export function Inspector() {
                   key={a.id}
                   onClick={() =>
                     patch({
-                      avatar: { preset: withScene(a.id, avatarById(clip.avatar?.preset).scene ?? 'estudio'), mouth: clip.avatar?.mouth ?? [], intensity: clip.avatar?.intensity ?? 1 },
+                      avatar: { preset: withScene(a.id, avatarById(clip.avatar?.preset).scene ?? 'estudio'), mouth: clip.avatar?.mouth ?? [],
+                      visemes: clip.avatar?.visemes, intensity: clip.avatar?.intensity ?? 1 },
                       name: `Avatar ${a.name}`,
                     })
                   }
@@ -680,6 +686,7 @@ export function Inspector() {
                     avatar: {
                       preset: withScene(clip.avatar?.preset ?? 'theo', e.target.value as (typeof SCENES)[number]['id']),
                       mouth: clip.avatar?.mouth ?? [],
+                      visemes: clip.avatar?.visemes,
                       intensity: clip.avatar?.intensity ?? 1,
                     },
                   })
@@ -753,10 +760,13 @@ export function Inspector() {
               min={20}
               max={180}
               suffix="%"
-              onChange={(v) => patch({ avatar: { preset: clip.avatar?.preset ?? 'theo', mouth: clip.avatar?.mouth ?? [], intensity: v / 100 } })}
+              onChange={(v) => patch({ avatar: { preset: clip.avatar?.preset ?? 'theo', mouth: clip.avatar?.mouth ?? [],
+                      visemes: clip.avatar?.visemes, intensity: v / 100 } })}
             />
             <p className="text-[9px] leading-relaxed text-slate-500">
-              {clip.avatar?.mouth?.length
+              {clip.avatar?.visemes?.length
+                ? `Boca sincronizada letra por letra com a narração (${clip.avatar.visemes.length} visemas).`
+                : clip.avatar?.mouth?.length
                 ? 'Boca sincronizada com a narração deste projeto.'
                 : 'Sem áudio vinculado: a boca anima sozinha. Use “Avatares falantes” no painel para gerar com narração sincronizada.'}
             </p>

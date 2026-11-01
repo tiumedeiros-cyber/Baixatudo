@@ -1,14 +1,15 @@
 'use client';
 import { useState } from 'react';
-import { Download, ImageIcon, Loader2, Music, QrCode, Search, Sparkles, Wand2 } from 'lucide-react';
+import { Download, ImageIcon, Loader2, Music, Palette, QrCode, Search, Sparkles, Wand2 } from 'lucide-react';
 import { Button, Card } from '@/components/ui';
 import type { FreeItem } from '@/lib/free-media';
 import { cn } from '@/lib/utils';
 
-type Tab = 'images' | 'audio' | 'icons' | 'ai' | 'qr';
+type Tab = 'images' | 'art' | 'audio' | 'icons' | 'ai' | 'qr';
 
 const TABS: Array<{ id: Tab; label: string; icon: typeof ImageIcon }> = [
   { id: 'images', label: 'Fotos livres', icon: ImageIcon },
+  { id: 'art', label: 'Arte HD', icon: Palette },
   { id: 'audio', label: 'Músicas', icon: Music },
   { id: 'icons', label: 'Ícones', icon: Sparkles },
   { id: 'ai', label: 'Gerar com IA', icon: Wand2 },
@@ -20,6 +21,7 @@ const proxy = (url: string) => (url ? `/api/free/proxy?u=${encodeURIComponent(ur
 
 const SUGGESTIONS: Record<Tab, string[]> = {
   images: ['fundo abstrato', 'praia', 'escritório', 'produto', 'neon', 'comida'],
+  art: ['sunset', 'flower', 'portrait', 'landscape', 'golden', 'cat'],
   audio: ['lofi', 'upbeat', 'piano', 'jazz', 'corporate'],
   icons: ['cart', 'truck', 'discount', 'star', 'play'],
   ai: ['fundo de estúdio com luz neon', 'produto de beleza em pedestal', 'cenário tropical'],
@@ -181,7 +183,7 @@ export function FreeResources({ storageLabel }: { storageLabel: string }) {
         ))}
       </div>
 
-      {(tab === 'images' || tab === 'audio' || tab === 'icons') && (
+      {(tab === 'images' || tab === 'art' || tab === 'audio' || tab === 'icons') && (
         <Card className="p-4">
           <form
             onSubmit={(event) => {
@@ -196,7 +198,13 @@ export function FreeResources({ storageLabel }: { storageLabel: string }) {
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder={
-                  tab === 'images' ? 'Ex.: fundo de praia, escritório, produto…' : tab === 'audio' ? 'Ex.: lofi, piano, jazz…' : 'Ex.: cart, truck, star… (nomes em inglês)'
+                  tab === 'images'
+                    ? 'Ex.: fundo de praia, escritório, produto…'
+                    : tab === 'art'
+                      ? 'Ex.: sunset, portrait, landscape… (obras em domínio público, sem marca d’água)'
+                      : tab === 'audio'
+                        ? 'Ex.: lofi, piano, jazz…'
+                        : 'Ex.: cart, truck, star… (nomes em inglês)'
                 }
                 className="w-full rounded-lg border border-white/10 bg-ink-900 py-2 pl-9 pr-3 text-xs text-white outline-none focus:border-brand-400/60"
               />

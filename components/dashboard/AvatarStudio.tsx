@@ -69,6 +69,8 @@ export function AvatarStudio({
     headphones?: boolean;
     chain?: boolean;
     watch?: boolean;
+    photo?: string;
+    photoMouth?: { y: number; w: number; h: number; lips?: string };
   }>({});
   const [editing, setEditing] = useState(false);
   const [voiceId, setVoiceId] = useState(DEFAULT_VOICE);
@@ -79,7 +81,60 @@ export function AvatarStudio({
   const [stage, setStage] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
+  const [photoBusy, setPhotoBusy] = useState(false);
+  const [photoError, setPhotoError] = useState('');
+  const photoRef = useRef<HTMLInputElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
+
+  /**
+   * Avatar com a foto do próprio usuário: reduz a imagem para no máximo
+   * 900 px, envia para o storage e guarda a posição da boca (ajustável).
+   */
+  async function useOwnPhoto(file: File) {
+    setPhotoBusy(true);
+    setPhotoError('');
+    try {
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result));
+        reader.onerror = () => reject(new Error('Não foi possível ler a imagem.'));
+        reader.readAsDataURL(file);
+      });
+      const img = new Image();
+      await new Promise<void>((resolve, reject) => {
+        img.onload = () => resolve();
+        img.onerror = () => reject(new Error('Imagem inválida.'));
+        img.src = dataUrl;
+      });
+      const max = 900;
+      const scale = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(img.naturalWidth * scale);
+      canvas.height = Math.round(img.naturalHeight * scale);
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('Navegador sem canvas.');
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      const small = canvas.toDataURL('image/jpeg', 0.9);
+
+      const res = await fetch('/api/free/asset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dataUrl: small, name: 'meu-avatar', kind: 'image' }),
+      });
+      const data = (await res.json()) as { url?: string; error?: string };
+      if (!res.ok || !data.url) throw new Error(data.error || 'Falha ao guardar a foto.');
+      setEdit((prev) => ({
+        ...prev,
+        photo: data.url,
+        framing: 'rosto',
+        photoMouth: prev.photoMouth ?? { y: 0.66, w: 0.3, h: 0.075 },
+      }));
+    } catch (err) {
+      setPhotoError(err instanceof Error ? err.message : 'Falha ao usar a foto.');
+    } finally {
+      setPhotoBusy(false);
+    }
+  }
 
   const presetId = useMemo(() => {
     const hasEdits = Object.values(edit).some((v) => v !== undefined && v !== '');
@@ -203,6 +258,74 @@ export function AvatarStudio({
 
           {editing ? (
             <div className="mt-3 space-y-2 rounded-xl border border-brand-400/25 bg-brand-500/[0.06] p-3">
+              <div className="rounded-lg border border-white/10 bg-white/[0.03] p-2">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Seu avatar com sua foto</p>
+                <p className="mt-0.5 text-[10px] leading-relaxed text-slate-500">
+                  Envie um retrato (fundo claro, rosto de frente). O sistema recorta o fundo e anima a boca junto com a
+                  narração — depois ajuste a posição da boca nos controles abaixo.
+                </p>
+                <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                  <input
+                    ref={photoRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) void useOwnPhoto(file);
+                      e.target.value = '';
+                    }}
+                  />
+                  <Button type="button" variant="secondary" onClick={() => photoRef.current?.click()} disabled={photoBusy}>
+                    {photoBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+                    {edit.photo ? 'Trocar foto' : 'Enviar minha foto'}
+                  </Button>
+                  {edit.photo ? (
+                    <button
+                      type="button"
+                      onClick={() => setEdit((prev) => ({ ...prev, photo: undefined, photoMouth: undefined }))}
+                      className="rounded-lg border border-white/10 px-2 py-1 text-[10px] text-slate-300 hover:border-red-400/40 hover:text-red-200"
+                    >
+                      Remover
+                    </button>
+                  ) : null}
+                </div>
+                {photoError ? <p className="mt-1 text-[10px] text-red-300">{photoError}</p> : null}
+                {edit.photo && edit.photoMouth ? (
+                  <div className="mt-2 space-y-1.5">
+                    {([
+                      ['y', 'Posição da boca (altura)', 0.4, 0.85],
+                      ['w', 'Largura da boca', 0.1, 0.55],
+                      ['h', 'Altura da boca', 0.03, 0.16],
+                    ] as const).map(([key, label, min, max]) => (
+                      <label key={key} className="block text-[10px] text-slate-400">
+                        {label}
+                        <input
+                          type="range"
+                          min={min}
+                          max={max}
+                          step={0.005}
+                          value={edit.photoMouth?.[key] ?? min}
+                          onChange={(e) =>
+                            setEdit((prev) => ({
+                              ...prev,
+                              photoMouth: {
+                                y: prev.photoMouth?.y ?? 0.66,
+                                w: prev.photoMouth?.w ?? 0.3,
+                                h: prev.photoMouth?.h ?? 0.075,
+                                lips: prev.photoMouth?.lips,
+                                [key]: Number(e.target.value),
+                              },
+                            }))
+                          }
+                          className="mt-0.5 w-full accent-brand-400"
+                        />
+                      </label>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+
               <div>
                 <label className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Nome no projeto</label>
                 <input

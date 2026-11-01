@@ -63,6 +63,12 @@ export type AvatarPreset = {
    * `base` = boca fechada, `talk` = boca aberta (mistura pelo áudio).
    */
   photo?: { base: string; mid?: string; talk: string };
+  /**
+   * Boca desenhada sobre uma FOTO enviada pelo usuário (avatar próprio).
+   * Posições relativas ao retrato já sem fundo: `y` centro da boca (0..1),
+   * `w` largura e `h` altura (fração da imagem).
+   */
+  photoMouth?: { y: number; w: number; h: number; lips?: string };
   /** corrente/cordão no pescoço */
   chain?: boolean;
   /** relógio no pulso */
@@ -489,6 +495,9 @@ export const DEFAULT_AVATAR = AVATARS[0];
 /** Campos que o usuário pode editar sem sair do sistema. */
 export type AvatarEdit = {
   base?: string;
+  /** foto do usuário (URL já hospedada no sistema) usada como avatar */
+  photo?: string;
+  photoMouth?: { y: number; w: number; h: number; lips?: string };
   name?: string;
   skin?: string;
   hairColor?: string;
@@ -541,6 +550,12 @@ export function encodeAvatar(edit: AvatarEdit): string {
   if (edit.headphones !== undefined) payload.x = edit.headphones ? 1 : 0;
   if (edit.chain !== undefined) payload.y = edit.chain ? 1 : 0;
   if (edit.watch !== undefined) payload.z = edit.watch ? 1 : 0;
+  if (edit.photo) payload.pu = edit.photo.slice(0, 400);
+  if (edit.photoMouth) {
+    const { y, w, h, lips } = edit.photoMouth;
+    payload.pm = [y, w, h].map((n) => Number(Number(n).toFixed(3))).join(',');
+    if (lips) payload.pl = lips;
+  }
   return `c:${b64encode(JSON.stringify(payload))}`;
 }
 
@@ -566,10 +581,24 @@ export function decodeAvatar(id: string): AvatarEdit | null {
       headphones: typeof raw.x === 'number' ? Boolean(raw.x) : undefined,
       chain: typeof raw.y === 'number' ? Boolean(raw.y) : undefined,
       watch: typeof raw.z === 'number' ? Boolean(raw.z) : undefined,
+      photo: typeof raw.pu === 'string' && /^https?:|^\/|^data:image/.test(raw.pu) ? raw.pu : undefined,
+      photoMouth: typeof raw.pm === 'string' ? parsePhotoMouth(raw.pm, raw.pl) ?? undefined : undefined,
     };
   } catch {
     return null;
   }
+}
+
+function parsePhotoMouth(value: string, lips?: unknown): { y: number; w: number; h: number; lips?: string } | null {
+  const parts = value.split(',').map(Number);
+  if (parts.length < 3 || parts.some((n) => !Number.isFinite(n))) return null;
+  const clamp = (n: number, min: number, max: number) => Math.max(min, Math.min(max, n));
+  return {
+    y: clamp(parts[0], 0.05, 0.95),
+    w: clamp(parts[1], 0.05, 0.9),
+    h: clamp(parts[2], 0.01, 0.4),
+    lips: typeof lips === 'string' ? lips.slice(0, 20) : undefined,
+  };
 }
 
 /**
@@ -581,8 +610,16 @@ export function avatarById(id?: string | null): AvatarPreset {
   const custom = decodeAvatar(id);
   if (custom) {
     const base = AVATARS.find((a) => a.id === custom.base) ?? DEFAULT_AVATAR;
+    // avatar feito com a foto do próprio usuário: a imagem vem no preset
+    const userPhoto = custom.photo
+      ? {
+          photo: { base: custom.photo, talk: custom.photo },
+          photoMouth: custom.photoMouth ?? { y: 0.66, w: 0.3, h: 0.07 },
+        }
+      : {};
     return {
       ...base,
+      ...userPhoto,
       name: custom.name || base.name,
       skin: custom.skin || base.skin,
       skinShadow: custom.skin ? shade(custom.skin, -0.18) : base.skinShadow,

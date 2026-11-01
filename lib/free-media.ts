@@ -195,6 +195,85 @@ export function qrUrl(text: string, size = 600) {
   return `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&margin=10&data=${encodeURIComponent(text.slice(0, 900))}`;
 }
 
+
+/* -------------------------------------------------------------------------- */
+/*        Arte em alta resolução, domínio público (sem marca d'água)         */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Art Institute of Chicago — API aberta, sem chave, ~120 mil obras.
+ * Filtra só o que é domínio público e devolve imagem grande por IIIF.
+ */
+export async function searchArtic(query: string, limit = 24): Promise<FreeItem[]> {
+  const params = new URLSearchParams({
+    q: query,
+    limit: String(Math.min(Math.max(limit, 1), 40)),
+    fields: 'id,title,image_id,artist_display,is_public_domain,date_display,department_title',
+  });
+  const data = await getJson(`https://api.artic.edu/api/v1/artworks/search?${params.toString()}`, 14_000);
+  const rows = (data?.data as Array<Record<string, unknown>>) ?? [];
+  return rows
+    .filter((row) => row.image_id && row.is_public_domain !== false)
+    .map((row) => {
+      const imageId = String(row.image_id);
+      const url = `https://www.artic.edu/iiif/2/${imageId}/full/1686,/0/default.jpg`;
+      return {
+        id: `artic-${row.id}`,
+        title: String(row.title ?? 'Obra').slice(0, 90),
+        thumb: `https://www.artic.edu/iiif/2/${imageId}/full/600,/0/default.jpg`,
+        url,
+        page: `https://www.artic.edu/artworks/${row.id}`,
+        license: 'Domínio público',
+        author: String(row.artist_display ?? '').split('\n')[0].slice(0, 70),
+        kind: 'image' as const,
+        width: 1686,
+      };
+    });
+}
+
+/**
+ * The Met (Nova York) — Open Access, sem chave. A busca devolve ids e cada
+ * objeto precisa de uma consulta, então limitamos para não pesar a resposta.
+ */
+export async function searchMet(query: string, limit = 12): Promise<FreeItem[]> {
+  const search = await getJson(
+    `https://collectionapi.metmuseum.org/public/collection/v1/search?hasImages=true&q=${encodeURIComponent(query)}`,
+    12_000,
+  );
+  const ids = ((search?.objectIDs as number[]) ?? []).slice(0, Math.min(Math.max(limit, 1), 16));
+  if (!ids.length) return [];
+  const objects = await Promise.all(
+    ids.map((id) =>
+      getJson(`https://collectionapi.metmuseum.org/public/collection/v1/objects/${id}`, 9_000).catch(() => null),
+    ),
+  );
+  return objects
+    .filter((obj): obj is Record<string, unknown> => Boolean(obj) && Boolean((obj as Record<string, unknown>).primaryImage))
+    .filter((obj) => obj.isPublicDomain !== false)
+    .map((obj) => ({
+      id: `met-${obj.objectID}`,
+      title: String(obj.title ?? 'Obra').slice(0, 90),
+      thumb: String(obj.primaryImageSmall ?? obj.primaryImage),
+      url: String(obj.primaryImage),
+      page: String(obj.objectURL ?? ''),
+      license: 'Domínio público',
+      author: String(obj.artistDisplayName ?? '').slice(0, 70),
+      kind: 'image' as const,
+    }));
+}
+
+/** Busca combinada: Chicago + Met (as duas melhores fontes de arte livre). */
+export async function searchArt(query: string, limit = 24): Promise<FreeItem[]> {
+  const [artic, met] = await Promise.all([searchArtic(query, limit), searchMet(query, 10)]);
+  const seen = new Set<string>();
+  const all = [...artic, ...met].filter((item) => {
+    if (!item.url || seen.has(item.url)) return false;
+    seen.add(item.url);
+    return true;
+  });
+  return all.slice(0, limit + 10);
+}
+
 /** Só baixamos de hosts conhecidos — evita que a rota vire proxy aberto. */
 export const ALLOWED_HOSTS = [
   'upload.wikimedia.org',
@@ -207,6 +286,9 @@ export const ALLOWED_HOSTS = [
   'api.iconify.design',
   'image.pollinations.ai',
   'api.qrserver.com',
+  'www.artic.edu',
+  'api.artic.edu',
+  'images.metmuseum.org',
 ];
 
 export function isAllowedFreeUrl(url: string) {

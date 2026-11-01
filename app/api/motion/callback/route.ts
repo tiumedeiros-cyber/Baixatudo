@@ -3,6 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { getSettings } from '@/lib/settings';
 import { resolveAiForUser } from '@/lib/user-integrations';
 import { kieGetTask } from '@/lib/motion';
+import { verifyPayload } from '@/lib/crypto';
 
 export const runtime = 'nodejs';
 
@@ -11,6 +12,10 @@ export async function POST(request: Request) {
   const url = new URL(request.url);
   const jobId = url.searchParams.get('job') ?? '';
   if (!jobId) return NextResponse.json({ ok: false }, { status: 400 });
+  // sem assinatura válida, qualquer pessoa poderia disparar chamadas ao provedor
+  const token = url.searchParams.get('t') ?? '';
+  const signedJob = token ? verifyPayload(token, 'motion-callback') : null;
+  if (signedJob !== jobId) return NextResponse.json({ ok: false, error: 'assinatura inválida' }, { status: 401 });
 
   const admin = createAdminClient();
   const { data: job } = await admin.from('es_motion_jobs').select('id,user_id,task_id,status').eq('id', jobId).maybeSingle();

@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server';
 import QRCode from 'qrcode';
 import { isAllowedFreeUrl } from '@/lib/free-media';
 import { craiyon } from '@/lib/craiyon';
+import { diagnoseDrive } from '@/lib/import-url';
+import { searchArtic, searchMet } from '@/lib/free-media';
+import { clientIp, rateLimit } from '@/lib/rate-limit';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -10,7 +13,10 @@ export const maxDuration = 60;
  * GET /api/health/tools — testa de verdade as ferramentas do servidor
  * (QR Code e proxy de mídia grátis) e devolve o erro real quando falham.
  */
-export async function GET() {
+export async function GET(request: Request) {
+  // rota de diagnóstico pesada (bate em vários serviços): limite por IP
+  const limit = rateLimit(`health-tools:${clientIp(request.headers)}`, 8, 60_000);
+  if (!limit.ok) return NextResponse.json({ error: 'Muitos pedidos. Aguarde um minuto.' }, { status: 429 });
   const results: Record<string, { ok: boolean; ms: number; detail?: string; bytes?: number }> = {};
 
   let t0 = Date.now();
@@ -87,6 +93,65 @@ export async function GET() {
     results.internetArchive = { ok: false, ms: Date.now() - t0, detail: (err instanceof Error ? err.message : String(err)).slice(0, 200) };
   }
 
+  // remoção de fundo (sharp + flood fill) — testa com uma imagem sintética
+  t0 = Date.now();
+  try {
+    const sharp = (await import('sharp')).default;
+    const { removeBackground } = await import('@/lib/cutout');
+    const w = 180;
+    const h = 180;
+    const raw = Buffer.alloc(w * h * 3);
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        const i = (y * w + x) * 3;
+        const inside = (x - 90) ** 2 + (y - 90) ** 2 < 55 ** 2;
+        raw[i] = inside ? 200 : 250;
+        raw[i + 1] = inside ? 60 : 250;
+        raw[i + 2] = inside ? 40 : 250;
+      }
+    }
+    const rgba = await sharp(raw, { raw: { width: w, height: h, channels: 3 } })
+      .ensureAlpha()
+      .raw()
+      .toBuffer();
+    const cut = removeBackground(Buffer.from(rgba), w, h, 4, 42);
+    const corner = cut.data[3];
+    const center = cut.data[(90 * w + 90) * 4 + 3];
+    results.cutout = {
+      ok: corner === 0 && center > 200,
+      ms: Date.now() - t0,
+      detail: `canto=${corner} centro=${center}`,
+    };
+  } catch (err) {
+    results.cutout = { ok: false, ms: Date.now() - t0, detail: (err instanceof Error ? err.message : String(err)).slice(0, 200) };
+  }
+
+  // voz neural (Edge TTS) — sintetiza uma frase curta de verdade
+  t0 = Date.now();
+  try {
+    const { edgeSynthesize } = await import('@/lib/edge-tts');
+    const mp3 = await edgeSynthesize({ text: 'Teste de voz do Editor Studio.', voice: 'pt-BR-FranciscaNeural' });
+    results.tts = { ok: mp3.length > 3000, ms: Date.now() - t0, bytes: mp3.length };
+  } catch (err) {
+    results.tts = { ok: false, ms: Date.now() - t0, detail: (err instanceof Error ? err.message : String(err)).slice(0, 200) };
+  }
+
+  t0 = Date.now();
+  try {
+    const artic = await searchArtic('sunset', 3);
+    results.artic = { ok: artic.length > 0, ms: Date.now() - t0, detail: `${artic.length} obras` };
+  } catch (err) {
+    results.artic = { ok: false, ms: Date.now() - t0, detail: (err instanceof Error ? err.message : String(err)).slice(0, 200) };
+  }
+
+  t0 = Date.now();
+  try {
+    const met = await searchMet('flower', 3);
+    results.met = { ok: met.length > 0, ms: Date.now() - t0, detail: `${met.length} obras` };
+  } catch (err) {
+    results.met = { ok: false, ms: Date.now() - t0, detail: (err instanceof Error ? err.message : String(err)).slice(0, 200) };
+  }
+
   t0 = Date.now();
   try {
     const image = await craiyon('red apple');
@@ -95,8 +160,16 @@ export async function GET() {
     results.craiyon = { ok: false, ms: Date.now() - t0, detail: (err instanceof Error ? err.message : String(err)).slice(0, 200) };
   }
 
+  // diagnóstico sob demanda do Google Drive: /api/health/tools?drive=<id ou link>
+  const drive = new URL(request.url).searchParams.get('drive');
+  let driveReport: unknown;
+  if (drive) {
+    const target = /^https?:/i.test(drive) ? drive : `https://drive.google.com/file/d/${drive}/view`;
+    driveReport = await diagnoseDrive(target);
+  }
+
   return NextResponse.json(
-    { ok: Object.values(results).every((r) => r.ok), results },
+    { ok: Object.values(results).every((r) => r.ok), results, ...(drive ? { drive: driveReport } : {}) },
     { headers: { 'cache-control': 'no-store' } },
   );
 }

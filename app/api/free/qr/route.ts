@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import QRCode from 'qrcode';
+import { clientIp, rateLimit } from '@/lib/rate-limit';
 // Garante que o gerador rode no bundler do servidor (não no navegador).
 export const dynamic = 'force-dynamic';
 
@@ -10,6 +11,8 @@ export const runtime = 'nodejs';
  * Assim o QR nunca depende de terceiros e funciona offline do lado do cliente.
  */
 export async function GET(request: Request) {
+  const limit = rateLimit(`qr:${clientIp(request.headers)}`, 40, 60_000);
+  if (!limit.ok) return NextResponse.json({ error: 'Muitos pedidos. Aguarde um minuto.' }, { status: 429 });
   const url = new URL(request.url);
   const text = (url.searchParams.get('text') || '').slice(0, 900);
   if (!text) return NextResponse.json({ error: 'Informe o texto do QR Code.' }, { status: 400 });

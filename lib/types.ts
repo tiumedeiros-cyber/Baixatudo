@@ -1,3 +1,4 @@
+import type { VisemeEvent } from '@/lib/visemes';
 export type Role = 'client' | 'admin';
 export type Profile = {
   id: string;
@@ -156,7 +157,14 @@ export type Clip = {
   overlay?: { preset: string };
   sticker?: { preset: string; color: string };
   generator?: GeneratorProps;
-  avatar?: { preset: string; mouth: number[]; intensity?: number };
+  avatar?: {
+    preset: string;
+    /** envelope de volume (0..1 a cada 20 ms) — intensidade da fala */
+    mouth: number[];
+    intensity?: number;
+    /** trilha de visemas (formato da boca letra por letra) */
+    visemes?: VisemeEvent[];
+  };
   shadow?: ShadowProps;
   transitionIn: { type: TransitionType; duration: number };
   transitionOut: { type: TransitionType; duration: number };

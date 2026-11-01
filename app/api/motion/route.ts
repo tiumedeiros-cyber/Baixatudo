@@ -1,3 +1,4 @@
+import { signPayload } from '@/lib/crypto';
 import { NextResponse } from 'next/server';
 import { getSessionUser } from '@/lib/auth';
 import { createAdminClient } from '@/lib/supabase/admin';
@@ -93,7 +94,7 @@ export async function POST(request: Request) {
       videoUrl,
       prompt,
       mode,
-      callbackUrl: `${SITE_URL}/api/motion/callback?job=${job.id}`,
+      callbackUrl: `${SITE_URL}/api/motion/callback?job=${job.id}&t=${encodeURIComponent(signPayload(String(job.id), 'motion-callback'))}`,
     });
     if ('error' in created) {
       await admin.from('es_motion_jobs').update({ status: 'failed', error: created.error, updated_at: new Date().toISOString() }).eq('id', job.id);

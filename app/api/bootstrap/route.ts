@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { APP_ENV } from '@/lib/env';
+import { safeEqual } from '@/lib/crypto';
 
 export const runtime = 'nodejs';
 
@@ -14,7 +15,7 @@ export async function GET(request: Request) {
   if (APP_ENV.bootstrapEnabled !== 'true') {
     return NextResponse.json({ error: 'bootstrap desativado' }, { status: 403 });
   }
-  if (token !== APP_ENV.appSecret) {
+  if (!safeEqual(token, APP_ENV.appSecret || 'sem-segredo')) {
     return NextResponse.json({ error: 'token inválido' }, { status: 401 });
   }
 

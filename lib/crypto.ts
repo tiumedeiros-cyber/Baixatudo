@@ -36,3 +36,39 @@ export function maskSecret(value?: string | null) {
   if (plain.length <= 8) return '••••';
   return `••••••${plain.slice(-4)}`;
 }
+
+/**
+ * Assinatura curta para URLs internas (callbacks, links de download).
+ * Usa HMAC com o APP_SECRET: qualquer coisa sem assinatura válida é recusada.
+ */
+export function signPayload(value: string, scope: string, ttlSeconds = 60 * 60 * 48) {
+  const payload = `${value}.${Math.floor(Date.now() / 1000) + ttlSeconds}`;
+  const sig = crypto.createHmac('sha256', `${APP_SECRET}:${scope}`).update(payload).digest('base64url').slice(0, 32);
+  return `${payload}.${sig}`;
+}
+
+export function verifyPayload(token: string, scope: string) {
+  const parts = String(token || '').split('.');
+  if (parts.length < 3) return null;
+  const sig = parts.pop() as string;
+  const expires = Number(parts.pop());
+  const value = parts.join('.');
+  if (!value || !Number.isFinite(expires) || expires * 1000 < Date.now()) return null;
+  const expected = crypto
+    .createHmac('sha256', `${APP_SECRET}:${scope}`)
+    .update(`${value}.${expires}`)
+    .digest('base64url')
+    .slice(0, 32);
+  const a = Buffer.from(expected);
+  const b = Buffer.from(sig);
+  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return null;
+  return value;
+}
+
+/** Comparação em tempo constante (evita descobrir segredo por tempo de resposta). */
+export function safeEqual(a: string, b: string) {
+  const bufA = Buffer.from(String(a));
+  const bufB = Buffer.from(String(b));
+  if (bufA.length !== bufB.length) return false;
+  return crypto.timingSafeEqual(bufA, bufB);
+}

@@ -1,6 +1,8 @@
 'use client';
 import { avatarById, shade } from '@/lib/catalog/avatars';
 import type { AvatarPreset, SceneId } from '@/lib/catalog/avatars';
+import { shapeFromAmplitude } from '@/lib/visemes';
+import type { MouthShape } from '@/lib/visemes';
 
 
 /* -------------------------------------------------------------------------- */
@@ -147,6 +149,8 @@ function drawPhoto(
   mouth: number,
   time: number,
   framing: string,
+  photoMouth?: { y: number; w: number; h: number; lips?: string },
+  shape?: MouthShape,
 ) {
   const base = getKeyed(photo.base);
   if (!base) return false;
@@ -171,6 +175,74 @@ function drawPhoto(
   ctx.scale(breathe, breathe);
   ctx.translate(-(x + w / 2), -(y + h / 2));
   ctx.drawImage(base.canvas, cx, cy, dw, dh);
+
+  // Avatar feito com a FOTO do usuário: a imagem é única, então a boca é
+  // desenhada por cima na posição escolhida e a mandíbula desce junto.
+  if (photoMouth) {
+    const boxTop = cy + box.y * scale;
+    const boxH = box.h * scale;
+    const boxW = box.w * scale;
+    const boxLeft = cx + box.x * scale;
+    const mx = boxLeft + boxW * 0.5;
+    const my = boxTop + boxH * photoMouth.y;
+    const mw = boxW * photoMouth.w;
+    const mh = Math.max(boxH * 0.012, boxH * photoMouth.h);
+    const sh = shape ?? shapeFromAmplitude(mouth);
+    const jaw = Math.max(0, Math.min(1, sh.jaw));
+    const openH = mh * (0.35 + jaw * 3.2);
+
+    ctx.save();
+    // mandíbula: re-desenha a faixa abaixo da boca um pouco esticada para baixo
+    if (jaw > 0.12) {
+      const bandTop = my + mh * 0.1;
+      const bandH = boxTop + boxH - bandTop;
+      if (bandH > 4) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(boxLeft - boxW, bandTop, boxW * 3, bandH + boxH * 0.2);
+        ctx.clip();
+        ctx.drawImage(base.canvas, cx, cy + bandH * jaw * 0.05, dw, dh);
+        ctx.restore();
+      }
+    }
+    // lábios
+    const lipColor = photoMouth.lips || 'rgba(148,66,74,0.92)';
+    ctx.fillStyle = lipColor;
+    ctx.beginPath();
+    ctx.ellipse(mx, my - mh * 0.34, mw * 0.5, mh * 0.28, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // interior da boca
+    ctx.fillStyle = 'rgba(56,12,18,0.95)';
+    ctx.beginPath();
+    ctx.ellipse(mx, my + openH * 0.1, mw * 0.42, Math.max(mh * 0.1, openH * 0.5), 0, 0, Math.PI * 2);
+    ctx.fill();
+    // dentes e língua conforme o visema
+    if (sh.teeth > 0.15 && openH > mh * 0.3) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.ellipse(mx, my + openH * 0.1, mw * 0.42, Math.max(mh * 0.1, openH * 0.5), 0, 0, Math.PI * 2);
+      ctx.clip();
+      ctx.fillStyle = `rgba(255,255,255,${0.55 + sh.teeth * 0.4})`;
+      ctx.beginPath();
+      ctx.ellipse(mx, my - openH * 0.02, mw * 0.44, Math.max(1, openH * 0.2), 0, 0, Math.PI * 2);
+      ctx.fill();
+      if (sh.tongue > 0.25) {
+        ctx.fillStyle = 'rgba(190,84,100,0.85)';
+        ctx.beginPath();
+        ctx.ellipse(mx, my + openH * 0.34, mw * 0.28, Math.max(1, openH * 0.2), 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+    // lábio inferior
+    ctx.fillStyle = photoMouth.lips ? shade(photoMouth.lips, 0.12) : 'rgba(186,104,110,0.9)';
+    ctx.beginPath();
+    ctx.ellipse(mx, my + openH * 0.62 + mh * 0.16, mw * 0.42, Math.max(mh * 0.2, openH * 0.16), 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+    ctx.restore();
+    return true;
+  }
 
   // Leitura labial em 3 estados: fechado → entreaberto → aberto.
   // A mistura é contínua com a amplitude do áudio, então a boca abre e fecha
@@ -218,9 +290,13 @@ export function drawAvatar(
   h: number,
   mouth: number,
   time: number,
+  shapeIn?: MouthShape,
 ) {
   const a = avatarById(presetId);
-  const open = Math.max(0, Math.min(1, mouth));
+  // forma da boca: vem dos visemas (letra a letra) ou, sem texto, do volume
+  const s = shapeIn ?? shapeFromAmplitude(mouth);
+  const shape = s;
+  const open = Math.max(0, Math.min(1, Math.max(mouth, s.jaw)));
   const blink = blinkAt(time);
 
   ctx.save();
@@ -239,7 +315,7 @@ export function drawAvatar(
   const cutout = (a.scene ?? 'estudio') === 'transparente';
 
   // Retratos 3D (render estilo Pixar): entram como imagem recortada sobre a cena.
-  if (a.photo && drawPhoto(ctx, a.photo, x, y, w, h, open, time, framing)) {
+  if (a.photo && drawPhoto(ctx, a.photo, x, y, w, h, open, time, framing, a.photoMouth, shape)) {
     if (!cutout) {
       const vig = ctx.createRadialGradient(cx, y + h * 0.45, Math.min(w, h) * 0.25, cx, y + h * 0.45, Math.max(w, h) * 0.75);
       vig.addColorStop(0, 'rgba(0,0,0,0)');
@@ -926,7 +1002,12 @@ export function drawAvatar(
   }
 
   /* -------------------------------- sobrancelhas ---------------------------- */
-  const browLift = expression === 'surpreso' ? 0.055 : expression === 'serio' ? -0.005 : 0;
+  // sobrancelha acompanha a fala: sobe um pouco nas sílabas fortes e no
+  // sorriso (é o que faz a expressão parecer sincronizada, não congelada)
+  const browLift =
+    (expression === 'surpreso' ? 0.055 : expression === 'serio' ? -0.005 : 0) +
+    Math.max(0, Math.min(1, shape.jaw)) * 0.016 +
+    Math.max(0, Math.min(1, shape.smile)) * 0.012;
   const browInner = expression === 'serio' ? 0.035 : expression === 'surpreso' ? 0.02 : 0;
   ctx.strokeStyle = a.browColor ? a.browColor : shade(a.hairColor, 0.08);
   ctx.lineCap = 'round';
@@ -946,7 +1027,9 @@ export function drawAvatar(
   /* ----------------------------------- olhos -------------------------------- */
   const eyeY = headCy - headH * 0.005;
   const eyeR = headW * 0.105;
-  const eyeOpen = expression === 'surpreso' ? 1.2 : expression === 'serio' ? 0.74 : 1;
+  const eyeOpen =
+    (expression === 'surpreso' ? 1.2 : expression === 'serio' ? 0.74 : 1) *
+    (1 - Math.max(0, Math.min(1, shape.smile)) * 0.12);
   const irisColor = shade(a.hairColor, 0.32);
   for (const s of [-1, 1]) {
     const ex = cx + s * headW * 0.2;
@@ -1051,11 +1134,19 @@ export function drawAvatar(
   ctx.fill();
 
   /* ----------------------------------- boca --------------------------------- */
-  const mouthY = headCy + headH * 0.27;
-  const mouthW = headW * (0.34 + open * 0.05);
-  const mouthH = headH * (0.03 + open * 0.14);
-  // cantos da boca: sorriso sobe, sério desce
-  const cornerY = mouthY + (expression === 'serio' ? headH * 0.02 : expression === 'sorriso' ? -headH * 0.016 : 0);
+  // Desenho dirigido por visemas: jaw (abertura), wide (largo), round (bico),
+  // press (lábios fechados), teeth (dentes) e tongue (língua).
+  const openJaw = Math.max(0, Math.min(1, shape.jaw));
+  const roundness = Math.max(0, Math.min(1, shape.round));
+  const wideness = Math.max(0, Math.min(1, shape.wide));
+  const pressed = Math.max(0, Math.min(1, shape.press));
+  const mouthY = headCy + headH * (0.264 + openJaw * 0.012);
+  const mouthW = headW * (0.19 + wideness * 0.19 - roundness * 0.1 + openJaw * 0.03);
+  const mouthH = headH * (0.026 + openJaw * 0.16);
+  // cantos da boca: expressão base + sorriso do visema
+  const baseCorner = expression === 'serio' ? headH * 0.02 : expression === 'sorriso' ? -headH * 0.016 : 0;
+  const cornerY = mouthY + baseCorner - shape.smile * headH * 0.012;
+  const gap = mouthH * (0.35 + openJaw * 0.75);
 
   if (a.beard) {
     // barba desenhada no contorno do maxilar (não é uma máscara no rosto todo)
@@ -1100,46 +1191,96 @@ export function drawAvatar(
     ctx.globalAlpha = 1;
   }
 
-  // lábio superior
-  ctx.fillStyle = a.lipstick ? shade(a.lipstick, -0.1) : 'rgba(150,70,75,0.85)';
+  const upperLip = a.lipstick ? shade(a.lipstick, -0.1) : 'rgba(150,70,75,0.85)';
+  const lowerLip = a.lipstick ? shade(a.lipstick, 0.18) : 'rgba(190,105,110,0.9)';
+
+  // lábio superior (sobe com o arredondamento, desce quando pressionado)
+  ctx.fillStyle = upperLip;
   ctx.beginPath();
+  const lipTop = mouthY - mouthH * (0.55 + roundness * 0.12) - (pressed > 0.6 ? mouthH * 0.06 : 0);
   ctx.moveTo(cx - mouthW / 2, cornerY);
-  ctx.quadraticCurveTo(cx - mouthW * 0.25, mouthY - mouthH * 0.55, cx, mouthY - mouthH * 0.18);
-  ctx.quadraticCurveTo(cx + mouthW * 0.25, mouthY - mouthH * 0.55, cx + mouthW / 2, cornerY);
+  ctx.quadraticCurveTo(cx - mouthW * 0.26, lipTop, cx, mouthY - mouthH * 0.18);
+  ctx.quadraticCurveTo(cx + mouthW * 0.26, lipTop, cx + mouthW / 2, cornerY);
   ctx.quadraticCurveTo(cx, mouthY - mouthH * 0.05, cx - mouthW / 2, cornerY);
   ctx.fill();
 
-  // abertura (boca falando)
-  ctx.fillStyle = 'rgba(72,16,26,0.95)';
-  ctx.beginPath();
-  ctx.ellipse(cx, mouthY + mouthH * (0.06 + open * 0.12), mouthW / 2, Math.max(mouthH / 2.4, headH * 0.012), 0, 0, Math.PI * 2);
-  ctx.fill();
+  // linha da boca fechada (p/b/m e silêncio): só uma linha, sem buraco
+  if (gap < headH * 0.012 || pressed > 0.72) {
+    ctx.strokeStyle = 'rgba(96,32,42,0.85)';
+    ctx.lineWidth = Math.max(1.2, headH * 0.008);
+    ctx.beginPath();
+    ctx.moveTo(cx - mouthW * 0.46, cornerY + mouthH * 0.04);
+    ctx.quadraticCurveTo(cx, mouthY + mouthH * 0.16, cx + mouthW * 0.46, cornerY + mouthH * 0.04);
+    ctx.stroke();
+  } else {
+    // abertura: elipse achatada quando "i/e", arredondada quando "o/u"
+    const openW = mouthW * (0.5 + (1 - roundness) * 0.12);
+    const openH = Math.max(headH * 0.008, gap * (0.85 + (1 - wideness) * 0.3));
+    ctx.save();
+    ctx.fillStyle = 'rgba(62,14,22,0.96)';
+    ctx.beginPath();
+    ctx.ellipse(cx, mouthY + openH * 0.18, openW * 0.5, openH * 0.52, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.clip();
 
-  if (open > 0.16) {
-    ctx.fillStyle = 'rgba(255,255,255,0.92)';
+    // dentes superiores
+    if (shape.teeth > 0.12) {
+      ctx.fillStyle = `rgba(255,255,255,${Math.min(0.96, 0.55 + shape.teeth * 0.45)})`;
+      ctx.beginPath();
+      ctx.ellipse(cx, mouthY - openH * 0.16, openW * 0.46, Math.max(1, openH * (0.2 + shape.teeth * 0.16)), 0, 0, Math.PI * 2);
+      ctx.fill();
+      // dentes inferiores aparecem nas sílabas muito abertas ("a")
+      if (openJaw > 0.6) {
+        ctx.fillStyle = 'rgba(255,255,255,0.6)';
+        ctx.beginPath();
+        ctx.ellipse(cx, mouthY + openH * 0.5, openW * 0.38, Math.max(1, openH * 0.1), 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    // língua (l, d, t, th)
+    if (shape.tongue > 0.25) {
+      ctx.fillStyle = `rgba(196,86,102,${Math.min(0.9, 0.35 + shape.tongue * 0.5)})`;
+      ctx.beginPath();
+      ctx.ellipse(cx, mouthY + openH * (0.34 - shape.tongue * 0.1), openW * (0.26 + shape.tongue * 0.1), Math.max(1, openH * 0.26), 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    // sombra interna do maxilar
+    ctx.fillStyle = 'rgba(0,0,0,0.28)';
     ctx.beginPath();
-    ctx.ellipse(cx, mouthY + mouthH * 0.02, mouthW * 0.34, Math.max(1, mouthH * 0.15), 0, 0, Math.PI * 2);
+    ctx.ellipse(cx, mouthY + openH * 0.1, openW * 0.5, Math.max(1, openH * 0.12), 0, 0, Math.PI * 2);
     ctx.fill();
-    ctx.fillStyle = 'rgba(205,80,100,0.85)';
-    ctx.beginPath();
-    ctx.ellipse(cx, mouthY + mouthH * (0.16 + open * 0.2), mouthW * 0.22, Math.max(1, mouthH * 0.16), 0, 0, Math.PI * 2);
-    ctx.fill();
-    // sombra interna
-    ctx.fillStyle = 'rgba(0,0,0,0.25)';
-    ctx.beginPath();
-    ctx.ellipse(cx, mouthY + mouthH * 0.08, mouthW * 0.42, Math.max(1, mouthH * 0.05), 0, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.restore();
   }
 
-  // lábio inferior com brilho
-  ctx.fillStyle = a.lipstick ? shade(a.lipstick, 0.18) : 'rgba(190,105,110,0.9)';
+  // lábio inferior com brilho (acompanha a mandíbula: abre para baixo)
+  ctx.fillStyle = lowerLip;
   ctx.beginPath();
-  ctx.ellipse(cx, mouthY + mouthH * (0.12 + open * 0.3), mouthW * 0.46, Math.max(headH * 0.018, mouthH * 0.22), 0, 0, Math.PI * 2);
+  ctx.ellipse(
+    cx,
+    mouthY + mouthH * (0.16 + openJaw * 0.34) + gap * 0.12,
+    mouthW * (0.46 + roundness * 0.04),
+    Math.max(headH * 0.016, mouthH * (0.2 + openJaw * 0.06)),
+    0,
+    0,
+    Math.PI * 2,
+  );
   ctx.fill();
-  ctx.fillStyle = 'rgba(255,255,255,0.35)';
+  ctx.fillStyle = 'rgba(255,255,255,0.34)';
   ctx.beginPath();
-  ctx.ellipse(cx - mouthW * 0.1, mouthY + mouthH * (0.1 + open * 0.24), mouthW * 0.14, Math.max(1, mouthH * 0.05), 0, 0, Math.PI * 2);
+  ctx.ellipse(cx - mouthW * 0.1, mouthY + mouthH * (0.12 + openJaw * 0.26), mouthW * 0.13, Math.max(1, mouthH * 0.05), 0, 0, Math.PI * 2);
   ctx.fill();
+
+  // covinhas de sorriso quando a expressão é alegre
+  if ((expression === 'sorriso' || shape.smile > 0.3) && shape.smile > 0.12) {
+    ctx.strokeStyle = 'rgba(120,60,45,0.25)';
+    ctx.lineWidth = Math.max(1, headW * 0.012);
+    for (const sd of [-1, 1]) {
+      ctx.beginPath();
+      ctx.moveTo(cx + sd * mouthW * 0.52, cornerY - headH * 0.005);
+      ctx.quadraticCurveTo(cx + sd * mouthW * 0.62, cornerY + headH * 0.02, cx + sd * mouthW * 0.55, cornerY + headH * 0.045);
+      ctx.stroke();
+    }
+  }
 
   /* ------------------------- cabelo da frente / franja ---------------------- */
   ctx.fillStyle = a.hairColor;
