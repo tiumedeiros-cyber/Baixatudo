@@ -4,6 +4,7 @@ import { rateLimit } from '@/lib/rate-limit';
 import { synthesizeToStorage, TTS_VOICES, CATALOG } from '@/lib/tts';
 import { createHash } from 'node:crypto';
 import { edgeVoiceList } from '@/lib/edge-voices';
+import { VOICE_PRESETS } from '@/lib/voice-presets';
 import { VOICES } from '@/lib/catalog/voices';
 
 export const runtime = 'nodejs';
@@ -121,12 +122,19 @@ export async function GET(request: Request) {
   // Testa várias vozes neurais e mostra que cada uma devolve um áudio diferente.
   if (url.searchParams.get('probe') === 'voices') {
     const { edgeSynthesize } = await import('@/lib/edge-tts');
-    const ids = TTS_VOICES.filter((v) => v.lang.startsWith('pt-BR')).map((v) => v.id);
+    const ids = VOICE_PRESETS.filter((v) => v.lang === 'pt-BR').map((v) => v.id);
     const out: { id: string; ok: boolean; ms: number; bytes?: number; hash?: string; detail?: string }[] = [];
     for (const id of ids) {
       const t0 = Date.now();
       try {
-        const audio = await edgeSynthesize({ text: 'Olá, esta é a minha voz.', voice: id, timeoutMs: 12_000 });
+        const preset = VOICE_PRESETS.find((item) => item.id === id);
+        const audio = await edgeSynthesize({
+          text: 'Olá, esta é a minha voz.',
+          voice: preset?.voice ?? id,
+          pitch: preset?.pitch,
+          rate: preset?.rate,
+          timeoutMs: 12_000,
+        });
         out.push({
           id,
           ok: audio.length > 1000,
@@ -213,6 +221,7 @@ export async function GET(request: Request) {
       engine,
       serverVoices: engine === 'edge' ? neuralVoices.filter((v) => v.lang === 'pt-BR').map((v) => v.id) : voices,
       voices: engine === 'edge' ? neuralVoices : [],
+      presets: engine === 'edge' ? VOICE_PRESETS : [],
       catalog: CATALOG,
       languages: Array.from(new Set(VOICES.map((v) => v.lang))),
     },

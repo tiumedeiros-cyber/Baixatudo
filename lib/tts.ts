@@ -1,5 +1,6 @@
 import { SUPABASE_URL } from '@/lib/env';
 import { EDGE_FALLBACK, edgeSynthesize } from '@/lib/edge-tts';
+import { VOICE_PRESETS, voicePreset } from '@/lib/voice-presets';
 import { VOICES, voiceById } from '@/lib/catalog/voices';
 import { createAdminClient } from '@/lib/supabase/admin';
 
@@ -107,8 +108,19 @@ const EDGE_BY_LANG: Record<string, string> = {
  * Motor principal quando não há ElevenLabs/OpenAI configurados.
  */
 async function edgeTts(text: string, lang: string, voice?: string) {
-  const chosen = voice && /^[a-z]{2,3}-[A-Z]{2}-\w+Neural$/.test(voice) ? voice : EDGE_BY_LANG[lang] ?? EDGE_BY_LANG['pt-BR'];
-  const buffer = await edgeSynthesize({ text, voice: chosen, timeoutMs: 12_000 });
+  const preset = voicePreset(voice);
+  const chosen = preset
+    ? preset.voice
+    : voice && /^[a-z]{2,3}-[A-Z]{2}-\w+Neural$/.test(voice)
+      ? voice
+      : EDGE_BY_LANG[lang] ?? EDGE_BY_LANG['pt-BR'];
+  const buffer = await edgeSynthesize({
+    text,
+    voice: chosen,
+    pitch: preset?.pitch,
+    rate: preset?.rate,
+    timeoutMs: 12_000,
+  });
   if (buffer.length < 500) throw new Error('Voz neural devolveu áudio vazio');
   return buffer;
 }

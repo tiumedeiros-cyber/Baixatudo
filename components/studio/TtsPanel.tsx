@@ -22,6 +22,7 @@ export function TtsPanel({ projectId, onAdded }: { projectId: string; onAdded?: 
   const [serverVoices, setServerVoices] = useState<string[]>([]);
   const [voiceLabels, setVoiceLabels] = useState<Record<string, string>>({});
   const [neuralVoices, setNeuralVoices] = useState<{ id: string; label: string; lang: string }[]>([]);
+  const [presets, setPresets] = useState<{ id: string; label: string; lang: string }[]>([]);
   const [voiceOk, setVoiceOk] = useState<boolean | null>(null);
   const [testing, setTesting] = useState(false);
   const [serverVoice, setServerVoice] = useState(DEFAULT_VOICE);
@@ -34,12 +35,18 @@ export function TtsPanel({ projectId, onAdded }: { projectId: string; onAdded?: 
     let alive = true;
     fetch('/api/tts', { cache: 'no-store' })
       .then((r) => (r.ok ? r.json() : null))
-      .then((data: { engine?: string; serverVoices?: string[]; voices?: { id: string; label: string; lang: string }[] } | null) => {
+      .then(
+        (
+          data:
+            | { engine?: string; serverVoices?: string[]; voices?: { id: string; label: string; lang: string }[]; presets?: { id: string; label: string; lang: string }[] }
+            | null,
+        ) => {
         if (!alive || !data) return;
         setServerEngine(data.engine ?? null);
         setServerVoices(data.serverVoices ?? []);
         setVoiceLabels(Object.fromEntries((data.voices ?? []).map((v) => [v.id, v.label])));
         setNeuralVoices((data.voices ?? []) as { id: string; label: string; lang: string }[]);
+        setPresets((data.presets ?? []) as { id: string; label: string; lang: string }[]);
         setServerVoice((prev) => prev || DEFAULT_VOICE);
       })
       .catch(() => undefined);
@@ -224,12 +231,19 @@ export function TtsPanel({ projectId, onAdded }: { projectId: string; onAdded?: 
             value={serverVoice}
             onChange={(e) => {
               setServerVoice(e.target.value);
-              const neural = neuralVoices.find((x) => x.id === e.target.value);
+              const neural = presets.find((x) => x.id === e.target.value) ?? neuralVoices.find((x) => x.id === e.target.value);
               const v = neural ?? VOICES.find((x) => x.id === e.target.value);
               if (v) setLang(v.lang);
             }}
             className="w-full rounded-lg border border-white/10 bg-ink-900 px-1.5 py-1 text-[10px] text-white outline-none"
           >
+            {presets.length ? (
+              <optgroup label="Vozes em português e inglês (timbre próprio)">
+                {presets.map((v) => (
+                  <option key={v.id} value={v.id}>{v.label}</option>
+                ))}
+              </optgroup>
+            ) : null}
             {Array.from(new Set(neuralVoices.map((v) => v.lang))).map((locale) => (
               <optgroup key={`neural-${locale}`} label={`Vozes neurais · ${locale}`}>
                 {neuralVoices
@@ -254,7 +268,8 @@ export function TtsPanel({ projectId, onAdded }: { projectId: string; onAdded?: 
           </select>
         </div>
         <p className="mt-1 text-[9px] text-slate-500">
-          {(VOICES.length + neuralVoices.length).toString()} vozes disponíveis · {neuralVoices.filter((v) => v.lang === 'pt-BR').length || 13} em português com timbres diferentes
+          {(VOICES.length + neuralVoices.length + presets.length).toString()} vozes disponíveis ·{' '}
+          {presets.filter((v) => v.lang === 'pt-BR').length || 9} timbres diferentes em português
         </p>
         <div className="mt-2 flex gap-1.5">
           <button onClick={previewBrowser} className="flex flex-1 items-center justify-center gap-1 rounded-lg border border-white/10 bg-white/5 py-1.5 text-[10px] font-semibold text-slate-200 hover:bg-white/10">
