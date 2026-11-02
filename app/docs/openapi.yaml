@@ -1,0 +1,729 @@
+openapi: 3.0.3
+info:
+  title: Navalha API
+  version: 1.0.0
+  description: |
+    API da plataforma de barbearia Navalha — agendamentos, pagamentos, CRM,
+    notificações e relatórios. Autenticação JWT Bearer. Horários no formato
+    local `YYYY-MM-DDTHH:MM`.
+servers:
+  - url: http://localhost:3000/api
+    description: Ambiente local
+tags:
+  - name: Auth
+  - name: Catálogo
+  - name: Agendamentos
+  - name: Pagamentos
+  - name: Avaliações
+  - name: Notificações
+  - name: Relatórios
+  - name: Administração
+
+security:
+  - bearerAuth: []
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    Error:
+      type: object
+      properties:
+        error: { type: string }
+    User:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        email: { type: string, format: email }
+        phone: { type: string, nullable: true }
+        role: { type: string, enum: [CLIENT, PROFESSIONAL, ADMIN] }
+        branch_id: { type: string, nullable: true }
+        avatar_url: { type: string, nullable: true }
+        client_id: { type: string, nullable: true }
+        professional_id: { type: string, nullable: true }
+    AuthResponse:
+      type: object
+      properties:
+        user: { $ref: '#/components/schemas/User' }
+        access_token: { type: string }
+        refresh_token: { type: string }
+        token_type: { type: string, example: Bearer }
+        expires_in: { type: integer, example: 7200 }
+    Service:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        description: { type: string }
+        category: { type: string }
+        duration_min: { type: integer }
+        buffer_min: { type: integer }
+        price_cents: { type: integer }
+        active: { type: boolean }
+        branch_id: { type: string }
+    Professional:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        bio: { type: string, nullable: true }
+        specialties: { type: array, items: { type: string } }
+        rating: { type: number }
+        avg_rating: { type: number }
+        commission_pct: { type: number }
+        services: { type: array, items: { type: string } }
+    Slot:
+      type: object
+      properties:
+        start_at: { type: string, example: '2026-11-06T09:45' }
+        end_at: { type: string, example: '2026-11-06T11:05' }
+        professional_id: { type: string, nullable: true }
+    Availability:
+      type: object
+      properties:
+        date: { type: string }
+        duration_min: { type: integer }
+        buffer_min: { type: integer }
+        min_lead_minutes: { type: integer }
+        services: { type: array, items: { $ref: '#/components/schemas/Service' } }
+        slots: { type: array, items: { $ref: '#/components/schemas/Slot' } }
+    AppointmentItem:
+      type: object
+      properties:
+        id: { type: string }
+        service_id: { type: string }
+        name: { type: string }
+        duration_min: { type: integer }
+        price_cents: { type: integer }
+    Appointment:
+      type: object
+      properties:
+        id: { type: string }
+        code: { type: string, example: NV-YMWZA7 }
+        branch_id: { type: string }
+        client_id: { type: string }
+        professional_id: { type: string }
+        start_at: { type: string }
+        end_at: { type: string }
+        status:
+          type: string
+          enum: [pendente, confirmado, em_atendimento, concluido, cancelado, no_show]
+        payment_status: { type: string }
+        subtotal_cents: { type: integer }
+        discount_cents: { type: integer }
+        total_cents: { type: integer }
+        coupon_code: { type: string, nullable: true }
+        notes: { type: string, nullable: true }
+        checkin_token: { type: string }
+        checked_in_at: { type: string, nullable: true }
+        items: { type: array, items: { $ref: '#/components/schemas/AppointmentItem' } }
+        professional:
+          type: object
+          nullable: true
+          properties:
+            id: { type: string }
+            name: { type: string }
+        payment:
+          type: object
+          nullable: true
+          properties:
+            id: { type: string }
+            method: { type: string }
+            status: { type: string }
+            amount_cents: { type: integer }
+    AppointmentInput:
+      type: object
+      required: [service_ids, professional_id, start_at]
+      properties:
+        service_ids: { type: array, items: { type: string } }
+        professional_id: { type: string }
+        start_at: { type: string, example: '2026-11-06T09:45' }
+        branch_id: { type: string }
+        coupon_code: { type: string }
+        payment_method:
+          type: string
+          enum: [onsite, pix, card, boleto, preauth]
+          default: onsite
+        notes: { type: string }
+    Payment:
+      type: object
+      properties:
+        id: { type: string }
+        appointment_id: { type: string }
+        method: { type: string, enum: [card, pix, boleto, onsite, preauth] }
+        amount_cents: { type: integer }
+        status: { type: string, enum: [pendente, pago, autorizado, reembolsado, cancelado, falhou] }
+        preauth: { type: boolean }
+        transaction_id: { type: string }
+        checkout_url: { type: string }
+
+paths:
+  /health:
+    get:
+      tags: [Auth]
+      summary: Status do serviço
+      security: []
+      responses:
+        '200': { description: OK }
+
+  /auth/register:
+    post:
+      tags: [Auth]
+      security: []
+      summary: Cria conta de cliente
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email, password]
+              properties:
+                name: { type: string }
+                email: { type: string, format: email }
+                password: { type: string, minLength: 6 }
+                phone: { type: string }
+                locale: { type: string, default: pt-BR }
+      responses:
+        '201':
+          description: Criado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuthResponse' }
+        '409': { description: E-mail já cadastrado, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      security: []
+      summary: Login por e-mail e senha
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string }
+                password: { type: string }
+      responses:
+        '200':
+          description: Autenticado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuthResponse' }
+        '401': { description: Credenciais inválidas }
+
+  /auth/otp/request:
+    post:
+      tags: [Auth]
+      security: []
+      summary: Solicita código OTP por SMS
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                phone: { type: string }
+      responses:
+        '200': { description: Código enviado (retorna debug_code fora de produção) }
+
+  /auth/otp/verify:
+    post:
+      tags: [Auth]
+      security: []
+      summary: Valida o código OTP e autentica
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [phone, code]
+              properties:
+                phone: { type: string }
+                code: { type: string }
+                name: { type: string }
+      responses:
+        '200':
+          description: Autenticado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuthResponse' }
+        '401': { description: Código inválido }
+
+  /auth/oauth/{provider}:
+    post:
+      tags: [Auth]
+      security: []
+      summary: Login social (google | facebook)
+      parameters:
+        - in: path
+          name: provider
+          required: true
+          schema: { type: string, enum: [google, facebook] }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email: { type: string }
+                name: { type: string }
+                provider_token: { type: string }
+      responses:
+        '200':
+          description: Autenticado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuthResponse' }
+
+  /auth/refresh:
+    post:
+      tags: [Auth]
+      security: []
+      summary: Renova o access token (refresh rotativo)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refresh_token]
+              properties:
+                refresh_token: { type: string }
+      responses:
+        '200':
+          description: Novos tokens
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuthResponse' }
+        '401': { description: Refresh inválido }
+
+  /auth/me:
+    get:
+      tags: [Auth]
+      summary: Perfil do usuário logado
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/User' }
+    patch:
+      tags: [Auth]
+      summary: Atualiza perfil
+      responses:
+        '200': { description: OK }
+
+  /services:
+    get:
+      tags: [Catálogo]
+      security: []
+      summary: Lista serviços ativos
+      parameters:
+        - { in: query, name: branch, schema: { type: string } }
+        - { in: query, name: category, schema: { type: string } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Service' }
+
+  /professionals:
+    get:
+      tags: [Catálogo]
+      security: []
+      summary: Lista profissionais
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Professional' }
+
+  /professionals/{id}/agenda:
+    get:
+      tags: [Catálogo]
+      summary: Agenda de um profissional em um dia
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+        - { in: query, name: date, required: true, schema: { type: string, example: '2026-11-06' } }
+      responses:
+        '200': { description: OK }
+
+  /availability:
+    get:
+      tags: [Catálogo]
+      security: []
+      summary: Horários disponíveis
+      parameters:
+        - { in: query, name: date, required: true, schema: { type: string } }
+        - { in: query, name: services, required: true, schema: { type: string }, description: IDs separados por vírgula }
+        - { in: query, name: professional, schema: { type: string }, description: 'ID ou "any"' }
+        - { in: query, name: branch, schema: { type: string } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Availability' }
+
+  /appointments/quote:
+    post:
+      tags: [Agendamentos]
+      security: []
+      summary: Prévia de preço com cupom
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                service_ids: { type: array, items: { type: string } }
+                coupon_code: { type: string }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  subtotal_cents: { type: integer }
+                  discount_cents: { type: integer }
+                  total_cents: { type: integer }
+                  duration_min: { type: integer }
+                  error: { type: string, nullable: true }
+
+  /appointments:
+    post:
+      tags: [Agendamentos]
+      summary: Cria agendamento
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AppointmentInput' }
+      responses:
+        '201':
+          description: Criado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  appointment: { $ref: '#/components/schemas/Appointment' }
+                  payment:
+                    allOf:
+                      - $ref: '#/components/schemas/Payment'
+                    nullable: true
+        '400': { description: Regra de negócio violada }
+        '409': { description: Horário já reservado }
+    get:
+      tags: [Agendamentos]
+      summary: Lista agendamentos
+      parameters:
+        - { in: query, name: scope, schema: { type: string, enum: [mine, all], default: mine } }
+        - { in: query, name: status, schema: { type: string } }
+        - { in: query, name: from, schema: { type: string } }
+        - { in: query, name: to, schema: { type: string } }
+        - { in: query, name: professional_id, schema: { type: string } }
+        - { in: query, name: limit, schema: { type: integer, default: 100 } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Appointment' }
+
+  /appointments/manual:
+    post:
+      tags: [Agendamentos]
+      summary: Recepção cria agendamento (ADMIN/PROFESSIONAL)
+      responses:
+        '201': { description: Criado }
+
+  /appointments/{id}:
+    get:
+      tags: [Agendamentos]
+      summary: Detalhe do agendamento
+      parameters: [{ in: path, name: id, required: true, schema: { type: string } }]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Appointment' }
+    patch:
+      tags: [Agendamentos]
+      summary: Atualiza campos do agendamento
+      parameters: [{ in: path, name: id, required: true, schema: { type: string } }]
+      responses:
+        '200': { description: OK }
+
+  /appointments/{id}/status:
+    post:
+      tags: [Agendamentos]
+      summary: Transição de status do atendimento
+      parameters: [{ in: path, name: id, required: true, schema: { type: string } }]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status: { type: string, enum: [confirmado, em_atendimento, concluido, no_show, cancelado] }
+      responses:
+        '200': { description: OK }
+
+  /appointments/{id}/cancel:
+    post:
+      tags: [Agendamentos]
+      summary: Cancela com política de reembolso
+      parameters: [{ in: path, name: id, required: true, schema: { type: string } }]
+      responses:
+        '200': { description: Cancelado }
+        '400': { description: Não pode ser cancelado }
+
+  /appointments/{id}/reschedule:
+    post:
+      tags: [Agendamentos]
+      summary: Remarca o agendamento
+      parameters: [{ in: path, name: id, required: true, schema: { type: string } }]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                start_at: { type: string }
+      responses:
+        '200': { description: Remarcado }
+        '409': { description: Horário indisponível }
+
+  /appointments/checkin/{token}:
+    post:
+      tags: [Agendamentos]
+      security: []
+      summary: Check-in via QR code (idempotente)
+      parameters: [{ in: path, name: token, required: true, schema: { type: string } }]
+      responses:
+        '200': { description: Check-in confirmado }
+        '404': { description: Token inválido }
+
+  /appointments/queue:
+    get:
+      tags: [Agendamentos]
+      summary: Fila e atendimentos em andamento
+      responses:
+        '200': { description: OK }
+
+  /payments:
+    get:
+      tags: [Pagamentos]
+      summary: Lista transações (ADMIN)
+      responses:
+        '200': { description: OK }
+    post:
+      tags: [Pagamentos]
+      summary: Cria intent de pagamento
+      responses:
+        '201': { description: Criado }
+
+  /payments/{id}:
+    get:
+      tags: [Pagamentos]
+      summary: Detalhe do pagamento
+      parameters: [{ in: path, name: id, required: true, schema: { type: string } }]
+      responses:
+        '200': { description: OK }
+
+  /payments/{id}/refund:
+    post:
+      tags: [Pagamentos]
+      summary: Reembolso parcial ou total (ADMIN)
+      parameters: [{ in: path, name: id, required: true, schema: { type: string } }]
+      responses:
+        '200': { description: Reembolsado }
+
+  /payments/{id}/capture:
+    post:
+      tags: [Pagamentos]
+      summary: Captura pré-autorização (ADMIN)
+      parameters: [{ in: path, name: id, required: true, schema: { type: string } }]
+      responses:
+        '200': { description: Capturado }
+
+  /payments/webhook:
+    post:
+      tags: [Pagamentos]
+      security: []
+      summary: Webhook do gateway
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                type: { type: string, enum: [payment.succeeded, payment.failed, payment.refunded, payment.preauth] }
+                data:
+                  type: object
+                  properties:
+                    transaction_id: { type: string }
+      responses:
+        '200': { description: Processado }
+        '400': { description: Evento inválido }
+
+  /reviews:
+    get:
+      tags: [Avaliações]
+      security: []
+      summary: Lista avaliações
+      responses:
+        '200': { description: OK }
+    post:
+      tags: [Avaliações]
+      summary: Avalia um atendimento concluído
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [appointment_id, rating]
+              properties:
+                appointment_id: { type: string }
+                rating: { type: integer, minimum: 1, maximum: 5 }
+                comment: { type: string }
+      responses:
+        '201': { description: Criado }
+        '400': { description: Atendimento não concluído }
+        '409': { description: Já avaliado }
+
+  /notifications:
+    get:
+      tags: [Notificações]
+      summary: Lista notificações do usuário
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  unread: { type: integer }
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string }
+                        channel: { type: string }
+                        type: { type: string }
+                        title: { type: string }
+                        body: { type: string }
+                        read_at: { type: string, nullable: true }
+
+  /notifications/read:
+    post:
+      tags: [Notificações]
+      summary: Marca notificações como lidas
+      responses:
+        '200': { description: OK }
+
+  /reports/dashboard:
+    get:
+      tags: [Relatórios]
+      summary: KPIs do período
+      parameters:
+        - { in: query, name: from, schema: { type: string } }
+        - { in: query, name: to, schema: { type: string } }
+      responses:
+        '200': { description: OK }
+
+  /reports/finance:
+    get:
+      tags: [Relatórios]
+      summary: Fechamento financeiro e comissões
+      responses:
+        '200': { description: OK }
+
+  /reports/occupancy:
+    get:
+      tags: [Relatórios]
+      summary: Ocupação e cancelamentos por profissional
+      responses:
+        '200': { description: OK }
+
+  /admin/clients:
+    get:
+      tags: [Administração]
+      summary: CRM de clientes
+      parameters: [{ in: query, name: q, schema: { type: string } }]
+      responses:
+        '200': { description: OK }
+
+  /admin/services:
+    get:
+      tags: [Administração]
+      summary: Lista todos os serviços (inclusive inativos)
+      responses:
+        '200': { description: OK }
+    post:
+      tags: [Administração]
+      summary: Cria serviço
+      responses:
+        '201': { description: Criado }
+
+  /admin/professionals:
+    get:
+      tags: [Administração]
+      summary: Lista equipe com escala e bloqueios
+      responses:
+        '200': { description: OK }
+    post:
+      tags: [Administração]
+      summary: Cria profissional
+      responses:
+        '201': { description: Criado }
+
+  /admin/settings:
+    get:
+      tags: [Administração]
+      summary: Configurações do negócio, políticas e integrações
+      responses:
+        '200': { description: OK }
+    put:
+      tags: [Administração]
+      summary: Atualiza configurações
+      responses:
+        '200': { description: OK }
+
+  /admin/audit-logs:
+    get:
+      tags: [Administração]
+      summary: Trilha de auditoria
+      responses:
+        '200': { description: OK }
+
+  /admin/campaigns:
+    post:
+      tags: [Administração]
+      summary: Dispara campanha segmentada
+      responses:
+        '201': { description: Enviada }

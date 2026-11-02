@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.env
+.env.local
+server/data/
+*.db
+*.db-wal
+*.db-shm
+.DS_Store
+*.log
+coverage/
+.vite/

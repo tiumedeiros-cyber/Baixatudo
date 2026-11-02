@@ -1,0 +1,21 @@
+{
+  "name": "navalha",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Navalha \u2014 plataforma de agendamentos e gest\u00e3o para barbearias (PWA + painel administrativo)",
+  "type": "module",
+  "workspaces": [
+    "server",
+    "web"
+  ],
+  "engines": {
+    "node": ">=22.5.0"
+  },
+  "scripts": {
+    "dev": "npm run build && npm start",
+    "build": "npm --workspace web run build",
+    "start": "node server/src/index.js",
+    "seed": "node server/src/seed.js --force",
+    "test": "node --test \"server/tests/*.test.js\""
+  }
+}
