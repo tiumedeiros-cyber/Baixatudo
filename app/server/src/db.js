@@ -6,6 +6,10 @@ import { randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+
+// Serverless (Vercel/Lambda) não tem disco persistente: usamos /tmp.
+if (process.env.VERCEL && !process.env.DATA_DIR) process.env.DATA_DIR = '/tmp/navalha-data';
+
 const DATA_DIR = process.env.DATA_DIR || join(__dirname, '..', 'data');
 const DB_PATH = process.env.DB_PATH || join(DATA_DIR, 'navalha.db');
 
@@ -64,3 +68,13 @@ export const audit = (actor, action, entity, entityId, payload = {}) =>
   );
 
 export const dbPath = DB_PATH;
+
+/** Popula o banco de demonstração se estiver vazio (usado no cold start serverless). */
+export async function ensureSeeded() {
+  const hasUsers = db.prepare('SELECT COUNT(*) AS total FROM users').get()?.total > 0;
+  if (hasUsers) return false;
+  console.log('[db] banco vazio — executando seed de demonstração');
+  process.argv.push('--force');
+  await import('./seed.js');
+  return true;
+}

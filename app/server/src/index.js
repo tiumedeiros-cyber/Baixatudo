@@ -20,15 +20,20 @@ const app = express();
 app.disable('x-powered-by');
 app.use(express.json({ limit: '1mb' }));
 
-// Cabeçalhos de segurança + CSP compatível com PWA
+// Cabeçalhos de segurança + CSP compatível com PWA.
+// O app precisa poder ser embutido em iframe por previews/hosts de hospedagem
+// (Arena, Vercel previews), portanto NÃO enviamos X-Frame-Options e
+// liberamos frame-ancestors via EMBED_ALLOWLIST (padrão: https + self).
+const FRAME_ANCESTORS =
+  process.env.FRAME_ANCESTORS || "'self' https: http://localhost:* http://127.0.0.1:*";
+
 app.use((req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
-  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(self)');
   res.setHeader(
     'Content-Security-Policy',
-    "default-src 'self'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'self'; font-src 'self' data:; frame-ancestors 'self'"
+    `default-src 'self'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'self'; font-src 'self' data:; frame-ancestors ${FRAME_ANCESTORS}`
   );
   next();
 });
@@ -94,6 +99,11 @@ app.use((err, _req, res, _next) => {
   res.status(500).json({ error: 'erro interno', detail: process.env.NODE_ENV === 'production' ? undefined : err.message });
 });
 
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`💈 Navalha API + PWA em http://0.0.0.0:${PORT}`);
-});
+// Em ambientes serverless (Vercel) o app é exportado; localmente escutamos a porta.
+export default app;
+
+if (!process.env.VERCEL && process.env.SERVE_LISTEN !== 'false') {
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`💈 Navalha API + PWA em http://0.0.0.0:${PORT}`);
+  });
+}

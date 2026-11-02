@@ -2,14 +2,14 @@
   "name": "navalha",
   "version": "1.0.0",
   "private": true,
-  "description": "Navalha \u2014 plataforma de agendamentos e gest\u00e3o para barbearias (PWA + painel administrativo)",
+  "description": "Navalha — plataforma de agendamentos e gestão para barbearias (PWA + painel administrativo)",
   "type": "module",
   "workspaces": [
     "server",
     "web"
   ],
   "engines": {
-    "node": ">=22.5.0"
+    "node": "22.x"
   },
   "scripts": {
     "dev": "npm run build && npm start",
