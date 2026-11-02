@@ -23,6 +23,10 @@ export const dateStr = (date: Date) => {
 
 export const timeStr = (value: string) => (value || '').slice(11, 16);
 
+/** "YYYY-MM-DDTHH:MM" no fuso local — comparável com os start_at da API */
+export const localDateTime = (date: Date = new Date()) =>
+  `${dateStr(date)}T${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+
 export const fmtDate = (value: string, opts: Intl.DateTimeFormatOptions = {}) => {
   const date = value?.includes('T') ? parseLocalDate(value) : parseLocalDate(`${value}T12:00`);
   return new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'long', ...opts }).format(date);

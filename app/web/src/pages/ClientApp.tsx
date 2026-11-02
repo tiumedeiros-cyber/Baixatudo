@@ -1,17 +1,34 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { api, type Appointment, type NotificationItem, type User } from '../lib/api';
 import { useAuth } from '../lib/auth';
-import { brl, fmtDate, fmtDateTime, durationLabel, paymentLabel, statusLabel, statusStyle, timeStr } from '../lib/format';
+import { brl, fmtDate, fmtDateTime, durationLabel, localDateTime, paymentLabel, statusLabel, statusStyle, timeStr } from '../lib/format';
 import { Avatar, Badge, Button, EmptyState, Field, Icon, Input, Modal, Spinner, StarRating, Textarea, useToast } from '../components/ui';
 import { PanelLayout } from '../components/Shell';
 
 type Tab = 'agenda' | 'historico' | 'clube' | 'notificacoes' | 'perfil';
 
+const pathToTab: Record<string, Tab> = {
+  '/app': 'agenda',
+  '/app/historico': 'historico',
+  '/app/clube': 'clube',
+  '/app/notificacoes': 'notificacoes',
+  '/app/perfil': 'perfil',
+};
+
+const tabToPath: Record<Tab, string> = {
+  agenda: '/app',
+  historico: '/app/historico',
+  clube: '/app/clube',
+  notificacoes: '/app/notificacoes',
+  perfil: '/app/perfil',
+};
+
 export function ClientApp() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
-  const [tab, setTab] = useState<Tab>('agenda');
+  const { pathname } = useLocation();
+  const tab: Tab = pathToTab[pathname] || 'agenda';
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [unread, setUnread] = useState(0);
@@ -50,8 +67,8 @@ export function ClientApp() {
     api.get<{ waiting_count: number; in_service: { end_at: string }[] }>('/appointments/queue').then(setQueue).catch(() => {});
   }, [user, load]);
 
-  const now = new Date().toISOString().slice(0, 16).replace('T', 'T');
-  const upcoming = appointments.filter((a) => a.start_at >= now.slice(0, 16) && !['cancelado', 'concluido', 'no_show'].includes(a.status)).sort((a, b) => a.start_at.localeCompare(b.start_at));
+  const nowLocal = localDateTime(new Date());
+  const upcoming = appointments.filter((a) => a.start_at >= nowLocal && !['cancelado', 'concluido', 'no_show'].includes(a.status)).sort((a, b) => a.start_at.localeCompare(b.start_at));
   const history = appointments.filter((a) => !upcoming.includes(a));
   const next = upcoming[0];
 
@@ -99,18 +116,7 @@ export function ClientApp() {
     { to: '/app/perfil', label: 'Meu perfil', icon: 'user' as const },
   ];
 
-  const navToTab: Record<string, Tab> = {
-    '/app': 'agenda',
-    '/app/historico': 'historico',
-    '/app/clube': 'clube',
-    '/app/notificacoes': 'notificacoes',
-    '/app/perfil': 'perfil',
-  };
-
-  const changeTab = (next: Tab) => {
-    setTab(next);
-    navigate(Object.keys(navToTab).find((k) => navToTab[k] === next) || '/app');
-  };
+  const changeTab = (next: Tab) => navigate(tabToPath[next]);
 
   return (
     <PanelLayout
@@ -130,13 +136,13 @@ export function ClientApp() {
       }
     >
       <div className="mb-5 flex gap-1 overflow-x-auto rounded-full border border-white/8 bg-ink-900/50 p-1 lg:hidden">
-        {(Object.keys(navToTab) as string[]).map((path) => (
+        {nav.map((item) => (
           <button
-            key={path}
-            onClick={() => changeTab(navToTab[path])}
-            className={`whitespace-nowrap rounded-full px-3 py-1.5 text-xs ${tab === navToTab[path] ? 'bg-brass-400 text-ink-950' : 'text-cream-300/70'}`}
+            key={item.to}
+            onClick={() => navigate(item.to)}
+            className={`whitespace-nowrap rounded-full px-3 py-1.5 text-xs ${tab === pathToTab[item.to] ? 'bg-brass-400 text-ink-950' : 'text-cream-300/70'}`}
           >
-            {nav.find((n) => n.to === path)?.label}
+            {item.label}
           </button>
         ))}
       </div>
