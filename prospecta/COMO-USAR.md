@@ -8,15 +8,25 @@ Nenhum passo abaixo custa dinheiro. Tudo é plano grátis: Vercel Hobby, Supabas
 
 ---
 
+## 0. Acesso ao painel (guarde isto)
+
+- **Endereço:** https://prospecta-editor-studio.vercel.app
+- **E-mail de login:** `tiumedeiros@gmail.com`
+- **Senha:** `Pr0spf341c892-si6M#bc76` → **troque no primeiro acesso** (é o e-mail e a senha do Supabase, criados no
+  passo 2.4; o painel só deixa entrar esse e-mail)
+- Segredos já configurados na Vercel: `SESSION_SECRET`, `WORKER_TOKEN`, `WA_WEBHOOK_SECRET` (o worker do seu PC usa os
+  dois últimos, exatamente iguais).
+
+---
+
 ## 1. O que já está no ar
 
 | Peça | Onde | Estado |
 |---|---|---|
 | Código do painel | repositório `tiumedeiros-cyber/Baixatudo`, pasta `prospecta/` | ✔ publicado |
 | Deploy do painel | Vercel, projeto **prospecta** (raiz `prospecta`) | ✔ build e deploy OK |
-| Banco + login | Supabase, região São Paulo | ⏳ pendente (cota do plano grátis) |
-
-Endereço do painel: **https://prospecta-editor-studio.vercel.app**
+| Segredos e `OWNER_EMAIL` | variáveis da Vercel | ✔ configurados |
+| Banco + login | Supabase, região São Paulo | ⏳ pendente (criar projeto + usuário) |
 
 > Enquanto o banco não estiver ligado, o painel publicado mostra uma mensagem de configuração incompleta — isso é
 > proposital: o sistema **recusa abrir sem login** quando está em produção. Ele nunca cai no modo demonstração na
@@ -31,8 +41,9 @@ Endereço do painel: **https://prospecta-editor-studio.vercel.app**
 2. **SQL Editor → New query**: cole todo o conteúdo de `prospecta/supabase/TUDO-EM-UM.sql` e clique em **Run**.
    (São as 7 migrações juntas; rode uma vez, num projeto vazio.)
 3. **Authentication → Sign In / Providers**: desligue *Allow new users to sign up* (só você entra).
-4. **Authentication → Users → Add user → Create new user**: coloque **o seu e-mail** e uma senha forte
-   (marque *Auto Confirm User*). É com esse e-mail e senha que você entra no painel publicado.
+4. **Authentication → Users → Add user → Create new user**: e-mail `tiumedeiros@gmail.com` e senha
+   `Pr0spf341c892-si6M#bc76` (marque *Auto Confirm User*). É com esse e-mail e senha que você entra no painel
+   publicado — depois troque a senha em *Authentication → Users*.
 5. **Project Settings → API Keys**: copie a **URL do projeto**, a chave **publishable** (a pública, antiga "anon")
    e a chave **secret** (a privada, `sb_secret_…`).
 
@@ -45,11 +56,11 @@ Vercel → projeto **prospecta** → Settings → Environment Variables (marque 
 | `SUPABASE_URL` | `https://SEU-REF.supabase.co` |
 | `SUPABASE_PUBLISHABLE_KEY` | a chave publishable |
 | `SUPABASE_SECRET_KEY` | a chave **secret** (só existe no servidor — nunca vai ao navegador) |
-| `OWNER_EMAIL` | o e-mail que você criou no passo 4 |
-| `SESSION_SECRET` | invente: `node -e "console.log(require('crypto').randomBytes(48).toString('base64url'))"` |
-| `WORKER_TOKEN` | invente: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` |
-| `WA_WEBHOOK_SECRET` | invente outro igual ao de cima |
-| `SITE_URL` | `https://prospecta-editor-studio.vercel.app` (usado no link das prévias enviadas aos leads) |
+| `OWNER_EMAIL` | `tiumedeiros@gmail.com` — ✔ já configurado |
+| `SESSION_SECRET` | ✔ já configurado |
+| `WORKER_TOKEN` | ✔ já configurado — use o mesmo valor no `.env.local` do PC |
+| `WA_WEBHOOK_SECRET` | ✔ já configurado — use o mesmo valor no `.env.local` do PC |
+| `SITE_URL` | ✔ já configurado (`https://prospecta-editor-studio.vercel.app`) |
 | `APIFY_TOKEN` | opcional: busca no Google Maps (apify.com, tem crédito grátis) |
 
 Depois de salvar, faça **Redeploy** (Deployments → ⋯ → Redeploy) para o painel pegar as variáveis.
