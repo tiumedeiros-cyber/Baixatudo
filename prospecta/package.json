@@ -1,0 +1,45 @@
+{
+  "name": "jk-prospect-x1",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -H 127.0.0.1",
+    "dev:demo": "node scripts/dev-demo.mjs",
+    "build": "next build",
+    "start": "next start -H 127.0.0.1",
+    "worker": "node --env-file=.env.local scripts/worker-loop.mjs",
+    "gowa": "powershell -ExecutionPolicy Bypass -File scripts/gowa-start.ps1",
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "agent:eval": "node --env-file=.env.local --env-file=scripts/agent-eval.env node_modules/vitest/vitest.mjs run src/lib/agent/eval.live.test.ts",
+    "agent:opening": "node --env-file=.env.local --env-file=scripts/agent-eval.env node_modules/vitest/vitest.mjs run src/lib/outreach/opening.live.test.ts"
+  },
+  "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
+    "@supabase/ssr": "^0.12.7",
+    "@supabase/supabase-js": "^2.118.0",
+    "clsx": "^2.1.1",
+    "lucide-react": "^1.61.0",
+    "next": "16.4.2",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "server-only": "^0.0.1",
+    "tailwind-merge": "^3.7.0",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@tailwindcss/turbopack": "^4",
+    "@types/node": "^22.20.5",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.4.2",
+    "tailwindcss": "^4",
+    "typescript": "^5",
+    "vitest": "^5.0.5"
+  }
+}

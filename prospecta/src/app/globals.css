@@ -1,0 +1,240 @@
+@import "tailwindcss";
+
+/* ───────────────────────────── Tokens da marca ─────────────────────────────
+   JK / KELVIN STUDIO — escuro, chapado, raio zero, um único acento lime.
+   Profundidade vem de camadas de superfície + linhas de 1px. Nunca de sombra.
+   v2 (redesign): mais camadas de superfície, linha suave, tipografia em escala fixa
+   e um conjunto pequeno de utilitários (.label, .num, .kicker, .dot, .hairline). */
+:root {
+  --bg: #050505;
+  --surface-0: #070707;
+  --surface-1: #0b0b0b;
+  --surface-2: #121212;
+  --surface-3: #191919;
+  --surface-4: #232323;
+  --fg: #f2f2ec;
+  --fg-soft: #d4d4cc;
+  --muted: #8f8f88;
+  --faint: #55554f;
+  --line-soft: rgba(255, 255, 255, 0.055);
+  --line: rgba(255, 255, 255, 0.09);
+  --line-strong: rgba(255, 255, 255, 0.2);
+  --accent: #ccff00;
+  --accent-ink: #050505;
+  --accent-dim: rgba(204, 255, 0, 0.1);
+  --accent-line: rgba(204, 255, 0, 0.32);
+  /* semânticos: só aparecem em estados, nunca como decoração */
+  --warn: #ffb020;
+  --danger: #ff5a47;
+  --info: #7db2ff;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  /* larguras fixas da casca */
+  --sidebar-w: 248px;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface-0: var(--surface-0);
+  --color-surface-1: var(--surface-1);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-surface-4: var(--surface-4);
+  --color-fg: var(--fg);
+  --color-fg-soft: var(--fg-soft);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+  --color-line-soft: var(--line-soft);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-dim: var(--accent-dim);
+  --color-accent-line: var(--accent-line);
+  --color-warn: var(--warn);
+  --color-danger: var(--danger);
+  --color-info: var(--info);
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+}
+
+@layer base {
+  *,
+  *::before,
+  *::after {
+    border-radius: 0;
+  }
+  html {
+    background: var(--bg);
+    color-scheme: dark;
+  }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--font-geist-sans), system-ui, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    letter-spacing: -0.003em;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+  p {
+    text-wrap: pretty;
+  }
+  ::selection {
+    background: var(--accent);
+    color: var(--accent-ink);
+  }
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  button,
+  a {
+    -webkit-tap-highlight-color: transparent;
+  }
+  input,
+  select,
+  textarea {
+    color-scheme: dark;
+  }
+  /* seta do select (o navegador some com ela quando usamos appearance-none) */
+  select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238f8f88' stroke-width='2.5' stroke-linecap='square'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+  }
+  select option {
+    background: var(--surface-2);
+    color: var(--fg);
+  }
+  /* barras de rolagem finas, no tom da marca */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--surface-4) transparent;
+  }
+  /* <details> sem o triângulo do navegador */
+  summary {
+    list-style: none;
+  }
+  summary::-webkit-details-marker {
+    display: none;
+  }
+}
+
+@layer components {
+  /* micro-rótulo mono: navegação, metadados, tags */
+  .label {
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
+    font-size: 0.6875rem;
+    line-height: 1.2;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+  .num {
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+  }
+  /* o quadradinho lime que abre títulos pequenos */
+  .kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .kicker::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    background: var(--accent);
+    flex: none;
+  }
+  /* ponto de status (quadrado, como tudo na marca) */
+  .dot {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    flex: none;
+    background: currentColor;
+  }
+  /* linha de 1px que some nas pontas */
+  .hairline {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--line-strong) 20%, var(--line-strong) 80%, transparent);
+  }
+  /* grade sutil de fundo para áreas vazias e topo das páginas */
+  .grid-bg {
+    background-image:
+      linear-gradient(var(--line-soft) 1px, transparent 1px),
+      linear-gradient(90deg, var(--line-soft) 1px, transparent 1px);
+    background-size: 32px 32px;
+    background-position: -1px -1px;
+    mask-image: linear-gradient(180deg, #000 0%, transparent 90%);
+  }
+  /* uma camada levemente mais clara no topo: dá corpo ao painel sem sombra */
+  .sheen {
+    background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.025), transparent 120px);
+  }
+  /* entrada escalonada: <div class="rise" style="--i:2"> */
+  .rise {
+    animation: rise 0.5s var(--ease-out) both;
+    animation-delay: calc(var(--i, 0) * 40ms);
+  }
+  .pulse-sq {
+    animation: pulse-sq 1.6s steps(2, end) infinite;
+  }
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes pulse-sq {
+  50% {
+    opacity: 0.25;
+  }
+}
+@keyframes shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+@keyframes slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rise,
+  .pulse-sq {
+    animation: none;
+  }
+  * {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}

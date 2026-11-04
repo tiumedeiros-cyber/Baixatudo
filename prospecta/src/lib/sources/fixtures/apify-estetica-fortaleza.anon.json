@@ -1,0 +1,755 @@
+[
+  {
+    "title": "Estética Exemplo 01",
+    "categoryName": "Centro de saúde e beleza",
+    "categories": [
+      "Centro de saúde e beleza",
+      "Esteticista"
+    ],
+    "address": "Rua Exemplo, 100 - Mondubim, Fortaleza - CE, 60000-000, Brasil",
+    "neighborhood": "Mondubim",
+    "street": "Rua Exemplo, 100",
+    "city": "Fortaleza",
+    "state": "Ceará",
+    "countryCode": "BR",
+    "phone": "+55 85 90000-0001",
+    "phoneUnformatted": "+5585900000001",
+    "website": "https://instagram.com/exemplo_01?utm_source=ig_web_button_share_sheet",
+    "totalScore": 4.9,
+    "reviewsCount": 100,
+    "imagesCount": 53,
+    "openingHours": [
+      {
+        "day": "quinta-feira",
+        "hours": "10:00 to 19:00"
+      },
+      {
+        "day": "sexta-feira",
+        "hours": "10:00 to 19:00"
+      }
+    ],
+    "permanentlyClosed": false,
+    "temporarilyClosed": false,
+    "placeId": "ChIJexemplo01",
+    "url": "https://www.google.com/maps/search/?api=1&query=Exemplo+01&query_place_id=ChIJexemplo01",
+    "location": {
+      "lat": -3.7,
+      "lng": -38.5
+    }
+  },
+  {
+    "title": "Estética Exemplo 02",
+    "categoryName": "Spa de saúde",
+    "categories": [
+      "Spa de saúde"
+    ],
+    "address": "Rua Exemplo, 101 - Siqueira, Fortaleza - CE, 60000-000, Brasil",
+    "neighborhood": "Siqueira",
+    "street": "Rua Exemplo, 101",
+    "city": "Fortaleza",
+    "state": "Ceará",
+    "countryCode": "BR",
+    "phone": "+55 85 90000-0002",
+    "phoneUnformatted": "+5585900000002",
+    "totalScore": 5,
+    "reviewsCount": 126,
+    "imagesCount": 14,
+    "openingHours": [
+      {
+        "day": "quinta-feira",
+        "hours": "09:00 to 21:00"
+      },
+      {
+        "day": "sexta-feira",
+        "hours": "09:00 to 21:00"
+      }
+    ],
+    "permanentlyClosed": false,
+    "temporarilyClosed": false,
+    "placeId": "ChIJexemplo02",
+    "url": "https://www.google.com/maps/search/?api=1&query=Exemplo+02&query_place_id=ChIJexemplo02",
+    "location": {
+      "lat": -3.701,
+      "lng": -38.501
+    }
+  },
+  {
+    "title": "Estética Exemplo 03",
+    "categoryName": "Esteticista",
+    "categories": [
+      "Esteticista",
+      "Centro de massagem"
+    ],
+    "address": "Rua Exemplo, 102 - Messejana, Fortaleza - CE, 60000-000, Brasil",
+    "neighborhood": "Messejana",
+    "street": "Rua Exemplo, 102",
+    "city": "Fortaleza",
+    "state": "Ceará",
+    "countryCode": "BR",
+    "phone": "+55 85 90000-0003",
+    "phoneUnformatted": "+5585900000003",
+    "website": "https://linktr.ee/exemplo03",
+    "totalScore": 4.8,
+    "reviewsCount": 18,
+    "imagesCount": 16,
+    "openingHours": [
+      {
+        "day": "quinta-feira",
+        "hours": "09:00 to 19:00"
+      },
+      {
+        "day": "sexta-feira",
+        "hours": "09:00 to 19:00"
+      }
+    ],
+    "permanentlyClosed": false,
+    "temporarilyClosed": false,
+    "placeId": "ChIJexemplo03",
+    "url": "https://www.google.com/maps/search/?api=1&query=Exemplo+03&query_place_id=ChIJexemplo03",
+    "location": {
+      "lat": -3.702,
+      "lng": -38.502
+    }
+  },
+  {
+    "title": "Estética Exemplo 04",
+    "categoryName": "Centro de saúde e beleza",
+    "categories": [
+      "Centro de saúde e beleza"
+    ],
+    "address": "Rua Exemplo, 103 - Jardim Cearense, Fortaleza - CE, 60000-000, Brasil",
+    "neighborhood": "Jardim Cearense",
+    "street": "Rua Exemplo, 103",
+    "city": "Fortaleza",
+    "state": "Ceará",
+    "countryCode": "BR",
+    "phone": "+55 85 3000-0004",
+    "phoneUnformatted": "+55853000004",
+    "website": "https://instagram.com/exemplo_04?utm_source=ig_web_button_share_sheet",
+    "totalScore": 4.8,
+    "reviewsCount": 48,
+    "imagesCount": 8,
+    "openingHours": [
+      {
+        "day": "quinta-feira",
+        "hours": "08:30 to 18:30"
+      },
+      {
+        "day": "sexta-feira",
+        "hours": "08:30 to 18:30"
+      }
+    ],
+    "permanentlyClosed": false,
+    "temporarilyClosed": false,
+    "placeId": "ChIJexemplo04",
+    "url": "https://www.google.com/maps/search/?api=1&query=Exemplo+04&query_place_id=ChIJexemplo04",
+    "location": {
+      "lat": -3.7030000000000003,
+      "lng": -38.503
+    }
+  },
+  {
+    "title": "Estética Exemplo 05",
+    "categoryName": "Esteticista",
+    "categories": [
+      "Esteticista"
+    ],
+    "address": "Rua Exemplo, 104 - Planalto Ayrton Senna, Fortaleza - CE, 60000-000, Brasil",
+    "neighborhood": "Planalto Ayrton Senna",
+    "street": "Rua Exemplo, 104",
+    "city": "Fortaleza",
+    "state": "Ceará",
+    "countryCode": "BR",
+    "phone": "+55 85 90000-0005",
+    "phoneUnformatted": "+5585900000005",
+    "totalScore": 5,
+    "reviewsCount": 18,
+    "imagesCount": 20,
+    "openingHours": [
+      {
+        "day": "quinta-feira",
+        "hours": "09:00 to 18:00"
+      },
+      {
+        "day": "sexta-feira",
+        "hours": "09:00 to 18:00"
+      }
+    ],
+    "permanentlyClosed": false,
+    "temporarilyClosed": false,
+    "placeId": "ChIJexemplo05",
+    "url": "https://www.google.com/maps/search/?api=1&query=Exemplo+05&query_place_id=ChIJexemplo05",
+    "location": {
+      "lat": -3.704,
+      "lng": -38.504
+    }
+  },
+  {
+    "title": "Estética Exemplo 06",
+    "categoryName": "Centro de saúde e beleza",
+    "categories": [
+      "Centro de saúde e beleza"
+    ],
+    "address": "Rua Exemplo, 105 - Messejana, Fortaleza - CE, 60000-000, Brasil",
+    "neighborhood": "Messejana",
+    "street": "Rua Exemplo, 105",
+    "city": "Fortaleza",
+    "state": "Ceará",
+    "countryCode": "BR",
+    "phone": "+55 85 90000-0006",
+    "phoneUnformatted": "+5585900000006",
+    "website": "https://instagram.com/exemplo_06?utm_source=ig_web_button_share_sheet",
+    "totalScore": 4.8,
+    "reviewsCount": 40,
+    "imagesCount": 18,
+    "openingHours": [
+      {
+        "day": "quinta-feira",
+        "hours": "09:00 to 19:00"
+      },
+      {
+        "day": "sexta-feira",
+        "hours": "09:00 to 19:00"
+      }
+    ],
+    "permanentlyClosed": false,
+    "temporarilyClosed": false,
+    "placeId": "ChIJexemplo06",
+    "url": "https://www.google.com/maps/search/?api=1&query=Exemplo+06&query_place_id=ChIJexemplo06",
+    "location": {
+      "lat": -3.705,
+      "lng": -38.505
+    }
+  },
+  {
+    "title": "Estética Exemplo 07",
+    "categoryName": "Centro de saúde e beleza",
+    "categories": [
+      "Centro de saúde e beleza"
+    ],
+    "address": "Rua Exemplo, 106 - Cambeba, Fortaleza - CE, 60000-000, Brasil",
+    "neighborhood": "Cambeba",
+    "street": "Rua Exemplo, 106",
+    "city": "Fortaleza",
+    "state": "Ceará",
+    "countryCode": "BR",
+    "phone": "+55 85 90000-0007",
+    "phoneUnformatted": "+5585900000007",
+    "website": "https://www.facebook.com/Exemplo07",
+    "totalScore": 4.8,
+    "reviewsCount": 70,
+    "imagesCount": 13,
+    "openingHours": [
+      {
+        "day": "quinta-feira",
+        "hours": "09:00 to 19:00"
+      },
+      {
+        "day": "sexta-feira",
+        "hours": "09:00 to 20:00"
+      }
+    ],
+    "permanentlyClosed": false,
+    "temporarilyClosed": false,
+    "placeId": "ChIJexemplo07",
+    "url": "https://www.google.com/maps/search/?api=1&query=Exemplo+07&query_place_id=ChIJexemplo07",
+    "location": {
+      "lat": -3.706,
+      "lng": -38.506
+    }
+  },
+  {
+    "title": "Estética Exemplo 08",
+    "categoryName": "Esteticista",
+    "categories": [
+      "Esteticista"
+    ],
+    "address": "Rua Exemplo, 107 - Messejana, Fortaleza - CE, 60000-000, Brasil",
+    "neighborhood": "Messejana",
+    "street": "Rua Exemplo, 107",
+    "city": "Fortaleza",
+    "state": "Ceará",
+    "countryCode": "BR",
+    "phone": "+55 85 90000-0008",
+    "phoneUnformatted": "+5585900000008",
+    "totalScore": 5,
+    "reviewsCount": 31,
+    "imagesCount": 26,
+    "openingHours": [
+      {
+        "day": "quinta-feira",
+        "hours": "09:00 to 20:00"
+      },
+      {
+        "day": "sexta-feira",
+        "hours": "09:00 to 20:00"
+      }
+    ],
+    "permanentlyClosed": false,
+    "temporarilyClosed": false,
+    "placeId": "ChIJexemplo08",
+    "url": "https://www.google.com/maps/search/?api=1&query=Exemplo+08&query_place_id=ChIJexemplo08",
+    "location": {
+      "lat": -3.7070000000000003,
+      "lng": -38.507
+    }
+  },
+  {
+    "title": "Estética Exemplo 09",
+    "categoryName": "Salão de Beleza",
+    "categories": [
+      "Salão de Beleza"
+    ],
+    "address": "Rua Exemplo, 108 - Prefeito José Walter, Fortaleza - CE, 60000-000, Brasil",
+    "neighborhood": "Prefeito José Walter",
+    "street": "Rua Exemplo, 108",
+    "city": "Fortaleza",
+    "state": "Ceará",
+    "countryCode": "BR",
+    "phone": "+55 85 90000-0009",
+    "phoneUnformatted": "+5585900000009",
+    "totalScore": 5,
+    "reviewsCount": 40,
+    "imagesCount": 18,
+    "openingHours": [
+      {
+        "day": "quinta-feira",
+        "hours": "09:00 to 18:00"
+      },
+      {
+        "day": "sexta-feira",
+        "hours": "09:00 to 18:00"
+      }
+    ],
+    "permanentlyClosed": false,
+    "temporarilyClosed": false,
+    "placeId": "ChIJexemplo09",
+    "url": "https://www.google.com/maps/search/?api=1&query=Exemplo+09&query_place_id=ChIJexemplo09",
+    "location": {
+      "lat": -3.708,
+      "lng": -38.508
+    }
+  },
+  {
+    "title": "Estética Exemplo 10",
+    "categoryName": "Salão de Beleza",
+    "categories": [
+      "Salão de Beleza",
+      "Esteticista",
+      "Salão de sobrancelhas",
+      "Depilação",
+      "Massoterapeuta",
+      "Manicure",
+      "Serviço de remoção de tatuagens",
+      "Cabeleireiro",
+      "Serviço de depilação a cera"
+    ],
+    "address": "Rua Exemplo, 109 - Messejana, Fortaleza - CE, 60000-000, Brasil",
+    "neighborhood": "Messejana",
+    "street": "Rua Exemplo, 109",
+    "city": "Fortaleza",
+    "state": "Ceará",
+    "countryCode": "BR",
+    "phone": "+55 85 90000-0010",
+    "phoneUnformatted": "+5585900000010",
+    "totalScore": 4.9,
+    "reviewsCount": 76,
+    "imagesCount": 59,
+    "openingHours": [
+      {
+        "day": "quinta-feira",
+        "hours": "08:00 to 18:00"
+      },
+      {
+        "day": "sexta-feira",
+        "hours": "08:00 to 18:00"
+      }
+    ],
+    "permanentlyClosed": false,
+    "temporarilyClosed": false,
+    "placeId": "ChIJexemplo10",
+    "url": "https://www.google.com/maps/search/?api=1&query=Exemplo+10&query_place_id=ChIJexemplo10",
+    "location": {
+      "lat": -3.709,
+      "lng": -38.509
+    }
+  },
+  {
+    "title": "Estética Exemplo 11",
+    "categoryName": "Centro de saúde e beleza",
+    "categories": [
+      "Centro de saúde e beleza"
+    ],
+    "address": "Rua Exemplo, 110 - José de Alencar, Fortaleza - CE, 60000-000, Brasil",
+    "neighborhood": "José de Alencar",
+    "street": "Rua Exemplo, 110",
+    "city": "Fortaleza",
+    "state": "Ceará",
+    "countryCode": "BR",
+    "phone": "+55 85 90000-0011",
+    "phoneUnformatted": "+5585900000011",
+    "website": "https://exemplo11.my.canva.site/inicio",
+    "totalScore": 5,
+    "reviewsCount": 14,
+    "imagesCount": 48,
+    "openingHours": [
+      {
+        "day": "quinta-feira",
+        "hours": "08:00 to 18:00"
+      },
+      {
+        "day": "sexta-feira",
+        "hours": "08:00 to 18:00"
+      }
+    ],
+    "permanentlyClosed": false,
+    "temporarilyClosed": false,
+    "placeId": "ChIJexemplo11",
+    "url": "https://www.google.com/maps/search/?api=1&query=Exemplo+11&query_place_id=ChIJexemplo11",
+    "location": {
+      "lat": -3.71,
+      "lng": -38.51
+    }
+  },
+  {
+    "title": "Estética Exemplo 12",
+    "categoryName": "Centro de saúde e beleza",
+    "categories": [
+      "Centro de saúde e beleza"
+    ],
+    "address": "Rua Exemplo, 111 - Edson Queiroz, Fortaleza - CE, 60000-000, Brasil",
+    "neighborhood": "Edson Queiroz",
+    "street": "Rua Exemplo, 111",
+    "city": "Fortaleza",
+    "state": "Ceará",
+    "countryCode": "BR",
+    "phone": "+55 85 90000-0012",
+    "phoneUnformatted": "+5585900000012",
+    "website": "https://instagram.com/exemplo_12?utm_source=ig_web_button_share_sheet",
+    "totalScore": 4.9,
+    "reviewsCount": 58,
+    "imagesCount": 34,
+    "openingHours": [
+      {
+        "day": "quinta-feira",
+        "hours": "09:00 to 18:00"
+      },
+      {
+        "day": "sexta-feira",
+        "hours": "09:00 to 18:00"
+      }
+    ],
+    "permanentlyClosed": false,
+    "temporarilyClosed": false,
+    "placeId": "ChIJexemplo12",
+    "url": "https://www.google.com/maps/search/?api=1&query=Exemplo+12&query_place_id=ChIJexemplo12",
+    "location": {
+      "lat": -3.7110000000000003,
+      "lng": -38.511
+    }
+  },
+  {
+    "title": "Estética Exemplo 13",
+    "categoryName": "Esteticista",
+    "categories": [
+      "Esteticista",
+      "Spa facial",
+      "Centro de massagem",
+      "Spa"
+    ],
+    "address": "Rua Exemplo, 112 - Aracapé, Fortaleza - CE, 60000-000, Brasil",
+    "neighborhood": "Aracapé",
+    "street": "Rua Exemplo, 112",
+    "city": "Fortaleza",
+    "state": "Ceará",
+    "countryCode": "BR",
+    "phone": "+55 85 90000-0013",
+    "phoneUnformatted": "+5585900000013",
+    "totalScore": 5,
+    "reviewsCount": 19,
+    "imagesCount": 14,
+    "openingHours": [
+      {
+        "day": "quinta-feira",
+        "hours": "09:00 to 18:00"
+      },
+      {
+        "day": "sexta-feira",
+        "hours": "09:00 to 18:00"
+      }
+    ],
+    "permanentlyClosed": false,
+    "temporarilyClosed": false,
+    "placeId": "ChIJexemplo13",
+    "url": "https://www.google.com/maps/search/?api=1&query=Exemplo+13&query_place_id=ChIJexemplo13",
+    "location": {
+      "lat": -3.712,
+      "lng": -38.512
+    }
+  },
+  {
+    "title": "Estética Exemplo 14",
+    "categoryName": "Centro de saúde e beleza",
+    "categories": [
+      "Centro de saúde e beleza",
+      "Salão de Beleza",
+      "Clínica de Fisioterapia"
+    ],
+    "address": "Rua Exemplo, 113 - Messejana, Fortaleza - CE, 60000-000, Brasil",
+    "neighborhood": "Messejana",
+    "street": "Rua Exemplo, 113",
+    "city": "Fortaleza",
+    "state": "Ceará",
+    "countryCode": "BR",
+    "phone": "+55 85 90000-0014",
+    "phoneUnformatted": "+5585900000014",
+    "website": "https://instagram.com/exemplo_14?utm_source=ig_web_button_share_sheet",
+    "totalScore": 4.9,
+    "reviewsCount": 10,
+    "imagesCount": 14,
+    "openingHours": [
+      {
+        "day": "quinta-feira",
+        "hours": "08:00 to 18:00"
+      },
+      {
+        "day": "sexta-feira",
+        "hours": "08:00 to 18:00"
+      }
+    ],
+    "permanentlyClosed": false,
+    "temporarilyClosed": false,
+    "placeId": "ChIJexemplo14",
+    "url": "https://www.google.com/maps/search/?api=1&query=Exemplo+14&query_place_id=ChIJexemplo14",
+    "location": {
+      "lat": -3.713,
+      "lng": -38.513
+    }
+  },
+  {
+    "title": "Estética Exemplo 15",
+    "categoryName": "Centro de saúde e beleza",
+    "categories": [
+      "Centro de saúde e beleza",
+      "Salão de Beleza",
+      "Loja de produtos de beleza"
+    ],
+    "address": "Rua Exemplo, 114 - Passaré, Fortaleza - CE, 60000-000, Brasil",
+    "neighborhood": "Passaré",
+    "street": "Rua Exemplo, 114",
+    "city": "Fortaleza",
+    "state": "Ceará",
+    "countryCode": "BR",
+    "phone": "+55 85 90000-0015",
+    "phoneUnformatted": "+5585900000015",
+    "totalScore": 4.8,
+    "reviewsCount": 46,
+    "imagesCount": 9,
+    "openingHours": [
+      {
+        "day": "quinta-feira",
+        "hours": "08:00 to 18:00"
+      },
+      {
+        "day": "sexta-feira",
+        "hours": "08:00 to 18:00"
+      }
+    ],
+    "permanentlyClosed": false,
+    "temporarilyClosed": false,
+    "placeId": "ChIJexemplo15",
+    "url": "https://www.google.com/maps/search/?api=1&query=Exemplo+15&query_place_id=ChIJexemplo15",
+    "location": {
+      "lat": -3.714,
+      "lng": -38.514
+    }
+  },
+  {
+    "title": "Estética Exemplo 16",
+    "categoryName": "Clínica especializada",
+    "categories": [
+      "Clínica especializada"
+    ],
+    "address": "Rua Exemplo, 115 - Maraponga, Fortaleza - CE, 60000-000, Brasil",
+    "neighborhood": "Maraponga",
+    "street": "Rua Exemplo, 115",
+    "city": "Fortaleza",
+    "state": "Ceará",
+    "countryCode": "BR",
+    "phone": "+55 85 90000-0016",
+    "phoneUnformatted": "+5585900000016",
+    "website": "https://instagram.com/exemplo_16?utm_source=ig_web_button_share_sheet",
+    "totalScore": 4.9,
+    "reviewsCount": 18,
+    "imagesCount": 66,
+    "openingHours": [
+      {
+        "day": "quinta-feira",
+        "hours": "08:00 to 18:00"
+      },
+      {
+        "day": "sexta-feira",
+        "hours": "08:00 to 18:00"
+      }
+    ],
+    "permanentlyClosed": false,
+    "temporarilyClosed": false,
+    "placeId": "ChIJexemplo16",
+    "url": "https://www.google.com/maps/search/?api=1&query=Exemplo+16&query_place_id=ChIJexemplo16",
+    "location": {
+      "lat": -3.7150000000000003,
+      "lng": -38.515
+    }
+  },
+  {
+    "title": "Estética Exemplo 17",
+    "categoryName": "Centro de saúde e beleza",
+    "categories": [
+      "Centro de saúde e beleza",
+      "Esteticista",
+      "Clínica especializada"
+    ],
+    "address": "Rua Exemplo, 116 - Aldeota, Fortaleza - CE, 60000-000, Brasil",
+    "neighborhood": "Aldeota",
+    "street": "Rua Exemplo, 116",
+    "city": "Fortaleza",
+    "state": "Ceará",
+    "countryCode": "BR",
+    "phone": "+55 85 90000-0017",
+    "phoneUnformatted": "+5585900000017",
+    "website": "https://exemplo17.com.br/",
+    "totalScore": 4.8,
+    "reviewsCount": 115,
+    "imagesCount": 100,
+    "openingHours": [
+      {
+        "day": "quinta-feira",
+        "hours": "Atendimento 24 horas"
+      },
+      {
+        "day": "sexta-feira",
+        "hours": "Atendimento 24 horas"
+      }
+    ],
+    "permanentlyClosed": false,
+    "temporarilyClosed": false,
+    "placeId": "ChIJexemplo17",
+    "url": "https://www.google.com/maps/search/?api=1&query=Exemplo+17&query_place_id=ChIJexemplo17",
+    "location": {
+      "lat": -3.716,
+      "lng": -38.516
+    }
+  },
+  {
+    "title": "Estética Exemplo 18",
+    "categoryName": "Centro de saúde e beleza",
+    "categories": [
+      "Centro de saúde e beleza",
+      "Esteticista"
+    ],
+    "address": "Rua Exemplo, 117 - Parquelândia, Fortaleza - CE, 60000-000, Brasil",
+    "neighborhood": "Parquelândia",
+    "street": "Rua Exemplo, 117",
+    "city": "Fortaleza",
+    "state": "Ceará",
+    "countryCode": "BR",
+    "phone": "+55 85 90000-0018",
+    "phoneUnformatted": "+5585900000018",
+    "website": "https://instagram.com/exemplo_18?utm_source=ig_web_button_share_sheet",
+    "totalScore": 4.9,
+    "reviewsCount": 108,
+    "imagesCount": 144,
+    "openingHours": [
+      {
+        "day": "quinta-feira",
+        "hours": "10:00 to 20:00"
+      },
+      {
+        "day": "sexta-feira",
+        "hours": "10:00 to 20:00"
+      }
+    ],
+    "permanentlyClosed": false,
+    "temporarilyClosed": false,
+    "placeId": "ChIJexemplo18",
+    "url": "https://www.google.com/maps/search/?api=1&query=Exemplo+18&query_place_id=ChIJexemplo18",
+    "location": {
+      "lat": -3.717,
+      "lng": -38.517
+    }
+  },
+  {
+    "title": "Estética Exemplo 19",
+    "categoryName": "Esteticista",
+    "categories": [
+      "Esteticista"
+    ],
+    "address": "Rua Exemplo, 118 - Cocó, Fortaleza - CE, 60000-000, Brasil",
+    "neighborhood": "Cocó",
+    "street": "Rua Exemplo, 118",
+    "city": "Fortaleza",
+    "state": "CE",
+    "countryCode": "BR",
+    "phone": "+55 85 90000-0019",
+    "phoneUnformatted": "+5585900000019",
+    "totalScore": 4.8,
+    "reviewsCount": 25,
+    "imagesCount": 16,
+    "openingHours": [
+      {
+        "day": "quinta-feira",
+        "hours": "09:00 to 12:00, 14:00 to 18:00"
+      },
+      {
+        "day": "sexta-feira",
+        "hours": "09:00 to 12:00, 14:00 to 18:00"
+      }
+    ],
+    "permanentlyClosed": false,
+    "temporarilyClosed": false,
+    "placeId": "ChIJexemplo19",
+    "url": "https://www.google.com/maps/search/?api=1&query=Exemplo+19&query_place_id=ChIJexemplo19",
+    "location": {
+      "lat": -3.718,
+      "lng": -38.518
+    }
+  },
+  {
+    "title": "Estética Exemplo 20",
+    "categoryName": "Centro de saúde e beleza",
+    "categories": [
+      "Centro de saúde e beleza",
+      "Clínica especializada"
+    ],
+    "address": "Rua Exemplo, 119 - Álvaro Weyne, Fortaleza - CE, 60000-000, Brasil",
+    "neighborhood": "Álvaro Weyne",
+    "street": "Rua Exemplo, 119",
+    "city": "Fortaleza",
+    "state": "Ceará",
+    "countryCode": "BR",
+    "phone": "+55 85 90000-0020",
+    "phoneUnformatted": "+5585900000020",
+    "website": "https://instagram.com/exemplo_20?utm_source=ig_web_button_share_sheet",
+    "totalScore": 5,
+    "reviewsCount": 76,
+    "imagesCount": 24,
+    "openingHours": [
+      {
+        "day": "quinta-feira",
+        "hours": "08:00 to 19:00"
+      },
+      {
+        "day": "sexta-feira",
+        "hours": "08:00 to 19:00"
+      }
+    ],
+    "permanentlyClosed": false,
+    "temporarilyClosed": false,
+    "placeId": "ChIJexemplo20",
+    "url": "https://www.google.com/maps/search/?api=1&query=Exemplo+20&query_place_id=ChIJexemplo20",
+    "location": {
+      "lat": -3.7190000000000003,
+      "lng": -38.519
+    }
+  }
+]
