@@ -54,6 +54,15 @@ Vercel → projeto **prospecta** → Settings → Environment Variables (marque 
 
 Depois de salvar, faça **Redeploy** (Deployments → ⋯ → Redeploy) para o painel pegar as variáveis.
 
+### Desligar a proteção de acesso da Vercel
+
+Hoje o endereço do painel pede **login na Vercel** antes de mostrar qualquer coisa (é o padrão da conta). Para o painel
+ter o **seu** login (Supabase), desligue a proteção:
+
+Vercel → projeto **prospecta** → Settings → **Deployment Protection** → *Vercel Authentication* → **Disabled** → Save.
+
+A partir daí o endereço abre direto na tela de login do próprio sistema, onde só o seu e-mail entra.
+
 > **Atenção:** assim que o painel estiver publicado, o botão "Entrar neste computador" **não funciona** — ele só vale
 > em localhost. Na nuvem você entra com **e-mail e senha** (passo 4). É assim de propósito: quem abrir o endereço sem
 > sua senha não vê nada.
