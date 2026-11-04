@@ -27,7 +27,10 @@ function Get-EnvValue([string]$name) {
 
 $secret = Get-EnvValue "WA_WEBHOOK_SECRET"
 $basic = Get-EnvValue "GOWA_BASIC_AUTH"
-$panel = "http://localhost:3000"
+# O webhook vai para o painel. Se você publicou o painel (Vercel), ponha o endereço em
+# PANEL_URL no .env.local (ex.: PANEL_URL=https://prospecta-editor-studio.vercel.app).
+$panel = Get-EnvValue "PANEL_URL"
+if (-not $panel) { $panel = "http://localhost:3000" }
 
 if (-not $secret) { Write-Host "Falta WA_WEBHOOK_SECRET no .env.local" -ForegroundColor Yellow; exit 1 }
 if (-not $basic) { Write-Host "Defina GOWA_BASIC_AUTH=usuario:senha no .env.local (invente um usuário e uma senha)." -ForegroundColor Yellow; exit 1 }
