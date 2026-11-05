@@ -1,0 +1,80 @@
+{
+  "casos": [
+    {
+      "id": "preco_produto",
+      "saida": "R$ 27,00"
+    },
+    {
+      "id": "passos_checkout",
+      "saida": 2
+    },
+    {
+      "id": "campo_nome_label",
+      "saida": "Nome completo"
+    },
+    {
+      "id": "campo_email_label",
+      "saida": "E-mail"
+    },
+    {
+      "id": "campo_cpf_label",
+      "saida": "CPF"
+    },
+    {
+      "id": "campo_whatsapp_label",
+      "saida": "WhatsApp/Celular"
+    },
+    {
+      "id": "erro_email_cadastrado",
+      "saida": "E-mail já cadastrado!"
+    },
+    {
+      "id": "login_no_erro_email",
+      "saida": "faça login."
+    },
+    {
+      "id": "botao_avancar",
+      "saida": "Ir para Pagamento"
+    },
+    {
+      "id": "botao_voltar",
+      "saida": "Voltar"
+    },
+    {
+      "id": "label_campo_cupom",
+      "saida": "Cupom (opcional)"
+    },
+    {
+      "id": "botao_cupom",
+      "saida": "Adicionar"
+    },
+    {
+      "id": "estado_cupom_adicionado",
+      "saida": "Cupom adicionado"
+    },
+    {
+      "id": "banner_pix",
+      "saida": "5% de desconto"
+    },
+    {
+      "id": "resumo_produto_qtd",
+      "saida": "Qtd.: 1"
+    },
+    {
+      "id": "selo_garantia_dias",
+      "saida": 7
+    },
+    {
+      "id": "contador_formato",
+      "saida": "00:07:00"
+    },
+    {
+      "id": "nota_privacidade",
+      "saida": "concorda com as"
+    },
+    {
+      "id": "faq_perguntas",
+      "saida": 9
+    }
+  ]
+}

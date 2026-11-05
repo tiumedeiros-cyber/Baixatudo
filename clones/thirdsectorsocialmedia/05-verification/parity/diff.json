@@ -1,0 +1,11 @@
+{
+  "expected": "/home/user/Baixatudo/clones/thirdsectorsocialmedia/05-verification/parity/target.json",
+  "actual": "/home/user/Baixatudo/clones/thirdsectorsocialmedia/05-verification/parity/clone.json",
+  "tolerance": 0,
+  "ignore": [],
+  "compared": 38,
+  "ignored": 0,
+  "comparedAt": "2026-11-05T00:20:47.637Z",
+  "differences": [],
+  "pass": true
+}

@@ -1,0 +1,8 @@
+# segredos e sessões
+auth.json
+*.auth.json
+.env
+# evidência pesada: versione só o índice, os hashes e os resumos
+02-rea/*.json
+01-evidence/target/
+node_modules/

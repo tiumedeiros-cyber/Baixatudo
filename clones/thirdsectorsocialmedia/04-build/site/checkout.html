@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Finalizar compra — Clube Digital Pro (demo)</title>
+<meta name="description" content="Checkout simulado de um clone de estudo. Nenhuma cobrança real.">
+<link rel="stylesheet" href="assets/css/style.css">
+<link rel="icon" href="assets/img/logomark.svg" type="image/svg+xml">
+</head>
+<body>
+<main class="checkout">
+  <header class="co-head">
+    <a class="brand" href="index.html" style="justify-content:center"><img src="assets/img/logomark.svg" alt="" width="24" height="24"> Clube <strong>Digital&nbsp;Pro</strong></a>
+    <h1>Pagamento único. Acesso vitalício.</h1>
+    <p class="countdown" id="countdown" aria-live="off">Oferta termina em <span id="cd-time">00:07:00</span></p>
+  </header>
+
+  <nav class="steps" aria-label="Progresso">
+    <span class="step on" id="tag-1">1 · Identificação</span>
+    <span class="step" id="tag-2">2 · Pagamento</span>
+  </nav>
+
+  <!-- PASSO 1 -->
+  <section class="panel" id="step1" aria-labelledby="s1h">
+    <h2 id="s1h" class="visually-hidden" style="position:absolute;left:-9999px">Identificação</h2>
+    <form id="form1" novalidate autocomplete="on">
+      <div class="field">
+        <label for="f-name">Nome completo</label>
+        <input id="f-name" name="name" type="text" autocomplete="name" required>
+        <p class="err" id="e-name" role="alert"></p>
+      </div>
+      <div class="field">
+        <label for="f-email">E-mail</label>
+        <input id="f-email" name="email" type="email" autocomplete="email" required
+               aria-describedby="e-email">
+        <p class="err" id="e-email" role="alert"></p>
+        <p class="err" id="e-email-login">Utilize outro e-mail ou <a href="#" rel="nofollow">faça login</a>.</p>
+      </div>
+      <div class="field">
+        <label for="f-cpf">CPF</label>
+        <input id="f-cpf" name="cpf" type="text" inputmode="numeric" placeholder="000.000.000-00" required>
+        <p class="err" id="e-cpf" role="alert"></p>
+      </div>
+      <div class="field">
+        <label for="f-phone">WhatsApp/Celular</label>
+        <input id="f-phone" name="phone" type="tel" inputmode="numeric" placeholder="(00) 00000-0000" required>
+        <p class="err" id="e-phone" role="alert"></p>
+      </div>
+      <p class="check"><input type="checkbox" id="f-optin" name="optin"> Quero receber informações por e-mail.</p>
+      <p class="gain">Você ganhou <strong>5% de desconto</strong> pagando com Pix.</p>
+      <p class="fineprint">Ao prosseguir com a compra, você concorda com as <a href="#">Políticas de Privacidade</a>.</p>
+      <p class="actions"><button class="btn btn-big" type="submit">Ir para Pagamento</button></p>
+    </form>
+  </section>
+
+  <!-- PASSO 2 -->
+  <section class="panel" id="step2" hidden aria-labelledby="s2h">
+    <h2 id="s2h">Pagamento</h2>
+    <fieldset style="border:0;padding:0;margin:0">
+      <legend style="font-weight:800;margin-bottom:6px">Escolha uma forma de pagamento</legend>
+      <div class="methods">
+        <label><input type="radio" name="method" value="pix" checked> <span class="dot"></span>Pix <span style="color:var(--ok);font-size:.8rem">(−5%)</span></label>
+        <label><input type="radio" name="method" value="card"> <span class="dot"></span>Cartão de crédito</label>
+        <label><input type="radio" name="method" value="boleto"> <span class="dot"></span>Boleto</label>
+      </div>
+    </fieldset>
+
+    <div class="summary" aria-live="polite">
+      <strong>Resumo da compra (1)</strong>
+      <div class="row"><span>Clube Digital Pro — acesso vitalício</span><span id="r-base">R$ 27,00</span></div>
+      <div class="row" id="r-coupon-row" hidden><span>Cupom <span id="r-coupon-name"></span></span><span class="neg" id="r-coupon">−R$ 0,00</span></div>
+      <div class="row" id="r-pix-row"><span>Desconto Pix (5%)</span><span class="neg" id="r-pix">−R$ 1,35</span></div>
+      <div class="row total"><span>Total</span><span id="r-total">R$ 25,65</span></div>
+    </div>
+
+    <div class="field" style="margin-top:12px">
+      <label for="f-coupon">Cupom (opcional)</label>
+      <div class="coupon">
+        <input id="f-coupon" type="text" placeholder="Inserir cupom de desconto">
+        <button class="btn btn-ghost" type="button" id="btn-coupon">Adicionar</button>
+      </div>
+      <p class="err" id="e-coupon" role="alert"></p>
+      <p class="err" id="r-coupon-added" style="color:var(--ok)">Cupom adicionado ✓</p>
+    </div>
+
+    <p class="actions">
+      <button class="btn btn-ghost" type="button" id="btn-back">Voltar</button>
+      <button class="btn btn-big" type="button" id="btn-pay">Finalizar compra <span id="btn-pay-total">(R$ 25,65)</span></button>
+    </p>
+    <div class="mini-testi">
+      <p><span class="dot"></span><strong>Membro demo:</strong> “Entreguei o site de um cliente no mesmo dia usando os templates.” <em>(fictício)</em></p>
+      <p><span class="dot"></span><strong>Membro demo:</strong> “O material é grande demais pro preço. Uso os packs toda semana.” <em>(fictício)</em></p>
+    </div>
+  </section>
+
+  <!-- SUCESSO -->
+  <section class="panel ok-state" id="step3" hidden>
+    <div class="badge">✓</div>
+    <h2>Pedido criado — demonstração</h2>
+    <p class="lead">Nenhuma cobrança foi feita. Em um funil real, aqui entraria o processamento do
+    pagamento; o acesso chega por e-mail após a confirmação.</p>
+    <p>Pedido: <strong id="order-id">DEMO-000000</strong> · Total simulado: <strong id="order-total">R$ 25,65</strong></p>
+    <p class="actions" style="justify-content:center">
+      <a class="btn btn-ghost" href="index.html">Voltar à página</a>
+      <button class="btn" type="button" id="btn-restart">Refazer simulação</button>
+    </p>
+  </section>
+
+  <p class="fineprint" style="text-align:center;margin-top:16px">Clone de estudo: checkout simulado, sem integração de pagamento, sem envio de dados.</p>
+</main>
+<script type="module" src="assets/js/checkout.js"></script>
+</body>
+</html>
