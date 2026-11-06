@@ -1,6 +1,10 @@
 # Baixatudo Studio — uso pessoal não comercial
 
-Workspace web para organizar, reconstruir rascunhos de páginas a partir de evidências e editar projetos. Sem cadastro no aplicativo e sem integração de pagamentos. Chave de provedor é opcional: há modo manual e IA no aparelho. O ZIP original de download de vídeos foi preservado.
+Workspace web para organizar, reconstruir rascunhos de páginas a partir de evidências e editar projetos. Com cadastro/login por conta no Supabase e sem integração de pagamentos. Chave de provedor é opcional: há modo manual e IA no aparelho. O ZIP original de download de vídeos foi preservado.
+
+## Administração e edição visual
+
+Acesso restrito em `/#admin`, com a conta autorizada e sua senha existente. Papel verificado no banco, controles de APIs, cotas por conta e auditoria. Preferências pessoais não são a administração global. Editor visual de HTML disponível junto à prévia; não executa backend nem edita componentes dinâmicos. Estado do motor e requisitos restantes em [docs/AUDITORIA-MOTOR.md](docs/AUDITORIA-MOTOR.md). A integração restrita da skill não pode ser comercializada sem autorização/substituição.
 
 ## Publicação
 

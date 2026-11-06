@@ -102,3 +102,13 @@ O ZIP original `baixartudo-atualizado.zip` foi mantido. Nenhum commit, push ou i
 - Captura HTTPS real do GitHub do proprietário passou com o repositório de CAs confiáveis do sistema (`--use-system-ca`), sem desativar TLS.
 - Extensão real ainda falha no Chromium reduzido; tentativa de navegador completo foi bloqueada no host de distribuição. Workflow configura Chromium completo, sem presumir aprovação anterior à execução.
 - `npm run verify` e `npm run release:check` geram relatório e retornam erro quando há falhas; a liberação continua bloqueada. Nenhum cadastro/email/inferência real ou Android foi aprovado por simulação.
+
+## Administração e editor visual reais (entrega parcial, não aprovação do SaaS)
+
+- Conta existente do proprietário localizada com e-mail confirmado e promovida por tabela privada, sem ler/alterar senha. Identidade não foi hardcoded no código público.
+- Migração `202611060002_platform_admin.sql` aplicada. Banco real testado em transação revertida: negação de promoção por metadados, INSERT direto de admin e RPCs administrativas por usuário comum; primeira solicitação permitida, segunda negada por cota; admin altera flags/limites; recurso desativado e conta bloqueada impedidos. Nenhum usuário de teste persistiu.
+- `/#admin` separado de Preferências. Administração exige papel no banco; não basta esconder link. Não lê código privado dos projetos nem senhas. Bloqueio atual é das APIs, não banimento do login.
+- APIs de captura/IA exigem sessão em produção e fazem reserva persistente antes de operação externa. Padrão: uma tentativa remota de IA no total por conta; 20 capturas/dia UTC. Não é um clone concluído, nem cota mensal/tokens. Sem chave de IA compartilhada ou cobrança.
+- Testes de interface administrativa usam RPC controlada; verificação SQL real é separada. Não afirmamos ter entrado como proprietário nem testado sua senha ou caixa de e-mail.
+- Editor visual HTML real testado em navegador com viewport 390px: selecionar H1 na prévia, alterar texto/cor/fonte, salvar HTML e versão automaticamente, desativar seleção e usar interação JS, recarregar e manter edição; texto com markup foi escapado. Não é Android físico nem editor completo de backend/componentes dinâmicos.
+- Auditoria detalhada: `docs/AUDITORIA-MOTOR.md`. GitHub por usuário, executor, reconstrução completa, cofre de IA e cobrança continuam ausentes. Licença não comercial impede comercializar a integração atual sem autorização/substituição.

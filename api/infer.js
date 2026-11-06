@@ -1,4 +1,5 @@
-import {readJson} from './lib/json-body.js';
+import {authorizePlatformRequest} from '../engine/lib/platform-access.js';
+import {readJson} from '../engine/lib/json-body.js';
 import {infer,validateInference} from '../engine/lib/providers.js';
 const hits=new Map();
 export default async function handler(req,res){
@@ -11,5 +12,5 @@ export default async function handler(req,res){
  const rate=hits.get(ip)||{start:now,count:0};if(rate.count++>=10)return reply(429,{error:'Aguarde um minuto antes de tentar novamente.'});hits.set(ip,rate);
  let body;
  try{body=validateInference(await readJson(req,65000));}catch(err){return reply(err.status===413?413:400,{error:err instanceof SyntaxError?'JSON inválido.':String(err.message).slice(0,200)});}
- try{reply(200,await infer(body));}catch(err){reply(err.status===429?429:502,{error:err.status?err.message:'Não foi possível concluir a conexão ou interpretar a resposta do provedor. Sua chave não foi salva; seu projeto foi mantido.'});}
+ try{await authorizePlatformRequest(req,'inference');reply(200,await infer(body));}catch(err){reply([401,403,429,503].includes(err.status)?err.status:502,{error:err.status?err.message:'Não foi possível concluir a conexão ou interpretar a resposta do provedor. Sua chave não foi salva; seu projeto foi mantido.'});}
 }

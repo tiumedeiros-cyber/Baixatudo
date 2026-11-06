@@ -1,13 +1,13 @@
-export const account={status:'loading',enabled:false,user:null,owner:null,sync:'',error:'',reason:'',recovering:false};
+export const account={status:'loading',enabled:false,user:null,owner:null,sync:'',error:'',reason:'',recovering:false,isAdmin:false,platform:null,platformError:''};
 let client,revision=0,pending=null,draining=null,epoch=0;
 const blank=()=>({version:1,projects:[],settings:{name:'Meu espaço',autosave:true}});
 function emit(type='account-change',detail={}){window.dispatchEvent(new CustomEvent(type,{detail:{...account,...detail}}));}
 function safeError(error){if(['email_address_not_authorized','email_provider_disabled'].includes(error?.code)||/sending confirmation email/i.test(error?.message||''))return 'O envio de confirmação de e-mail precisa ser configurado ou autorizado no servidor. Seu e-mail não foi confirmado automaticamente.';return error?.code==='23505'?'Há outra sessão gravando este espaço. Faça backup e recarregue.':error?.message?.includes('Invalid login')?'E-mail ou senha inválidos.':error?.message?.includes('Email not confirmed')?'Confirme seu e-mail antes de entrar.':error?.message?.includes('rate limit')?'Limite temporário atingido. Aguarde antes de tentar novamente.':'Não foi possível concluir com o serviço de contas. Verifique sua conexão e a configuração do banco.';}
 async function switchSession(session){
  const user=session?.user||null;if(user&&account.owner===user.id&&account.status==='ready')return;
- const generation=++epoch;pending=null;draining=null;revision=0;account.user=user;account.owner=user?.id||null;account.error='';account.status=user?'loading':'signed-out';account.sync='';emit('account-reset');
+ const generation=++epoch;pending=null;draining=null;revision=0;account.isAdmin=false;account.platform=null;account.platformError='';account.user=user;account.owner=user?.id||null;account.error='';account.status=user?'loading':'signed-out';account.sync='';emit('account-reset');
  if(!user){emit();return;}
- try{const {data,error}=await client.from('baixatudo_workspaces').select('payload,revision').eq('user_id',user.id).maybeSingle();if(generation!==epoch)return;if(error)throw error;revision=data?.revision||0;account.status='ready';account.sync='Salvo na conta';emit('account-workspace',{workspace:data?.payload||blank()});emit();}
+ try{const {data,error}=await client.from('baixatudo_workspaces').select('payload,revision').eq('user_id',user.id).maybeSingle();if(generation!==epoch)return;if(error)throw error;revision=data?.revision||0;try{const status=await client.rpc('baixatudo_account_status');if(generation!==epoch)return;if(status.error)throw status.error;account.platform=status.data;account.isAdmin=status.data?.isAdmin===true;}catch{if(generation!==epoch)return;account.platformError='Não foi possível verificar as permissões administrativas.';}account.status='ready';account.sync='Salvo na conta';emit('account-workspace',{workspace:data?.payload||blank()});emit();}
  catch(error){if(generation!==epoch)return;account.status='error';account.error=safeError(error);emit();}
 }
 export async function initialize(){
@@ -37,3 +37,6 @@ export async function submit(mode,email,password){if(!client)throw Error('Cadast
 export async function logout({discard=false}={}){if(!discard){if(draining)await draining;if(pending||account.error)throw Error('Exporte um backup: há alterações não sincronizadas.');}const {error}=await client.auth.signOut({scope:'local'});if(error)throw Error('Não foi possível encerrar a sessão. Tente novamente.');await switchSession(null);}
 export function unsaved(){return Boolean(account.enabled&&(pending||draining||account.error));}
 window.addEventListener('beforeunload',event=>{if(unsaved()){event.preventDefault();event.returnValue='';}});
+
+export async function authHeaders(){if(!client||!account.user)return {};const {data,error}=await client.auth.getSession();if(error||!data.session?.access_token)throw Error('Sessão inválida. Entre novamente.');return {Authorization:'Bearer '+data.session.access_token};}
+export async function rpc(name,args={}){if(!client||!account.user)throw Error('Entre na sua conta.');const {data,error}=await client.rpc(name,args);if(error)throw Error('Operação recusada ou indisponível. Verifique sua permissão e tente novamente.');return data;}

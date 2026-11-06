@@ -1,4 +1,5 @@
-import {readJson} from './lib/json-body.js';
+import {authorizePlatformRequest} from '../engine/lib/platform-access.js';
+import {readJson} from '../engine/lib/json-body.js';
 import {requestPage,extractEvidence} from '../engine/lib/capture.js';
 const limits=new Map();
 export default async function handler(req,res){
@@ -14,6 +15,7 @@ export default async function handler(req,res){
  try{
   const body=await readJson(req,4096);
   if(!body||typeof body.url!=='string'||body.url.length>2000||body.authorized!==true)return reply(400,{error:'Informe uma URL e autorize a captura.'});
+  await authorizePlatformRequest(req,'capture');
   const {url,html}=await requestPage(body.url);reply(200,extractEvidence(html,url));
- }catch(err){reply(err.status===413?413:400,{error:err instanceof SyntaxError?'JSON inválido.':err.message||'Não foi possível capturar esta referência.'});}
+ }catch(err){reply([401,403,413,429,503].includes(err.status)?err.status:400,{error:err instanceof SyntaxError?'JSON inválido.':err.message||'Não foi possível capturar esta referência.'});}
 }

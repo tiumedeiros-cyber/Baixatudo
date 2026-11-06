@@ -30,6 +30,7 @@ try{
   const base=await new Promise((resolve,reject)=>{let log='';const timer=setTimeout(()=>reject(Error('Servidor de testes não iniciou')),10000);const fail=err=>{clearTimeout(timer);reject(err);};server.once('error',fail);server.once('exit',code=>fail(Error('Servidor encerrou: '+code)));server.stdout.on('data',chunk=>{log+=chunk;const match=log.match(/porta (\d+)/);if(match){clearTimeout(timer);resolve('http://127.0.0.1:'+match[1]);}});});
   const env={TEST_URL:base};
   await run('browser',['tests/browser.mjs'],'real Chromium desktop/mobile emulation; AI/extension transports simulated',env);
+  await run('visual-browser',['tests/visual-browser.mjs'],'real static HTML visual editing, sandbox, persistence; NOT full-system runtime',env);
   await run('accounts-browser',['tests/accounts-browser.mjs'],'real UI; controlled SDK/backend (NOT Supabase login)',env);
   await run('extension-browser',['tests/extension-browser.mjs'],'attempt actual unpacked MV3 extension; NOT Android',env);
   await run('capture-live',['tests/capture-live.mjs'],'real API + HTTPS to owner public GitHub repository',env);
@@ -38,7 +39,7 @@ try{
 finally{
  if(server&&server.exitCode===null){const closed=once(server,'close');server.kill('SIGTERM');const timer=setTimeout(()=>server.kill('SIGKILL'),3000);try{await closed;}finally{clearTimeout(timer);}}
  const blockers=[
-  {id:'public-api-abuse',status:'blocked',reason:'Captura e inferência usam limites por processo, sem quota durável por usuário; proteção de abuso/carga em produção não validada.'},
+  {id:'public-api-abuse',status:'blocked',reason:'Captura e inferência têm reserva durável por conta e autenticação no servidor; teste de carga/abuso distribuído ainda não executado.'},
   {id:'signup-email',status:'blocked',reason:'SMTP e recebimento da confirmação/recuperação não validados; não desativar confirmação.'},
   {id:'live-account-e2e',status:'blocked',reason:'Ciclo real de duas contas no navegador, incluindo expiração, login e recuperação, ainda não executado. Teste SQL RLS anterior é evidência separada.'},
   {id:'real-generation',status:'blocked',reason:'Sem provedor/credencial autorizada ou GPU compatível com inferência real validada; fixtures não comprovam qualidade.'},
