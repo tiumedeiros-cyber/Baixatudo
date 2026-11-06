@@ -8,7 +8,7 @@ export function configure(raw,key){cancel();const p=providers.configure(raw,key)
 export async function messagesFor(task,project,request){instructions??=await fetch('/public/engine-instructions.json').then(r=>{if(!r.ok)throw Error('Instruções internas indisponíveis.');return r.json();});return makeMessages({task,project,request,instructions});}
 export async function generateWithProvider(task,project,request){if(providers.profile.provider==='manual')throw Error('Use Preparar pedido e Importar resposta.');if(providers.profile.provider==='local')return generate(task,project,request);if(busy)throw Error('Aguarde a geração atual.');busy=true;runtime.state='generating';runtime.message='Enviando pedido ao provedor escolhido. Não há fallback pago automático.';emit();const controller=new AbortController();remoteAbort=controller;try{const messages=await messagesFor(task,project,request);const text=await providers.generateRemote(messages,{signal:controller.signal});if(controller.signal.aborted)throw Error('Pedido cancelado.');return parseGeneration(text);}finally{if(remoteAbort===controller){remoteAbort=null;busy=false;runtime.state=providers.hasKey()?'ready':'idle';runtime.message='Pedido encerrado. Revise o resultado; a IA não executou testes.';emit();}}}
 export function forgetKey(){providers.forgetKey();cancel();}
-export const runtime={state:providers.profile.provider==='manual'?'manual':'idle',progress:0,message:'Escolha a validação sem API ou configure sua IA em Administração.',model:null};
+export const runtime={state:providers.profile.provider==='manual'?'manual':'idle',progress:0,message:'Escolha a validação sem API ou configure sua IA em Preferências.',model:null};
 function emit(){window.dispatchEvent(new CustomEvent('studio-ai',{detail:{...runtime}}));}
 export async function support(){
  if(!navigator.gpu)return {ok:false,message:'Este navegador não disponibiliza WebGPU. Tente uma versão atual do Chrome/Edge em um aparelho compatível. Modo computador não adiciona WebGPU.'};
@@ -30,7 +30,7 @@ export async function activate(id){
 export async function deactivate(notify=true){worker?.terminate();worker=null;engine=null;modelId=null;runtime.model=null;if(notify){runtime.state='idle';runtime.message='IA desativada. Os pesos podem continuar no cache do navegador.';emit();}}
 export function cancel(){remoteAbort?.abort();remoteAbort=null;worker?.terminate();worker=null;engine=null;modelId=null;busy=false;runtime.state='idle';runtime.model=null;runtime.message='Operação cancelada. Seu projeto anterior foi mantido.';emit();}
 export async function generate(task,project,request){
- if(!engine||runtime.state!=='ready')throw Error('Ative a IA em Administração antes de gerar.');if(busy)throw Error('Já existe uma geração em andamento.');
+ if(!engine||runtime.state!=='ready')throw Error('Ative a IA em Preferências antes de gerar.');if(busy)throw Error('Já existe uma geração em andamento.');
  busy=true;runtime.state='generating';runtime.message='Criando rascunho neste aparelho. Não feche a aba.';emit();const active=engine;
  try{
   instructions??=await fetch('/public/engine-instructions.json').then(r=>{if(!r.ok)throw Error('Instruções internas indisponíveis.');return r.json();});
