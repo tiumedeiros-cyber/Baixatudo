@@ -1,4 +1,4 @@
--- Apply only to the authorized Baixatudo Supabase project. Not applied while connector authentication is blocked.
+-- Applied to the authorized Baixatudo project soosjvzvcznlrbingyfp. Keep as schema history; do not reapply blindly.
 create table public.baixatudo_workspaces (
  user_id uuid primary key references auth.users(id) on delete cascade,
  payload jsonb not null check (jsonb_typeof(payload) = 'object' and octet_length(payload::text) <= 10000000),

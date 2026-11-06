@@ -1,8 +1,10 @@
-# Ativação de contas — pendente de autorização funcional
+# Contas — Supabase conectado
 
-A conexão de gerenciamento Supabase retornou erro 401 na listagem dos projetos. Não foram criados usuários, projetos, tabelas ou políticas em um banco real. O proprietário precisa reconectar o Supabase no Arena; não deve enviar credenciais pelo chat.
+A conexão de gerenciamento foi restabelecida após o erro 401 anterior. Foi criado o projeto `baixatudo-studio` (`soosjvzvcznlrbingyfp`) em `sa-east-1`, solicitando explicitamente o plano gratuito. A migração foi aplicada e o serviço de autenticação/configuração de produção foi conectado. Nenhuma senha de banco ou chave de serviço foi gravada no repositório. A aplicação usa somente a chave publicável e os tokens do próprio usuário.
 
-## Depois da reconexão (operador)
+As regras RLS foram verificadas no banco real, dentro de uma transação desfeita ao final: visibilidade de apenas uma linha própria, bloqueio de alteração/remoção alheia e transferência de proprietário; atualização própria permitida. Os usuários e registros de teste não persistiram. Isso não comprova entrega de e-mails nem o ciclo completo de autenticação por navegador. Confirmação de e-mail permanece obrigatória. SMTP próprio ainda não foi configurado; o remetente padrão tem restrições e não deve ser presumido como envio público de produção.
+
+## Checklist operacional (configuração aplicada; etapas de validação restantes)
 
 1. Identificar com o proprietário o projeto correto. Não usar outro banco por tentativa, nem habilitar plano pago.
 2. Conferir a configuração de Auth, limites de e-mail e confirmação; manter confirmação de e-mail. Configurar site URL e redirects restritos ao endereço principal do Studio, sem wildcard amplo. Não alterar Auth de outro aplicativo sem autorização.

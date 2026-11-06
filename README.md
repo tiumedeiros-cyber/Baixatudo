@@ -102,3 +102,11 @@ Veja `VERIFICACAO.md` para o que foi e não foi testado. Os ZIPs em `entregas/` 
 - Cadastro/login/sincronização por usuário: implementação preparada com Supabase e migração RLS em `supabase/`. **Não ativados em produção:** a conexão do Supabase recusou autenticação (401). Necessário reconectar no Arena para aplicar e verificar o banco correto. Não há proteção multiusuário no modo local.
 - Testes de duas contas usam SDK/servidor controlados e não comprovam autenticação ou RLS em produção. `npm run test:accounts` executa esse fluxo de interface.
 - `npm run test:extension` tenta carregar a extensão MV3 real; neste ambiente retornou `net::ERR_ABORTED` na página chrome-extension. Instalação real, permissão opcional e Kiwi Android seguem não validados. Os testes de interface da extensão usam APIs simuladas.
+
+## Conexão real com Supabase
+
+O bloqueio 401 descrito na entrega 0.4 foi resolvido. Projeto `baixatudo-studio` criado no plano gratuito, região São Paulo; schema e quatro políticas RLS aplicados. O painel de produção usa `BAIXATUDO_AUTH_ENABLED=true`, URL do projeto e chave publicável configurados somente no projeto Vercel deste aplicativo.
+
+Regras de leitura/escrita por proprietário verificadas no banco real com dados temporários e rollback; nenhum usuário de teste ficou cadastrado. A entrega/recebimento do e-mail de confirmação, recuperação e ciclo completo de signup/signin no navegador ainda precisam de teste com conta autorizada. Não desativamos confirmação para contornar a falta de SMTP. Projetos locais anteriores não são migrados automaticamente: exporte o backup no navegador/origem antigo e restaure conscientemente após entrar na própria conta.
+
+GitHub por usuário: proposta aprovada tecnicamente, mas a integração de autorização/exportação/deploy por usuário ainda não está implementada. O acesso GitHub desta sessão Arena não é credencial para usuários do Baixatudo.

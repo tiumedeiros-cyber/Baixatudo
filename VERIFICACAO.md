@@ -83,3 +83,12 @@ O ZIP original `baixartudo-atualizado.zip` foi mantido. Nenhum commit, push ou i
 - Tentativa de instalação da extensão real: falhou ao abrir `chrome-extension://…/popup.html` com `net::ERR_ABORTED` no Chromium headless disponível. Não foi declarado sucesso de instalação real.
 - Supabase: primeira listagem recusada com 401. A tentativa não foi repetida, nem contornada. Não houve criação de banco/usuário ou ativação de login. Reconexão pelo proprietário é necessária.
 - IA externa com credencial real, inferência WebGPU no aparelho, captura de todo o comportamento do Vortex e clonagem completa de backend seguem não validados/não implementados. Referência textual de marketing não comprova acesso ou reprodução de um editor de vídeo.
+
+## Supabase conectado — verificação adicional
+
+- Listagem de projetos voltou a funcionar. Conta sem projetos; foi criado `baixatudo-studio` no plano gratuito, `sa-east-1`.
+- Migração aplicada. Consulta de catálogo confirmou RLS habilitado e forçado, com quatro políticas.
+- Teste SQL real com papel `authenticated` e identidades temporárias: somente linha própria visível; UPDATE/DELETE alheios afetaram zero linhas; troca de proprietário foi recusada; UPDATE próprio afetou uma linha. Transação revertida, sem usuários/dados de teste persistentes.
+- URL principal e lista restrita de redirects configuradas. Confirmação de e-mail mantida; login anônimo/telefone não ativados.
+- Vercel: somente URL, chave publicável e flag de ativação. Nenhuma service_role/secret de Supabase foi adicionada ao app.
+- Entrega de e-mail, recuperação e fluxo completo com contas reais via navegador ainda não verificados. SMTP próprio ausente; o remetente padrão pode restringir destinatários.
