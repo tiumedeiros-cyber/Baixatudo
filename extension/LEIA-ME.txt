@@ -1,0 +1,20 @@
+Baixatudo Referências — versão 0.3.1
+
+Melhoria desta atualização:
+- A leitura de abas também ignora texto dentro de formulários, além dos campos e conteúdo oculto já excluídos.
+
+Recursos mantidos:
+- Seleção explícita da aba correta, endereço público ou arquivo local.
+- Revisão do texto antes de baixar o JSON.
+- Salvar e continuar no Studio abre a importação; é necessário selecionar o arquivo baixado.
+
+COMO ATUALIZAR
+1. Baixe este novo ZIP pelo Studio e extraia os arquivos em uma pasta.
+2. No gerenciador de extensões de um navegador compatível, atualize a extensão usando essa pasta. Se necessário, remova a antiga e carregue a pasta nova sem compactação.
+3. Confira a versão 0.3.1 nos detalhes da extensão.
+
+Baixar o ZIP não atualiza a extensão instalada automaticamente.
+Chrome/Edge desktop permitem instalação sem compactação no modo desenvolvedor.
+Android/Kiwi: instalação, permissões e funcionamento em aparelho físico ainda não validados. O modo computador não adiciona suporte a extensões.
+
+Use somente sites próprios ou autorizados. Revise os dados capturados: conteúdo visível pode conter informações pessoais. A extensão não contorna bloqueios, não gera um clone completo e não executa o sistema de origem.
