@@ -1,0 +1,27 @@
+{
+  "name": "baixatudo-studio",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "npm run build && node server.mjs",
+    "test": "node --test tests/*.test.mjs",
+    "check": "node --check src/app.js && node --check src/core.js && node --check extension/popup.js",
+    "test:browser": "node tests/browser.mjs",
+    "package": "node scripts/package.mjs",
+    "build": "node scripts/build.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.65.0",
+    "@sparticuz/chromium": "^153.0.0",
+    "esbuild": "^0.28.2"
+  },
+  "dependencies": {
+    "@mlc-ai/web-llm": "^0.2.87",
+    "cheerio": "^1.2.0",
+    "ipaddr.js": "^2.5.0"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

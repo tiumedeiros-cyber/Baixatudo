@@ -1,0 +1,26 @@
+[
+  {
+    "id": "clonar-programa",
+    "repository": "https://github.com/darksemfiltro/clonar-programa",
+    "revision": "1c580f8348ad634188394a8e928f13bf641ee322",
+    "upstreamPath": "/",
+    "usage": "Pessoal e não comercial; preservar créditos e licença",
+    "files": 30
+  },
+  {
+    "id": "frontend-design",
+    "repository": "https://github.com/anthropics/skills",
+    "revision": "ca45fc496a3436251f191354091d557da31c15b5",
+    "upstreamPath": "skills/frontend-design/",
+    "usage": "Apache-2.0; preservar licença e avisos",
+    "files": 2
+  },
+  {
+    "id": "webapp-testing",
+    "repository": "https://github.com/anthropics/skills",
+    "revision": "ca45fc496a3436251f191354091d557da31c15b5",
+    "upstreamPath": "skills/webapp-testing/",
+    "usage": "Apache-2.0; preservar licença e avisos",
+    "files": 6
+  }
+]

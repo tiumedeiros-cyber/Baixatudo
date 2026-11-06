@@ -1,0 +1,8 @@
+node_modules/
+.cache/
+test-results/
+playwright-report/
+.env
+.env.*
+
+site-output/

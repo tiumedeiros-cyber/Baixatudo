@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#17251f"><meta name="description" content="Seu espaço pessoal para planejar, editar e visualizar projetos web. Sem cadastro."><title>Baixatudo Studio — Seu espaço de criação</title><link rel="icon" href="/public/mark.svg" type="image/svg+xml"><link rel="stylesheet" href="/src/style.css"></head>
+<body>
+<div class="shell">
+<aside id="sidebar" class="sidebar">
+<a href="#projects" class="brand"><span class="brand-mark">b<span>↗</span></span><span>baixatudo<small>STUDIO PESSOAL</small></span></a>
+<div class="workspace"><span class="workspace-icon">M</span><div><strong id="workspace-name">Meu espaço</strong><small>Workspace pessoal</small></div><span class="muted">⌄</span></div>
+<p class="nav-label">ESPAÇO DE TRABALHO</p>
+<nav aria-label="Navegação principal">
+<a href="#projects" data-route="projects"><span>▦</span> Meus projetos <b id="nav-count">0</b></a>
+<a href="#activity" data-route="activity"><span>◷</span> Atividade</a>
+<a href="#skills" data-route="skills"><span>✧</span> Recursos de criação</a>
+<a href="#extension" data-route="extension"><span>◈</span> Extensão <em>Nova</em></a>
+</nav>
+<p class="nav-label">GERENCIAR</p>
+<nav aria-label="Configurações"><a href="#settings" data-route="settings"><span>⚙</span> Administração</a><a href="#guide" data-route="guide"><span>ⓘ</span> Guia rápido</a></nav>
+<div class="sidebar-bottom"><div class="personal-plan"><span>↗</span><strong>Suas ideias, seu espaço.</strong><p>Sem assinatura. Sem cadastro.<br>Você no controle dos projetos.</p><a href="#guide">Conhecer o Studio <span>→</span></a></div><div class="profile"><span class="avatar">V</span><div><strong>Você</strong><small>Uso pessoal · gratuito</small></div><span class="online-dot"></span></div></div>
+</aside>
+<div class="main-shell"><header class="topbar"><button id="menu-button" class="icon-button mobile-menu" aria-label="Abrir navegação" aria-expanded="false">☰</button><div class="breadcrumb">Workspace <span>/</span> <strong id="crumb">Meus projetos</strong></div><div class="header-right"><span class="local-pill"><i></i> Dados neste navegador</span><button class="icon-button" id="help-button" aria-label="Abrir guia rápido">?</button></div></header>
+<main id="main" tabindex="-1"></main>
+<footer class="footer"><span>FEITO PARA CRIAR, NO SEU RITMO.</span><span>Baixatudo Studio <b>v0.1</b></span></footer>
+</div></div>
+<dialog id="project-dialog"><form id="project-form"><div class="dialog-top"><span class="kicker">UM NOVO COMEÇO</span><button type="button" data-close class="icon-button" aria-label="Fechar">×</button></div><h2>O que vamos construir?</h2><p class="muted">Organize sua ideia. A URL será registrada como referência, sem captura ou clonagem automática.</p><label>Nome do projeto<input name="name" maxlength="100" required placeholder="Ex.: Meu portfólio"></label><label>Site de referência <span class="optional">opcional</span><input name="target" type="url" maxlength="2000" placeholder="https://exemplo.com"></label><label>As 3 funcionalidades mais importantes<textarea name="brief" maxlength="6000" rows="3" placeholder="Ex.: Galeria, formulário de contato e modo escuro"></textarea></label><div class="form-grid"><label>Sua relação com o site<select name="relation"><option>Projeto próprio</option><option>Tenho autorização</option><option>Open source</option><option>Estudo de comportamento</option></select></label><label>O que fica de fora<input name="excluded" maxlength="3000" placeholder="Ex.: pagamentos"></label></div><div class="notice">↗ Você começará com uma página original editável. Ative a IA pessoal em Administração para gerar um rascunho a partir de referências.</div><div class="dialog-actions"><button type="button" class="button secondary" data-close>Cancelar</button><button class="button primary" type="submit">Criar projeto <span>→</span></button></div></form></dialog>
+<dialog id="confirm-dialog"><h2 id="confirm-title"></h2><p id="confirm-text" class="muted"></p><div class="dialog-actions"><button class="button secondary" id="confirm-cancel">Cancelar</button><button class="button danger" id="confirm-ok">Confirmar</button></div></dialog>
+<input id="file-input" type="file" accept="application/json,.json" hidden><div id="toast" role="status" aria-live="polite"></div>
+<script type="module" src="/src/app.js"></script>
+</body></html>

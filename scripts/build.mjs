@@ -1,0 +1,15 @@
+import {mkdir,rm,cp,readFile,writeFile} from 'node:fs/promises';
+import {build} from 'esbuild';
+await rm('site-output',{recursive:true,force:true});await mkdir('site-output/vendor',{recursive:true});
+await cp('index.html','site-output/index.html');await cp('src','site-output/src',{recursive:true});await cp('public','site-output/public',{recursive:true});
+await build({stdin:{contents:"export * from '@mlc-ai/web-llm';",resolveDir:process.cwd()},outfile:'site-output/vendor/webllm.js',bundle:true,format:'esm',minify:true,target:'es2022',legalComments:'eof'});
+const clone=await readFile('engine/skills/clonar-programa/SKILL.md','utf8');
+const design=await readFile('engine/skills/frontend-design/SKILL.md','utf8');
+const testing=await readFile('engine/skills/webapp-testing/SKILL.md','utf8');
+const section=(s,a,b)=>s.slice(s.indexOf(a),b?s.indexOf(b):undefined);
+const registry={version:1,clone:section(clone,'## Licença e uso responsável','## 3. As fases')+'\n'+section(clone,'### Fase 3','### Fase 6')+'\n'+section(clone,'## Não faça','## Licença da skill'),design:design.slice(0,4500),review:testing.slice(0,3000)};
+await writeFile('site-output/public/engine-instructions.json',JSON.stringify(registry));
+await mkdir('site-output/public/licenses',{recursive:true});
+for(const [id,file] of [['clonar-programa','LICENSE'],['frontend-design','LICENSE.txt'],['webapp-testing','LICENSE.txt']])await cp(`engine/skills/${id}/${file}`,`site-output/public/licenses/${id}.txt`);
+await cp('engine/skills/provenance.json','site-output/public/licenses/provenance.json');
+console.log('Site pronto em site-output. Skills empacotadas com licenças; nenhum modelo de IA foi baixado.');
