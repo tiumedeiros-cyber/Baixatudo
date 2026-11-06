@@ -93,6 +93,9 @@ await mobile.frameLocator('#preview').getByText('Isolado / rede bloqueada',{exac
 const zip=await page.request.get(base+'/public/baixatudo-extension.zip');assert.equal(zip.ok(),true);
 const corrupt=await browser.newPage();await corrupt.goto(base);await corrupt.evaluate(()=>localStorage.setItem('baixatudo.studio.v1','invalid JSON'));await corrupt.reload();await corrupt.getByText('Não foi possível ler os dados salvos.',{exact:false}).waitFor();
 await corrupt.getByRole('button',{name:'＋ Novo projeto',exact:true}).click();await corrupt.locator('[name=name]').fill('Não sobrescrever');await corrupt.getByRole('button',{name:'Criar projeto'}).click();assert.equal(await corrupt.evaluate(()=>localStorage.getItem('baixatudo.studio.v1')),'invalid JSON');
+// Real bundled SDK import; no weights downloaded and no inference claimed.
+const sdkExports=await page.evaluate(()=>import('/vendor/webllm.js').then(sdk=>({engine:typeof sdk.CreateWebWorkerMLCEngine,handler:typeof sdk.WebWorkerMLCEngineHandler})));
+assert.deepEqual(sdkExports,{engine:'function',handler:'function'});
 // Integration fixture only: exercises UI wiring without claiming a real model ran.
 const aiPage=await browser.newPage({viewport:{width:1200,height:900}});
 await aiPage.addInitScript(()=>Object.defineProperty(navigator,'gpu',{value:{requestAdapter:async()=>({})},configurable:true}));
@@ -105,5 +108,5 @@ await aiPage.locator('a[href="#settings"]').first().click();await aiPage.getByRo
 await aiPage.locator('a[href="#projects"]').first().click();await aiPage.getByRole('heading',{name:'Fluxo assistido'}).click();await aiPage.getByRole('button',{name:'1. Preparar referência'}).click();await aiPage.locator('#confirm-ok').click();await aiPage.getByRole('button',{name:/Referências \(1\)/}).waitFor();
 await aiPage.getByRole('button',{name:'2. Recriar referência'}).click();await aiPage.getByRole('heading',{name:'Aplicar o rascunho gerado?'}).waitFor();await aiPage.locator('#confirm-ok').click();await aiPage.frameLocator('#preview').getByRole('heading',{name:'Rascunho da fixture'}).waitFor();await aiPage.getByRole('button',{name:/Versões \(1\)/}).waitFor();
 assert.deepEqual(errors,[]);
-console.log('PASS: desktop, mobile 390px, create/edit/reload, interactive isolated preview, snapshot/restore, brief, evidence escaping, search, settings, backup restore, blocked parent storage and network, extension download.');
+console.log('PASS: bundled real WebLLM SDK import; assisted-generation fixture flow; desktop, mobile 390px, create/edit/reload, interactive isolated preview, snapshot/restore, brief, evidence escaping, search, settings, backup restore, blocked parent storage and network, extension download.');
 await browser.close();

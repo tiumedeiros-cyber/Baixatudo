@@ -51,3 +51,14 @@ O ZIP original `baixartudo-atualizado.zip` foi mantido. Nenhum commit, push ou i
 - Fontes originais de clonar-programa e skills de design/revisão foram incorporadas, com versões, licenças e atribuição. O adaptador seleciona orientações internas. Scripts completos de terminal, REA e Playwright não são executados neste modo.
 - As afirmações da seção 0.1 sobre ausência total de skills/IA descrevem a entrega anterior. Permanecem indisponíveis análise desktop, execução de dependências e prova de paridade.
 - A integração GitHub/Vercel e a autorização de publicação foram solicitadas posteriormente pelo usuário. O estado final da implantação será registrado separadamente.
+
+## Publicação comprovada
+
+- Repositório público existente reutilizado, branch `arena/a4f8fa06-baixatudo` enviada ao GitHub.
+- Projeto Vercel novo: `baixatudo-studio` (`prj_xVyd7E2WdtQ6vDFKO03hvzbXsezt`), vinculado a esse repositório. Outros projetos não alterados.
+- Deploy de produção `dpl_8NgnFaLGHcJRg39WeurJWAQJXCzZ`, commit de aplicação `cefbc79a8f50b0808923ccf948ff1ad25cfe8cb1`, confirmado em estado READY/PROMOTED. Build na Vercel concluído.
+- https://baixatudo-studio.vercel.app acessado com renderização da interface sem login. O alias de equipe exige login; não foi removida a proteção dos aliases de build.
+- `/api/capture` respondeu com a recusa esperada de método GET, provando a rota publicada. Captura POST externa bem-sucedida em produção ainda não testada.
+- `/public/licenses/provenance.json` acessado publicamente e conferido.
+- Importação da biblioteca WebLLM real empacotada aprovada no navegador, confirmando as exports de engine/worker; isso **não** valida a inferência ou o download de pesos. O teste assistido continua sendo fixture explícita.
+- Verificações documentais/testes posteriores ao commit de aplicação não alteram o runtime implantado. Não foi configurado nem comprovado deploy automático de commits futuros.

@@ -2,6 +2,14 @@
 
 Workspace web para organizar, reconstruir rascunhos de páginas a partir de evidências e editar projetos. Sem cadastro no aplicativo, sem pagamentos e sem chave de provedor de IA. O ZIP original de download de vídeos foi preservado.
 
+## Publicação
+
+- Aplicativo: https://baixatudo-studio.vercel.app
+- Fonte: https://github.com/tiumedeiros-cyber/Baixatudo/tree/arena/a4f8fa06-baixatudo
+- Foi reutilizado o repositório existente; não foi criado um duplicado. A branch `main` e os outros projetos Vercel não foram alterados.
+- Vercel: projeto separado `baixatudo-studio`, plano Hobby existente. Deploy de produção manual a partir da branch desta sessão; publicação automática de commits futuros não foi configurada/validada.
+- O endereço principal foi acessado sem login. Os aliases de build/equipe podem exigir login da Vercel; prefira o endereço principal acima.
+
 ## Executar
 
 Node.js 22+ e npm:
