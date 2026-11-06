@@ -72,3 +72,14 @@ O ZIP original `baixartudo-atualizado.zip` foi mantido. Nenhum commit, push ou i
 - Captura direta de URL da extensão, inferência externa real e conexões com chaves reais ainda não validadas. Nenhuma conta, assinatura, crédito ou chave de provedor foi criada.
 - Interfaces/API, não executor completo: REA/Playwright remoto, análise de ZIP/EXE/APK, geração de backend e prova automática de paridade permanecem pendentes.
 - A nova extensão ZIP precisa ser atualizada/reinstalada manualmente; não está distribuída por loja com atualização automática.
+
+## Atualização 0.4 — o que foi realmente verificado
+
+- 23 testes unitários, incluindo rejeição de chave de serviço no config público e verificação estática das regras SQL preparadas.
+- Fluxos completos de navegador aprovados em desktop e 390 px: criar, editar, recarregar, interação na prévia, versões/restauração, download, backup/restauração, referências, modo manual, erros de resposta, configuração BYOK e isolamento da prévia.
+- Regressão de GPU: ausência de adaptador mantém a seleção remota e só desativa ativação local.
+- `tests/accounts-browser.mjs`: cadastro/login/logout com SDK fixture, dois proprietários, projetos separados no transporte controlado e recuperação da mesma conta em outra sessão. Não usa contas reais nem prova RLS do Supabase.
+- Importação local real de uma captura JSON cria projeto diretamente e aparece no painel após reload, sem precisar copiar o JSON ou criar projeto vazio antes.
+- Tentativa de instalação da extensão real: falhou ao abrir `chrome-extension://…/popup.html` com `net::ERR_ABORTED` no Chromium headless disponível. Não foi declarado sucesso de instalação real.
+- Supabase: primeira listagem recusada com 401. A tentativa não foi repetida, nem contornada. Não houve criação de banco/usuário ou ativação de login. Reconexão pelo proprietário é necessária.
+- IA externa com credencial real, inferência WebGPU no aparelho, captura de todo o comportamento do Vortex e clonagem completa de backend seguem não validados/não implementados. Referência textual de marketing não comprova acesso ou reprodução de um editor de vídeo.

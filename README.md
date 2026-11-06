@@ -92,3 +92,13 @@ npm run package
 ```
 
 Veja `VERIFICACAO.md` para o que foi e não foi testado. Os ZIPs em `entregas/` são arquivos de conveniência; o código-fonte e as licenças são a referência.
+
+## Atualização 0.4 — entrada da extensão, GPU e preparação de contas
+
+- `/#import` recebe o usuário vindo da extensão: selecionar a captura JSON cria o projeto e abre seu editor. Também há importação direta no painel inicial.
+- A extensão 0.3 tem “Salvar e continuar no Studio”. O JSON é evidência; não é o clone. O arquivo continua precisando ser selecionado pelo usuário no Studio, sem transferência invisível de dados.
+- A mensagem de GPU fica no modo local e não substitui o estado de uma API. Verificação negativa desativa o botão de ativação local; não impede importação, edição ou modo manual.
+- A criação de projeto limpa filtros e atualiza o painel. Projetos locais continuam limitados ao navegador/origem, com aviso explícito.
+- Cadastro/login/sincronização por usuário: implementação preparada com Supabase e migração RLS em `supabase/`. **Não ativados em produção:** a conexão do Supabase recusou autenticação (401). Necessário reconectar no Arena para aplicar e verificar o banco correto. Não há proteção multiusuário no modo local.
+- Testes de duas contas usam SDK/servidor controlados e não comprovam autenticação ou RLS em produção. `npm run test:accounts` executa esse fluxo de interface.
+- `npm run test:extension` tenta carregar a extensão MV3 real; neste ambiente retornou `net::ERR_ABORTED` na página chrome-extension. Instalação real, permissão opcional e Kiwi Android seguem não validados. Os testes de interface da extensão usam APIs simuladas.

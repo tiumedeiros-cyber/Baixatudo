@@ -37,4 +37,5 @@ $('capture').onclick=async()=>{
  }catch(err){$('status').textContent='Não foi possível preparar: '+(err.message||'Falha de permissão ou rede.');}finally{$('capture').disabled=false;}
 };
 $('save').onclick=()=>{if(!page)return;const data={kind:'baixatudo-evidence',version:1,page:{...page,title:$('title').value,text:$('text').value}};const url=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download='baixatudo-captura.json';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),10000);$('status').textContent='Importe o arquivo em Projeto → Referências no Studio.';};
+$('save-open').onclick=()=>{if(!page)return;$('save').click();window.open('https://baixatudo-studio.vercel.app/#import','_blank','noopener,noreferrer');$('status').textContent='No Studio, selecione o arquivo baixado para criar o projeto. O JSON não é o clone pronto.';};
 showSource();listTabs();

@@ -15,9 +15,9 @@ export async function support(){
  try{const adapter=await navigator.gpu.requestAdapter();return adapter?{ok:true,message:'GPU detectada. O carregamento ainda pode falhar por memória ou limites do aparelho.'}:{ok:false,message:'Nenhuma GPU compatível foi encontrada neste navegador.'};}catch{return {ok:false,message:'Não foi possível acessar a GPU neste aparelho.'};}
 }
 export async function activate(id){
- if(busy)throw Error('Aguarde a operação atual.');providers.configure({provider:'local',model:''});if(engine&&modelId===id)return;
+ if(busy)throw Error('Aguarde a operação atual.');if(engine&&modelId===id)return;
  if(!MODELS.some(x=>x.id===id))throw Error('Modelo não permitido.');
- const check=await support();if(!check.ok)throw Error(check.message);
+ const check=await support();if(!check.ok)throw Error(check.message);providers.configure({provider:'local',model:''});
  busy=true;runtime.state='loading';runtime.message='Preparando download do modelo. Mantenha esta aba aberta.';runtime.progress=0;emit();
  try{
   await deactivate(false);

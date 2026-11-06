@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Baixatudo · Referências",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Prepare referências por aba, URL ou arquivo autorizado e continue a reconstrução no Studio.",
   "permissions": [
     "activeTab",

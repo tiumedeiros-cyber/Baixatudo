@@ -3,6 +3,7 @@ import {build} from 'esbuild';
 await rm('site-output',{recursive:true,force:true});await mkdir('site-output/vendor',{recursive:true});
 await cp('index.html','site-output/index.html');await cp('src','site-output/src',{recursive:true});await cp('public','site-output/public',{recursive:true});
 await build({stdin:{contents:"export * from '@mlc-ai/web-llm';",resolveDir:process.cwd()},outfile:'site-output/vendor/webllm.js',bundle:true,format:'esm',minify:true,target:'es2022',legalComments:'eof'});
+await build({stdin:{contents:"export {createClient} from '@supabase/supabase-js';",resolveDir:process.cwd()},outfile:'site-output/vendor/supabase.js',bundle:true,format:'esm',minify:true,target:'es2022',legalComments:'eof'});
 const clone=await readFile('engine/skills/clonar-programa/SKILL.md','utf8');
 const design=await readFile('engine/skills/frontend-design/SKILL.md','utf8');
 const testing=await readFile('engine/skills/webapp-testing/SKILL.md','utf8');
