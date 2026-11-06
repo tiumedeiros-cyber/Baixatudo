@@ -62,3 +62,13 @@ O ZIP original `baixartudo-atualizado.zip` foi mantido. Nenhum commit, push ou i
 - `/public/licenses/provenance.json` acessado publicamente e conferido.
 - Importação da biblioteca WebLLM real empacotada aprovada no navegador, confirmando as exports de engine/worker; isso **não** valida a inferência ou o download de pesos. O teste assistido continua sendo fixture explícita.
 - Verificações documentais/testes posteriores ao commit de aplicação não alteram o runtime implantado. Não foi configurado nem comprovado deploy automático de commits futuros.
+
+## Atualização 0.3 — validação sem API e conectores opcionais
+
+- 21 testes unitários aprovados: incluem bloqueio de modelos pagos no modo gratuito, destinos fixos, limites de mensagens, formato Gemini/OpenAI, falta de chave, rejeição de origem e ausência de fallback em 429.
+- Navegador: fluxo manual sem GPU/chave, importação de arquivo HTML como evidência, recusa de resposta inválida, confirmação e versão antes de aplicar, interação funcional do contador importado na prévia.
+- Navegador: seleção de OpenRouter não faz chamada, campo de chave é limpo, chave fixture ausente de localStorage/sessionStorage; chamada remota usa transporte fixture e após reload é bloqueada por falta de chave.
+- Extensão: teste de interface com API Chromium simulada reproduz aba `kiwi-extension://` ativa e aba de site separada; a aba do site é selecionada corretamente e arquivo textual é lido. Isso NÃO comprova funcionamento em Kiwi real nem concessão de permissão no Android.
+- Captura direta de URL da extensão, inferência externa real e conexões com chaves reais ainda não validadas. Nenhuma conta, assinatura, crédito ou chave de provedor foi criada.
+- Interfaces/API, não executor completo: REA/Playwright remoto, análise de ZIP/EXE/APK, geração de backend e prova automática de paridade permanecem pendentes.
+- A nova extensão ZIP precisa ser atualizada/reinstalada manualmente; não está distribuída por loja com atualização automática.

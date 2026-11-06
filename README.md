@@ -1,6 +1,6 @@
 # Baixatudo Studio — uso pessoal não comercial
 
-Workspace web para organizar, reconstruir rascunhos de páginas a partir de evidências e editar projetos. Sem cadastro no aplicativo, sem pagamentos e sem chave de provedor de IA. O ZIP original de download de vídeos foi preservado.
+Workspace web para organizar, reconstruir rascunhos de páginas a partir de evidências e editar projetos. Sem cadastro no aplicativo e sem integração de pagamentos. Chave de provedor é opcional: há modo manual e IA no aparelho. O ZIP original de download de vídeos foi preservado.
 
 ## Publicação
 
@@ -30,9 +30,23 @@ Abra a porta 3000. O servidor escuta em `0.0.0.0`. O build estático fica em `si
 5. Conferir o resumo e aceitar ou recusar o resultado. O código anterior vira uma versão.
 6. Testar manualmente a prévia e exportar backup/código.
 
-## IA real, com limitações explícitas
+## Validar agora e escolher APIs depois
 
-A implementação usa **WebLLM com modelos Qwen2.5** em um Web Worker, no aparelho do usuário. Nenhum provedor de inferência é configurado e nenhuma chave é necessária. Os pesos são baixados de Hugging Face e a biblioteca WASM do GitHub após autorização. O download pode exceder 1 GB; são necessários WebGPU, memória e navegador compatíveis. Internet, energia e bateria ainda têm custos. A inferência real e sua qualidade **não foram validadas no Android do usuário nem neste ambiente**, onde não foi baixado um modelo.
+Administração → Escolher IA permite selecionar: validação manual, WebLLM, OpenRouter, Gemini, OpenAI/GPT ou Groq. A seleção/modelo é salva separadamente dos projetos. Os conectores remotos são implementados em `/api/infer`, com destinos fixos e credencial fornecida pelo próprio usuário em cada chamada. Não há chave compartilhada do servidor nem leitura automática de chave de ambiente.
+
+A chave digitada fica **apenas na memória da aba**, nunca em localStorage, sessionStorage, URL, backup ou código-fonte. Precisa ser reinserida ao reabrir/recarregar a página. O campo é limpo após salvar e há ação para esquecer a chave. O servidor a recebe por HTTPS e a encaminha ao provedor; não a persiste nem inclui em logs da aplicação. A hospedagem e o provedor mantêm suas próprias políticas. Isso não substitui cofre de segredos com autenticação para uso multiusuário.
+
+OpenRouter tem modo que rejeita modelos pagos (`openrouter/free` ou `:free` apenas), sem lista de fallback paga. Outros provedores exigem reconhecimento explícito de que a cota/faturamento dependem da conta; o aplicativo não pode certificar que uma chave Gemini/Groq pertence à faixa gratuita. Selecionar um provedor **não envia pedido** e não ativa faturamento. Os conectores foram testados com transporte controlado, não com uma chave real.
+
+**Sem chave:** no modo “Validação sem API”, o Studio prepara um pedido usando a referência e as orientações internas. Copie para uma IA que já utiliza, ou baixe o pedido. Cole/importe a resposta JSON. O Studio valida, apresenta confirmação e preserva uma versão antes de aplicar. É um fluxo manual, não um agente autônomo. Não é necessário contratar uma API para testar esse fluxo.
+
+Referências também podem ser arquivos textuais de até 500 KB (HTML, TXT, JSON, MD, JS e CSS), importados no próprio Studio; não são executados. ZIP, EXE e APK não são analisados. Arquivos sem URL não recebem uma origem inventada.
+
+Pesquisa de opções e fontes: `public/PESQUISA-IA.md`.
+
+## IA no aparelho, com limitações explícitas
+
+A implementação usa **WebLLM com modelos Qwen2.5** em um Web Worker, no aparelho do usuário. Esse modo não requer chave; os conectores remotos são opcionais e separados. Os pesos são baixados de Hugging Face e a biblioteca WASM do GitHub após autorização. O download pode exceder 1 GB; são necessários WebGPU, memória e navegador compatíveis. Internet, energia e bateria ainda têm custos. A inferência real e sua qualidade **não foram validadas no Android do usuário nem neste ambiente**, onde não foi baixado um modelo.
 
 As respostas devem conter JSON com HTML/CSS/JS completos. Respostas inválidas não substituem o projeto. Mudanças concorrentes são detectadas. Geração fica em rascunho não testado e exige confirmação antes da aplicação. Há cancelamento por encerramento do worker.
 
@@ -63,9 +77,9 @@ Prévia: iframe com `sandbox="allow-scripts"`, sem `allow-same-origin`, CSP bloq
 
 ## Extensão
 
-`public/baixatudo-extension.zip` contém uma extensão Chromium MV3 de captura manual de texto visível. Instalação: extraia, abra gerenciador de extensões em Chrome/Edge desktop, ative modo de desenvolvedor e carregue a pasta sem compactação. Revise o texto antes de salvar JSON e importe-o em Projeto → Referências.
+`public/baixatudo-extension.zip` contém uma extensão Chromium MV3 para preparar referências autorizadas. Instalação: extraia, abra gerenciador de extensões em Chrome/Edge desktop, ative modo de desenvolvedor e carregue a pasta sem compactação. Revise o texto antes de salvar JSON e importe-o em Projeto → Referências.
 
-Pede somente `activeTab` e `scripting`, sem permissões permanentes para sites. Remove valores de campos e query/hash da URL; ainda pode haver informação privada no texto, exigindo revisão. Não envia captura automaticamente, não executa clonagem sozinha e não foi validada em navegador Android físico ou loja.
+A extensão 0.2 permite escolher explicitamente uma aba de site, informar URL ou selecionar arquivo. Usa `tabs` para listar título/URL das abas, `activeTab` e `scripting`; leitura de site exige permissão opcional para aquele domínio, pedida após clique. Permissões concedidas podem persistir até revogação no navegador. Não possui acesso automático permanente a todos os sites. Remove valores de campos e query/hash da URL; ainda pode haver informação privada no texto, exigindo revisão. Não envia captura automaticamente, não executa clonagem sozinha e não foi validada em navegador Android físico ou loja.
 
 ## Verificar e empacotar
 

@@ -1,9 +1,22 @@
 {
   "manifest_version": 3,
-  "name": "Baixatudo · Captura pessoal",
-  "version": "0.1.0",
-  "description": "Capture e revise o texto visível de páginas autorizadas para importar no seu Studio pessoal.",
-  "permissions": ["activeTab", "scripting"],
-  "action": {"default_popup": "popup.html", "default_title": "Capturar referência"},
-  "icons": {"128": "icon.png"}
+  "name": "Baixatudo · Referências",
+  "version": "0.2.0",
+  "description": "Prepare referências por aba, URL ou arquivo autorizado e continue a reconstrução no Studio.",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "tabs"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Preparar referência para o Studio"
+  },
+  "icons": {
+    "128": "icon.png"
+  },
+  "optional_host_permissions": [
+    "http://*/*",
+    "https://*/*"
+  ]
 }

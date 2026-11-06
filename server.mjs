@@ -2,11 +2,13 @@ import http from 'node:http';
 import {readFile, stat} from 'node:fs/promises';
 import path from 'node:path';
 import capture from './api/capture.js';
+import inference from './api/infer.js';
 const root=path.join(process.cwd(),'site-output');
 const types={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.json':'application/json; charset=utf-8','.svg':'image/svg+xml','.zip':'application/zip','.md':'text/plain; charset=utf-8'};
 http.createServer(async(req,res)=>{
  try {
   if(new URL(req.url,'http://local').pathname==='/api/capture')return capture(req,res);
+  if(new URL(req.url,'http://local').pathname==='/api/infer')return inference(req,res);
   if(!['GET','HEAD'].includes(req.method)){res.writeHead(405);return res.end();}
   const pathname=decodeURIComponent(new URL(req.url,'http://local').pathname);
   if(pathname.split('/').some(p=>p.startsWith('.') && p!=='')){res.writeHead(403);return res.end();}
