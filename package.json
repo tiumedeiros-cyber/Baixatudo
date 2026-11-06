@@ -4,14 +4,19 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "npm run build && node server.mjs",
+    "start": "npm run build && node --use-system-ca server.mjs",
     "test": "node --test tests/*.test.mjs",
     "check": "node --check src/app.js && node --check src/core.js && node --check src/ai-client.js && node --check src/providers.js && node --check extension/popup.js && node --check api/infer.js && node --check engine/lib/providers.js && node --check src/accounts.js && node --check api/config.js",
     "test:browser": "node tests/browser.mjs",
     "package": "node scripts/package.mjs",
     "build": "node scripts/build.mjs",
     "test:accounts": "node tests/accounts-browser.mjs",
-    "test:extension": "node tests/extension-browser.mjs"
+    "test:extension": "node tests/extension-browser.mjs",
+    "verify": "node scripts/verify.mjs",
+    "release:check": "node scripts/verify.mjs --release",
+    "test:capture:live": "node tests/capture-live.mjs",
+    "pretest": "npm run build",
+    "security": "npm audit --audit-level=moderate"
   },
   "devDependencies": {
     "@playwright/test": "^1.65.0",
@@ -25,6 +30,6 @@
     "ipaddr.js": "^2.5.0"
   },
   "engines": {
-    "node": ">=22"
+    "node": ">=22.19.0"
   }
 }

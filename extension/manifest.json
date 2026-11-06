@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Baixatudo · Referências",
-  "version": "0.3.0",
-  "description": "Prepare referências por aba, URL ou arquivo autorizado e continue a reconstrução no Studio.",
+  "name": "Baixatudo \u00b7 Refer\u00eancias",
+  "version": "0.3.1",
+  "description": "Prepare refer\u00eancias por aba, URL ou arquivo autorizado e continue a reconstru\u00e7\u00e3o no Studio.",
   "permissions": [
     "activeTab",
     "scripting",
@@ -10,7 +10,7 @@
   ],
   "action": {
     "default_popup": "popup.html",
-    "default_title": "Preparar referência para o Studio"
+    "default_title": "Preparar refer\u00eancia para o Studio"
   },
   "icons": {
     "128": "icon.png"

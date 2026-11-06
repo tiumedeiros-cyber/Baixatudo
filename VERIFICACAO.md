@@ -92,3 +92,13 @@ O ZIP original `baixartudo-atualizado.zip` foi mantido. Nenhum commit, push ou i
 - URL principal e lista restrita de redirects configuradas. Confirmação de e-mail mantida; login anônimo/telefone não ativados.
 - Vercel: somente URL, chave publicável e flag de ativação. Nenhuma service_role/secret de Supabase foi adicionada ao app.
 - Entrega de e-mail, recuperação e fluxo completo com contas reais via navegador ainda não verificados. SMTP próprio ausente; o remetente padrão pode restringir destinatários.
+
+## Auditoria automatizada ampliada
+
+- Corrigido vazamento de headings ocultos/de formulários na captura do servidor e exclusão de texto de formulários na captura por aba da extensão (0.3.1).
+- Limites de corpo JSON passam a cobrir stream, Buffer, string e objeto pré-processado, por bytes UTF-8. Teste HTTP detectou reset de conexão ao interromper stream: corrigido drenando o restante sem armazená-lo. Timeouts de entrada configurados no servidor local.
+- Flag de autenticação ativa com configuração ausente agora falha com 503, sem cair silenciosamente em armazenamento local.
+- 30 testes unitários/HTTP passaram. Navegador desktop/mobile e contas com SDK/backend controlados passaram novamente.
+- Captura HTTPS real do GitHub do proprietário passou com o repositório de CAs confiáveis do sistema (`--use-system-ca`), sem desativar TLS.
+- Extensão real ainda falha no Chromium reduzido; tentativa de navegador completo foi bloqueada no host de distribuição. Workflow configura Chromium completo, sem presumir aprovação anterior à execução.
+- `npm run verify` e `npm run release:check` geram relatório e retornam erro quando há falhas; a liberação continua bloqueada. Nenhum cadastro/email/inferência real ou Android foi aprovado por simulação.

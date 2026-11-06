@@ -41,8 +41,9 @@ export async function requestPage(value,{resolver=lookup,maxBytes=1024*1024,dead
  throw Error('Muitos redirecionamentos.');
 }
 export function extractEvidence(html,url){
- const $=load(html);const title=$('title').first().text().trim().slice(0,300);const headings=$('h1,h2,h3').map((_,el)=>$(el).text().trim().slice(0,160)).get().slice(0,30);
+ const $=load(html);const title=$('title').first().text().trim().slice(0,300);
  $('script,style,noscript,iframe,form,input,textarea,select,[contenteditable],[hidden],[aria-hidden="true"]').remove();
+ const headings=$('h1,h2,h3').map((_,el)=>$(el).text().trim().slice(0,160)).get().slice(0,30);
  const text=$('body').text().replace(/\s+/g,' ').trim().slice(0,16000);
  return {kind:'baixatudo-evidence',version:1,page:{title,url,text,capturedAt:new Date().toISOString()},headings,limitations:['Captura de HTML público, sem executar JavaScript.','Não comprova comportamento, aparência renderizada ou regras de backend.','A página pode estar incompleta; use a extensão para conteúdo renderizado autorizado.']};
 }

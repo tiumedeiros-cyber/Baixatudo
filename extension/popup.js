@@ -25,7 +25,7 @@ $('capture').onclick=async()=>{
    const result=await chrome.scripting.executeScript({target:{tabId:target.id},func:()=>{
     const url=new URL(location.href);url.search='';url.hash='';url.username='';url.password='';
     const walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);const chunks=[];let length=0,node;
-    while((node=walker.nextNode())&&length<100000){const parent=node.parentElement;if(!parent||parent.closest('input,textarea,select,script,style,[contenteditable],noscript,[hidden],[aria-hidden="true"]'))continue;const style=getComputedStyle(parent);if(style.display==='none'||style.visibility!=='visible'||!parent.getClientRects().length)continue;const value=node.textContent.trim();if(value){chunks.push(value);length+=value.length+1;}}
+    while((node=walker.nextNode())&&length<100000){const parent=node.parentElement;if(!parent||parent.closest('form,input,textarea,select,script,style,[contenteditable],noscript,[hidden],[aria-hidden="true"]'))continue;const style=getComputedStyle(parent);if(style.display==='none'||style.visibility!=='visible'||!parent.getClientRects().length)continue;const value=node.textContent.trim();if(value){chunks.push(value);length+=value.length+1;}}
     return {title:document.title.slice(0,300),url:url.href,text:chunks.join('\n').slice(0,100000),capturedAt:new Date().toISOString()};
    }});page=result[0]?.result;
   }else if(mode==='url'){page={...await readPublic(target),url:cleanUrl(target),capturedAt:new Date().toISOString()};}

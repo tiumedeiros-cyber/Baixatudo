@@ -11,7 +11,7 @@ files=['index.html','server.mjs','package.json','package-lock.json','README.md',
 with ZipFile('entregas/baixatudo-studio.zip','w',ZIP_DEFLATED) as z:
  for f in files:
   if Path(f).is_file(): z.write(f)
- for folder in ['src','public','extension','tests','scripts','engine','api','supabase']:
+ for folder in ['src','public','extension','tests','scripts','engine','api','supabase','docs']:
   for f in Path(folder).rglob('*'):
    if f.is_file(): z.write(f)
 `],{stdio:'inherit'});

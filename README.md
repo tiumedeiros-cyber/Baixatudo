@@ -110,3 +110,9 @@ O bloqueio 401 descrito na entrega 0.4 foi resolvido. Projeto `baixatudo-studio`
 Regras de leitura/escrita por proprietário verificadas no banco real com dados temporários e rollback; nenhum usuário de teste ficou cadastrado. A entrega/recebimento do e-mail de confirmação, recuperação e ciclo completo de signup/signin no navegador ainda precisam de teste com conta autorizada. Não desativamos confirmação para contornar a falta de SMTP. Projetos locais anteriores não são migrados automaticamente: exporte o backup no navegador/origem antigo e restaure conscientemente após entrar na própria conta.
 
 GitHub por usuário: proposta aprovada tecnicamente, mas a integração de autorização/exportação/deploy por usuário ainda não está implementada. O acesso GitHub desta sessão Arena não é credencial para usuários do Baixatudo.
+
+## Automação de validação e liberação
+
+`npm run verify` executa testes estáticos, build, unidades, HTTP real, navegador desktop/mobile, isolamento da UI com backend controlado, extensão real e captura HTTPS real do repositório público do proprietário. Gera relatório e logs em `test-results/`. Requer Node >=22.19. Não usa serviços pagos nem desativa TLS.
+
+`npm run release:check` mantém a liberação **bloqueada** enquanto os requisitos reais não estiverem comprovados ou implementados. Passar em testes de interface não comprova entrega de e-mail, autenticação real, geração real ou clonagem de sistemas completos. Detalhes: [docs/TESTES-AUTOMATIZADOS.md](docs/TESTES-AUTOMATIZADOS.md).
